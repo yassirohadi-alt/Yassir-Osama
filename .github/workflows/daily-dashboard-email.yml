@@ -2,7 +2,7 @@ name: Daily Dashboard Email
 
 on:
   schedule:
-    # 11:30 UTC = 2:30 PM Baghdad time
+    # 11:00 UTC = 2:00 PM Baghdad time
     - cron: "30 11 * * *"
 
   workflow_dispatch:
