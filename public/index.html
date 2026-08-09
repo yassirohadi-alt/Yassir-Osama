@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="mobile-web-app-capable" content="yes"><meta name="theme-color" content="#B12836"><meta name="format-detection" content="telephone=no">
-<title>Knowledge Papers — Projects Dashboard (Mobile)</title>
+<title>Knowledge Papers — Projects Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=Cairo:wght@400;600;700;800;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
 <style>
@@ -8598,18 +8598,7 @@ function normPhase(v){const s=String(v||'').toLowerCase().trim();if(s.includes('
 function normSt(v){const s=String(v||'').toLowerCase().trim();if(s.includes('done')||s.includes('complet')||s.includes('انجز')||s.includes('أنجز')||s.includes('منجز')||s.includes('مُنجز'))return 'd';if(s.includes('progress')||s.includes('prog')||s.includes('قيد')||s.includes('جاري'))return 'p';return 'n';}
 
 /* ---- FIREBASE SYNC ---- */
-const DEFAULT_FIREBASE_CFG={
-  apiKey:'AIzaSyARl7jKTTTQ5hW1M64Ev91NMfLJo9OPA1E',
-  authDomain:'knowledge-papers.firebaseapp.com',
-  databaseURL:'https://knowledge-papers-default-rtdb.firebaseio.com',
-  projectId:'knowledge-papers',
-  storageBucket:'knowledge-papers.firebasestorage.app',
-  messagingSenderId:'602139029671',
-  appId:'1:602139029671:web:9570a577b2a7302cc82b82',
-  measurementId:'G-PRDJLYDKN9'
-};
-const DEFAULT_SYNC_ROOM='asimati-hub-v2';
-const SYNC={ref:null,on:false,applying:false,last:null,cfg:DEFAULT_FIREBASE_CFG,room:DEFAULT_SYNC_ROOM,pushT:null};
+const SYNC={ref:null,on:false,applying:false,last:null,cfg:null,room:'asimati-hub-v2',pushT:null};
 function setSyncUI(st){const dot=document.getElementById('syncDot'),txt=document.getElementById('syncTxt'),fab=document.getElementById('syncFab'),fd=document.getElementById('fabDot');const m={off:['#8A93A8','Live Connectivity'],connecting:['#8A6A2C','Connecting...'],live:['#2E7D5B','Live'],error:['#B0202E','Error']};const v=m[st]||m.off;if(dot)dot.style.background=v[0];if(txt)txt.textContent=v[1];if(fab)fab.className='sync-fab'+(st==='live'?' live':'');if(fd)fd.style.background=v[0];}
 /* refresh BOTH possible project grids (company view + hub view) — a mutation
    should never depend on guessing which one is currently on screen. */
@@ -8828,14 +8817,7 @@ window.addEventListener('DOMContentLoaded',()=>{
     document.addEventListener('click',function(e){ wcardGo(e.target); },false);
     document.addEventListener('keydown',function(e){ if((e.key==='Enter'||e.key===' ')&&document.activeElement&&document.activeElement.classList&&document.activeElement.classList.contains('wcard')){ e.preventDefault(); wcardGo(document.activeElement); } },false);
   } }catch(e){}
-  try{
-    // Public/mobile build: always use the shared Knowledge Papers Firebase connection.
-    // Ignore stale per-browser sync settings so every phone opens the same room automatically.
-    SYNC.cfg=DEFAULT_FIREBASE_CFG;
-    SYNC.room=DEFAULT_SYNC_ROOM;
-    try{localStorage.setItem('fbcfg',JSON.stringify({cfg:SYNC.cfg,room:SYNC.room}));}catch(_e){}
-    initFirebase();
-  }catch(e){ SYNC.cfg=DEFAULT_FIREBASE_CFG; SYNC.room=DEFAULT_SYNC_ROOM; initFirebase(); }
+  try{const fb=JSON.parse(localStorage.getItem('fbcfg')||'null');if(fb&&fb.cfg){SYNC.cfg=fb.cfg;SYNC.room=fb.room||'asimati-main';initFirebase();}else{setSyncUI('off');}}catch(e){setSyncUI('off');}
   try{ document.body.setAttribute('data-booted','1'); }catch(e){}
 });
 
@@ -9658,34 +9640,7 @@ function copyDigestHtml(){
   catch(e){ var ta=document.createElement('textarea'); ta.value=html; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');toast('Digest HTML copied',true);}catch(e2){} document.body.removeChild(ta); }
 }
 function downloadDigestHtml(){
-  var html='<!doctype html><html><head><meta charset="utf-8"><title>Knowledge Papers PMO — Daily Digest</title>
-<style id="kp-mobile-final">
-/* Knowledge Papers — dedicated phone build */
-@media (max-width: 700px){
-  html,body{width:100%;max-width:100%;overflow-x:hidden;background:#F4F6F9;}
-  body{padding-bottom:calc(74px + env(safe-area-inset-bottom,0px));}
-  .appbar{position:sticky;top:0;padding:calc(7px + env(safe-area-inset-top,0px)) 10px 8px!important;gap:6px!important;}
-  .app-logo{height:34px!important}.app-title{font-size:13px!important}.app-sub{display:none!important}
-  .app-gap{display:none!important}.app-chips{width:100%;gap:5px!important;overflow-x:auto;flex-wrap:nowrap!important;padding-bottom:2px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-  .app-chips::-webkit-scrollbar{display:none}.app-chips .chip,.app-chips .chb{flex:0 0 auto;white-space:nowrap;min-height:34px!important}
-  .hub{padding:12px 10px!important}.hub-header{margin-bottom:12px!important}.hub-title{font-size:21px!important}.hub-sub{font-size:11.5px!important}
-  .hub-stats{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;width:100%;gap:7px!important}.hstat{padding:8px!important}.hstat-v{font-size:19px!important}
-  .proj-grid,.eng-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;overflow:visible!important;gap:9px!important;padding-bottom:0!important}
-  .proj-grid .proj-card,.eng-grid .wcard{width:auto!important;min-width:0!important;flex:none!important}.proj-card-top{padding:11px 10px 9px!important}.proj-card-icon{width:32px;height:32px;margin-bottom:7px}.proj-card-name{font-size:11.5px;min-height:44px}.proj-card-body{padding:9px!important;gap:7px!important}.pcstat-v{font-size:16px!important}.pcstat-k{font-size:9px!important}
-  .st-widget-head{padding:12px!important}.st-widget-body{padding:12px!important}.st-kpi-row{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}.st-ring-cell{grid-column:1/-1!important;padding:8px 0 12px!important}.st-kpi{padding:10px 7px!important}.st-kpi-v{font-size:20px!important}.st-lower{grid-template-columns:1fr!important}
-  .proj-view{width:100vw;height:100dvh}.pv-top{padding:calc(8px + env(safe-area-inset-top,0px)) 9px 8px!important;gap:6px!important}.pv-back{padding:7px 9px!important}.pv-title{font-size:13px!important}.pv-en{display:none}.pv-actions{width:100%;overflow-x:auto;flex-wrap:nowrap!important;padding-bottom:2px}.pv-actions .btn{flex:0 0 auto;padding:7px 10px!important}
-  .pv-kpis{padding:8px 9px!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px!important}.pv-kpi{min-width:0!important;padding:9px!important}.pv-kpi .kv{font-size:18px!important}.pv-body{padding:10px!important}.pv-grid{grid-template-columns:1fr!important;gap:10px!important}.sec-head{padding:11px 12px!important}.sec-body{padding:11px 12px!important}
-  .data-table,.site-table,.gantt-table,.phase-table{min-width:720px!important}.mobile-hscroll,.site-table-wrap,.gantt-wrap{width:100%;overflow-x:auto!important;-webkit-overflow-scrolling:touch!important}
-  .modal-back{padding:0!important;align-items:flex-end!important}.modal{width:100%!important;max-height:92dvh!important;border-radius:18px 18px 0 0!important;padding-bottom:env(safe-area-inset-bottom,0px)}
-  .sync-fab{width:48px;height:48px;left:12px!important;bottom:calc(12px + env(safe-area-inset-bottom,0px))!important}
-  .toast{left:10px!important;right:10px!important;bottom:calc(70px + env(safe-area-inset-bottom,0px))!important;text-align:center;justify-content:center}
-  .company-body{padding:14px 10px 40px!important}.company-header{min-height:auto!important;padding:14px 10px!important}.company-header .cname{font-size:17px!important}.company-header .clogo{width:62px!important;height:62px!important}
-}
-@media (max-width:390px){
-  .proj-grid,.eng-grid{grid-template-columns:1fr!important}.hub-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-}
-</style>
-</head><body style="background:#F4F6FA;padding:24px">'+buildDigestHtml()+'</body></html>';
+  var html='<!doctype html><html><head><meta charset="utf-8"><title>Knowledge Papers PMO — Daily Digest</title></head><body style="background:#F4F6FA;padding:24px">'+buildDigestHtml()+'</body></html>';
   var blob=new Blob([html],{type:'text/html;charset=utf-8'});
   var url=URL.createObjectURL(blob);
   var a=document.createElement('a'); a.href=url; a.download='PMO_Daily_Digest_'+_digestFmtDate()+'.html';
