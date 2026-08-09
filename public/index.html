@@ -2496,7 +2496,7 @@ body{background-color:#F1F3F8!important;background-image:var(--kp-lotus),radial-
       <div id="syncDiag" style="font-size:11.5px;background:#FAFBFD;border:1px solid var(--line);border-radius:8px;padding:9px 11px;margin-bottom:10px;line-height:1.7"></div>
 
       <label class="modal-lbl">Room ID</label>
-      <input id="syncRoom" class="modal-inp" value="asimati-hub-v2" placeholder="asimati-hub-v2">
+      <input id="syncRoom" class="modal-inp" value="asimati-main" placeholder="asimati-main">
       <label class="modal-lbl">Firebase Config <span style="font-weight:400;color:var(--muted)">— or paste a settings code copied from a teammate</span></label>
       <textarea id="syncCfg" class="modal-ta" rows="7" placeholder='{&#10;  apiKey: "...",&#10;  databaseURL: "https://xxx.firebaseio.com"&#10;}'></textarea>
       <div class="modal-actions">
@@ -8598,9 +8598,7 @@ function normPhase(v){const s=String(v||'').toLowerCase().trim();if(s.includes('
 function normSt(v){const s=String(v||'').toLowerCase().trim();if(s.includes('done')||s.includes('complet')||s.includes('انجز')||s.includes('أنجز')||s.includes('منجز')||s.includes('مُنجز'))return 'd';if(s.includes('progress')||s.includes('prog')||s.includes('قيد')||s.includes('جاري'))return 'p';return 'n';}
 
 /* ---- FIREBASE SYNC ---- */
-const KP_FIREBASE_CONFIG={"apiKey":"AIzaSyARl7jKTTTQ5hW1M64Ev91NMfLJo9OPA1E","authDomain":"knowledge-papers.firebaseapp.com","databaseURL":"https://knowledge-papers-default-rtdb.firebaseio.com","projectId":"knowledge-papers","storageBucket":"knowledge-papers.firebasestorage.app","messagingSenderId":"602139029671","appId":"1:602139029671:web:9570a577b2a7302cc82b82","measurementId":"G-PRDJLYDKN9"};
-const KP_SYNC_ROOM='asimati-hub-v2';
-const SYNC={ref:null,on:false,applying:false,last:null,cfg:Object.assign({},KP_FIREBASE_CONFIG),room:KP_SYNC_ROOM,pushT:null};
+const SYNC={ref:null,on:false,applying:false,last:null,cfg:null,room:'asimati-hub-v2',pushT:null};
 function setSyncUI(st){const dot=document.getElementById('syncDot'),txt=document.getElementById('syncTxt'),fab=document.getElementById('syncFab'),fd=document.getElementById('fabDot');const m={off:['#8A93A8','Live Connectivity'],connecting:['#8A6A2C','Connecting...'],live:['#2E7D5B','Live'],error:['#B0202E','Error']};const v=m[st]||m.off;if(dot)dot.style.background=v[0];if(txt)txt.textContent=v[1];if(fab)fab.className='sync-fab'+(st==='live'?' live':'');if(fd)fd.style.background=v[0];}
 /* refresh BOTH possible project grids (company view + hub view) — a mutation
    should never depend on guessing which one is currently on screen. */
@@ -8676,15 +8674,7 @@ setInterval(function(){
           : SYNC.lastOk ? ('Last change delivered to your team at '+SYNC.lastOk.toLocaleTimeString())
           : 'Connected, but no change has been delivered yet';
 },4000);
-function openSync(){
-  const m=document.getElementById('syncModal');
-  m.classList.add('show');
-  SYNC.room=KP_SYNC_ROOM;
-  SYNC.cfg=Object.assign({},KP_FIREBASE_CONFIG);
-  document.getElementById('syncRoom').value=KP_SYNC_ROOM;
-  document.getElementById('syncCfg').value=JSON.stringify(KP_FIREBASE_CONFIG,null,2);
-  renderSyncDiag();
-}
+function openSync(){const m=document.getElementById('syncModal');m.classList.add('show');document.getElementById('syncRoom').value=SYNC.room;if(SYNC.cfg)document.getElementById('syncCfg').value=JSON.stringify(SYNC.cfg,null,2);renderSyncDiag();}
 function closeSync(){document.getElementById('syncModal').classList.remove('show');}
 /* shows exactly what this browser is connected to, so two machines can be compared side by side */
 function renderSyncDiag(){
@@ -8707,16 +8697,9 @@ setInterval(function(){ if(document.getElementById('syncModal').classList.contai
    by name, with a one-click way to bring one back if it was removed by mistake */
 
 function connectSync(){
-  var room=KP_SYNC_ROOM;
-  document.getElementById('syncRoom').value=KP_SYNC_ROOM;
+  var room=(document.getElementById('syncRoom').value||'asimati-hub-v2').trim().replace(/[.#$\[\]\/\s]/g,'-').toLowerCase();
   var t=document.getElementById('syncCfg').value.trim();
-  if(!t){
-    SYNC.cfg=Object.assign({},KP_FIREBASE_CONFIG);
-    SYNC.room=KP_SYNC_ROOM;
-    document.getElementById('syncCfg').value=JSON.stringify(KP_FIREBASE_CONFIG,null,2);
-    try{localStorage.setItem('fbcfg',JSON.stringify({cfg:SYNC.cfg,room:SYNC.room}));}catch(e){}
-    closeSync();initFirebase();return;
-  }
+  if(!t){alert('Please paste your Firebase config.');return;}
   /* a settings code copied via "Copy My Sync Settings" carries both the room and the config together */
   if(t.indexOf('ASIMATI-SYNC:')===0){
     try{
@@ -8746,14 +8729,7 @@ function copySyncSettings(){
     try{toast('Copied — send this to your teammate and have them paste it into the Config box, then Connect',true);}catch(e){}
   }catch(e){ try{toast('Could not copy: '+e.message,false);}catch(_){} }
 }
-function disconnectSync(){
-  try{if(SYNC.ref)SYNC.ref.off();}catch(e){}
-  SYNC.on=false;SYNC.ref=null;
-  SYNC.cfg=Object.assign({},KP_FIREBASE_CONFIG);
-  SYNC.room=KP_SYNC_ROOM;
-  try{localStorage.setItem('fbcfg',JSON.stringify({cfg:SYNC.cfg,room:SYNC.room}));}catch(e){}
-  setSyncUI('off');closeSync();
-}
+function disconnectSync(){try{if(SYNC.ref)SYNC.ref.off();}catch(e){}SYNC.on=false;SYNC.ref=null;SYNC.cfg=null;try{localStorage.removeItem('fbcfg');}catch(e){}setSyncUI('off');closeSync();}
 
 /* ---- PORTABLE EXPORT ---- */
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();downloadPortal();}});
@@ -8841,15 +8817,7 @@ window.addEventListener('DOMContentLoaded',()=>{
     document.addEventListener('click',function(e){ wcardGo(e.target); },false);
     document.addEventListener('keydown',function(e){ if((e.key==='Enter'||e.key===' ')&&document.activeElement&&document.activeElement.classList&&document.activeElement.classList.contains('wcard')){ e.preventDefault(); wcardGo(document.activeElement); } },false);
   } }catch(e){}
-  try{
-    SYNC.cfg=Object.assign({},KP_FIREBASE_CONFIG);
-    SYNC.room=KP_SYNC_ROOM;
-    try{localStorage.setItem('fbcfg',JSON.stringify({cfg:SYNC.cfg,room:SYNC.room}));}catch(_){}
-    initFirebase();
-  }catch(e){
-    console.error('Firebase auto-connect failed',e);
-    setSyncUI('error');
-  }
+  try{const fb=JSON.parse(localStorage.getItem('fbcfg')||'null');if(fb&&fb.cfg){SYNC.cfg=fb.cfg;SYNC.room=fb.room||'asimati-main';initFirebase();}else{setSyncUI('off');}}catch(e){setSyncUI('off');}
   try{ document.body.setAttribute('data-booted','1'); }catch(e){}
 });
 
@@ -9927,8 +9895,15 @@ function pmoDownloadPPT(){
    v9 — Snapshots, baselines, audit-trail, cross-filter helpers
    Everything stored on STORE (persisted via existing persist()).
    ============================================================ */
-function _v9_today(){ return new Date().toISOString().slice(0,10); }
-function _v9_weekAgo(){ var d=new Date(); d.setDate(d.getDate()-7); return d.toISOString().slice(0,10); }
+function _v9_localISO(d){
+  d=d||new Date();
+  var y=d.getFullYear();
+  var m=String(d.getMonth()+1).padStart(2,'0');
+  var day=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day;
+}
+function _v9_today(){ return _v9_localISO(new Date()); }
+function _v9_weekAgo(){ var d=new Date(); d.setDate(d.getDate()-7); return _v9_localISO(d); }
 function _v9_summary(){
   /* Compact snapshot payload for weekly diff */
   var A=pmoAnalyze();
@@ -9956,7 +9931,7 @@ function snapshotSaveWeekly(){
 function snapshotAt(daysAgo){
   var arr=snapshotsGet(); if(!arr.length) return null;
   var target=new Date(); target.setDate(target.getDate()-daysAgo);
-  var iso=target.toISOString().slice(0,10);
+  var iso=_v9_localISO(target);
   /* find the newest snapshot with date <= iso */
   var best=null;
   arr.forEach(function(s){ if(s.date<=iso && (!best || s.date>best.date)) best=s; });
@@ -10247,10 +10222,9 @@ function pmoCCStrip(){
     cells.push(cell('Milestones', (A.totMs?(A.totMsDone||0)+'/'+A.totMs:na()), (A.totMs?Math.round((A.totMsDone||0)/A.totMs*100)+'% delivered':'—'), ''));
     cells.push(cell('Open Risks', (A.totOpenRisks!=null?A.totOpenRisks:na()), (A.totHighRisks||0)+' high-impact', (A.totHighRisks>0?'r':A.totOpenRisks>0?'w':'g')));
     cells.push(cell('Sites/Systems', (A.totSites!=null?A.totSites:na()), 'Tracked', 't'));
-    /* Last snapshot chip */
-    var lastSnap=null;
-    try{ var arr=(typeof snapshotsGet==='function')?snapshotsGet():[]; if(arr.length) lastSnap=arr[arr.length-1].date; }catch(e){}
-    cells.push(cell('Snapshot', (lastSnap||na()), (lastSnap?'Live sync':'No snapshot yet'), lastSnap?'g':''));
+    /* Daily PMO snapshot date — uses the PC's Baghdad local calendar date */
+    var todayBaghdad=_v9_today();
+    cells.push(cell('Snapshot', todayBaghdad, 'Daily · Baghdad time', 'g'));
   } else {
     cells.push(cell('Portfolio', na(), 'Data not available', ''));
     cells.push(cell('SPI', na(), '', ''));
@@ -10265,7 +10239,12 @@ function pmoCCStrip(){
 (function(){
   if(typeof openPMO==='function'){
     var _o=openPMO;
-    window.openPMO=function(){ var r=_o.apply(this,arguments); try{ pmoCCStrip(); }catch(e){} return r; };
+    window.openPMO=function(){
+      var r=_o.apply(this,arguments);
+      try{ if(typeof snapshotSaveWeekly==='function') snapshotSaveWeekly(); }catch(e){}
+      try{ pmoCCStrip(); }catch(e){}
+      return r;
+    };
   }
   if(typeof pmoShow==='function'){
     var _s=pmoShow;
