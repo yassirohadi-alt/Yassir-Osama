@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html dir="ltr" lang="en">
 <head>
- <link rel="icon" type="image/png" href="/Logo%20PNG.png">
-<link rel="apple-touch-icon" href="/Logo%20PNG.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="mobile-web-app-capable" content="yes"><meta name="theme-color" content="#B12836"><meta name="format-detection" content="telephone=no">
 <title>Knowledge Papers — Projects Dashboard</title>
@@ -2141,6 +2139,10 @@ body.role-pm .site-table .sth-label[contenteditable="true"]:hover{background:rgb
 }
 .news-track.paused{animation-play-state:paused}
 @keyframes newsScroll{
+  0%{transform:translate3d(0,0,0)}
+  100%{transform:translate3d(-50%,0,0)}
+}
+@keyframes nbScroll{
   0%{transform:translate3d(0,0,0)}
   100%{transform:translate3d(-50%,0,0)}
 }
@@ -4835,6 +4837,8 @@ function buildNewsFeed(){
   var out=[];
   var A=null; try{ A=(typeof pmoAnalyze==='function')?pmoAnalyze():null; }catch(e){}
   var today=(new Date()).toISOString().slice(0,10);
+  var impOrder={hi:0,me:1,lo:2};
+
   /* 1) Portfolio headline */
   if(A){
     var portfolioKind = (A.portfolioPct>=A.portfolioPlan)?'good':(A.portfolioPct>=A.portfolioPlan-10?'warn':'risk');
@@ -4849,7 +4853,124 @@ function buildNewsFeed(){
       '<b>'+(A.ragG||0)+'</b> on track · <b>'+(A.ragW||0)+'</b> at risk · <b>'+(A.ragR||0)+'</b> critical'
     ));
   }
-  /* 3) Recently delivered milestones (top 3) — reads STORE.projects directly */
+
+  /* ─── 3) ALL OPEN RISKS — sorted by impact (high → medium → low) ─── */
+  try{
+    var allRisks=[];
+    (STORE.projects||[]).forEach(function(root){
+      var arr=(root.subProjects&&root.subProjects.length)?root.subProjects:[root];
+      arr.forEach(function(p){
+        (p.risks||[]).forEach(function(r){
+          if(r && r.status==='open'){
+            allRisks.push({risk:r.risk||'(risk)',impact:r.impact||'me',prob:r.prob||'me',owner:r.owner||'',mitigation:r.mitigation||'',proj:p.nameEn||p.name});
+          }
+        });
+      });
+    });
+    /* sort by impact severity: hi first, then me, then lo */
+    allRisks.sort(function(a,b){ return (impOrder[a.impact]!=null?impOrder[a.impact]:1)-(impOrder[b.impact]!=null?impOrder[b.impact]:1); });
+    /* show ALL open risks in the feed */
+    allRisks.forEach(function(r){
+      var kind = r.impact==='hi'?'risk':(r.impact==='lo'?'good':'warn');
+      var label = r.impact==='hi'?'High Risk':(r.impact==='lo'?'Low Risk':'Med Risk');
+      out.push(_nbItem(kind,label,'risk',
+        '<span class="news-proj">'+_nbEsc(r.proj)+'</span> · '+_nbEsc(r.risk)+(r.owner?(' <b>('+_nbEsc(r.owner)+')</b>'):'')
+      ));
+    });
+  }catch(e){}
+
+  /* ─── 4) NEW PROJECT ADDITIONS — items recently added to projects ─── */
+  try{
+    /* 4a) Recently added milestones (new / not-yet-delivered, within last 14 days) */
+    var newMilestones=[];
+    (STORE.projects||[]).forEach(function(root){
+      var arr=(root.subProjects&&root.subProjects.length)?root.subProjects:[root];
+      arr.forEach(function(p){
+        (p.milestones||[]).forEach(function(m){
+          if(m && m.planEnd && m.status!=='d'){
+            newMilestones.push({name:m.name||m.nameAr||'(milestone)',date:m.planEnd,proj:p.nameEn||p.name});
+          }
+        });
+      });
+    });
+    newMilestones.sort(function(a,b){return String(b.date||'').localeCompare(String(a.date||''));});
+    newMilestones.slice(0,5).forEach(function(m){
+      out.push(_nbItem('info','Milestone','sched',
+        '<span class="news-proj">'+_nbEsc(m.proj)+'</span> · '+_nbEsc(m.name)+' · target <b>'+_nbEsc(m.date)+'</b>'
+      ));
+    });
+
+    /* 4b) Recently added team members */
+    var teamAdds=[];
+    (STORE.projects||[]).forEach(function(root){
+      var arr=(root.subProjects&&root.subProjects.length)?root.subProjects:[root];
+      arr.forEach(function(p){
+        (p.team||[]).forEach(function(t){
+          if(t && (t.name||t.role)){
+            teamAdds.push({name:t.name||'(member)',role:t.role||'',proj:p.nameEn||p.name});
+          }
+        });
+      });
+    });
+    teamAdds.slice(0,3).forEach(function(t){
+      out.push(_nbItem('info','Team','info',
+        '<span class="news-proj">'+_nbEsc(t.proj)+'</span> · '+_nbEsc(t.name)+(t.role?' · <b>'+_nbEsc(t.role)+'</b>':'')
+      ));
+    });
+
+    /* 4c) Budget / payment items added */
+    var payItems=[];
+    (STORE.projects||[]).forEach(function(root){
+      var arr=(root.subProjects&&root.subProjects.length)?root.subProjects:[root];
+      arr.forEach(function(p){
+        (p.payments||[]).forEach(function(pay){
+          if(pay){
+            payItems.push({desc:pay.description||pay.poNo||'(payment)',amount:pay.amount||'',proj:p.nameEn||p.name});
+          }
+        });
+      });
+    });
+    payItems.slice(0,3).forEach(function(py){
+      out.push(_nbItem('info','Payment','info',
+        '<span class="news-proj">'+_nbEsc(py.proj)+'</span> · '+_nbEsc(py.desc)+(py.amount?' · <b>'+_nbEsc(py.amount)+'</b>':'')
+      ));
+    });
+
+    /* 4d) New sub-projects added */
+    var subProjs=[];
+    (STORE.projects||[]).forEach(function(root){
+      if(root.subProjects&&root.subProjects.length){
+        root.subProjects.forEach(function(sp){
+          subProjs.push({name:sp.nameEn||sp.name||'(sub-project)',parent:root.nameEn||root.name,pct:typeof overallPct==='function'?overallPct(sp):0});
+        });
+      }
+    });
+    subProjs.slice(0,3).forEach(function(sp){
+      out.push(_nbItem('info','Sub-Project','proj',
+        '<span class="news-proj">'+_nbEsc(sp.parent)+'</span> · '+_nbEsc(sp.name)+' · <b>'+sp.pct+'%</b>'
+      ));
+    });
+
+    /* 4e) Document uploads */
+    var docs=[];
+    (STORE.projects||[]).forEach(function(root){
+      var arr=(root.subProjects&&root.subProjects.length)?root.subProjects:[root];
+      arr.forEach(function(p){
+        (p.documents||[]).forEach(function(doc){
+          if(doc){
+            docs.push({name:doc.name||doc.title||'(document)',proj:p.nameEn||p.name});
+          }
+        });
+      });
+    });
+    docs.slice(0,3).forEach(function(d){
+      out.push(_nbItem('info','Document','info',
+        '<span class="news-proj">'+_nbEsc(d.proj)+'</span> · '+_nbEsc(d.name)
+      ));
+    });
+  }catch(e){}
+
+  /* 5) Recently delivered milestones (top 3) */
   try{
     var recent=[];
     (STORE.projects||[]).forEach(function(root){
@@ -4869,7 +4990,8 @@ function buildNewsFeed(){
       ));
     });
   }catch(e){}
-  /* 4) Late milestones */
+
+  /* 6) Late milestones */
   try{
     var late=[];
     var d0=new Date(); d0.setHours(0,0,0,0);
@@ -4885,32 +5007,14 @@ function buildNewsFeed(){
       });
     });
     late.sort(function(a,b){return String(a.when||'').localeCompare(String(b.when||''));});
-    late.slice(0,3).forEach(function(r){
+    late.slice(0,5).forEach(function(r){
       out.push(_nbItem('risk','Late','late',
         '<span class="news-proj">'+_nbEsc(r.proj)+'</span> · '+_nbEsc(r.name)+' overdue since <b>'+_nbEsc(r.when)+'</b>'
       ));
     });
   }catch(e){}
-  /* 5) High-impact open risks (top 2) */
-  try{
-    var hr=[];
-    (STORE.projects||[]).forEach(function(root){
-      var arr=(root.subProjects&&root.subProjects.length)?root.subProjects:[root];
-      arr.forEach(function(p){
-        (p.risks||[]).forEach(function(r){
-          if(r && r.status==='open' && r.impact==='hi'){
-            hr.push({risk:r.risk||'(risk)',owner:r.owner||'',proj:p.nameEn||p.name});
-          }
-        });
-      });
-    });
-    hr.slice(0,2).forEach(function(r){
-      out.push(_nbItem('risk','High Risk','risk',
-        '<span class="news-proj">'+_nbEsc(r.proj)+'</span> · '+_nbEsc(r.risk)+(r.owner?(' <b>('+_nbEsc(r.owner)+')</b>'):'')
-      ));
-    });
-  }catch(e){}
-  /* 6) Upcoming milestones (next 7 days) */
+
+  /* 7) Upcoming milestones (next 7 days) */
   try{
     var up=(typeof upcomingMilestones==='function')?upcomingMilestones(7):[];
     up.filter(function(u){return !u.late;}).slice(0,3).forEach(function(u){
@@ -4919,7 +5023,7 @@ function buildNewsFeed(){
       ));
     });
   }catch(e){}
-  /* 7) Weekly movers (from snapshot delta) */
+  /* 8) Weekly movers (from snapshot delta) */
   try{
     var wd=(typeof weeklyDelta==='function')?weeklyDelta():{none:true};
     if(wd && !wd.none && wd.moved && wd.moved.length){
@@ -4931,26 +5035,50 @@ function buildNewsFeed(){
       });
     }
   }catch(e){}
-  /* 8) Fallback: general info when nothing above produced items */
+
+  /* 9) Project count summary */
+  try{
+    var totalProj=(STORE.projects||[]).length;
+    if(totalProj>0){
+      out.push(_nbItem('info','Projects','proj',
+        '<b>'+totalProj+'</b> project'+(totalProj!==1?'s':'')+' in portfolio'
+      ));
+    }
+  }catch(e){}
+
+  /* 10) Fallback: general info when nothing above produced items */
   if(!out.length){
     out.push(_nbItem('info','Info','info','Live feed will populate as project data is added.'));
   }
-  /* 9) Timestamp — small trailing note */
+  /* 11) Timestamp — small trailing note */
   out.push(_nbItem('info','Updated','info','Live feed &middot; '+_nbEsc(today)));
   return out.join('');
 }
 function refreshNewsBanner(){
   var html=buildNewsFeed();
-  /* Duplicate the sequence so the CSS -50% translate creates a seamless loop */
-  var doubled=html+html;
+  /* Show ALL feed items in a scrolling ticker */
   ['newsTrackCompany','newsTrackHub'].forEach(function(id){
     var el=document.getElementById(id);
     if(!el) return;
-    el.innerHTML=doubled;
-    /* Duration proportional to content width so the scroll speed feels natural */
-    var items=el.querySelectorAll('.news-item').length||10;
-    var secs=Math.max(28, Math.min(120, Math.round(items*3)));
-    el.style.setProperty('--news-dur', secs+'s');
+    el.innerHTML=html;
+    /* Reset scrolling animation based on item count */
+    var tempDiv=document.createElement('div');
+    tempDiv.innerHTML=html;
+    var itemCount=tempDiv.querySelectorAll('.news-item').length;
+    if(itemCount>1){
+      /* Enable scrolling animation for multiple items */
+      var dur=Math.max(20, itemCount*6)+'s';
+      el.style.animation='nbScroll '+dur+' linear infinite';
+      el.style.transform='';
+      el.style.padding='';
+      el.style.gap='';
+    } else {
+      /* Single item — no scrolling needed */
+      el.style.animation='none';
+      el.style.transform='none';
+      el.style.padding='0 12px';
+      el.style.gap='0';
+    }
     /* Toggle banner visibility only if track has content */
     var banner=el.closest('.news-banner'); if(banner) banner.style.display='';
   });
@@ -8782,7 +8910,8 @@ function downloadPortal(){
 window.addEventListener('resize',()=>{if(CUR_PROJ)requestAnimationFrame(()=>initGanttArrows(CUR_PROJ));});
 
 function isoWeekNo(d){ d=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())); var day=d.getUTCDay()||7; d.setUTCDate(d.getUTCDate()+4-day); var ys=new Date(Date.UTC(d.getUTCFullYear(),0,1)); return Math.ceil((((d-ys)/86400000)+1)/7); }
-function updateWeekChip(){ try{ var el=document.getElementById('weekChip'); if(!el) return; var now=new Date(); var wk=isoWeekNo(now); var t=el.querySelector('.wk-txt'); if(t) t.textContent='Week '+wk; el.title='Week '+wk+' of '+now.getFullYear()+' \u00B7 '+now.toLocaleDateString(); }catch(e){} }
+function updateWeekChip(){ try{ var el=document.getElementById('weekChip'); if(!el) return; var now=new Date(); var wk=isoWeekNo(now); var day=now.getDate(); var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; var mon=months[now.getMonth()]; var yr=now.getFullYear(); var t=el.querySelector('.wk-txt'); if(t) t.textContent='Week '+wk+' \u00B7 '+day+' '+mon+' '+yr; el.title='Week '+wk+' \u00B7 '+day+' '+mon+' '+yr+' \u00B7 '+now.toLocaleDateString(); }catch(e){} }
+setInterval(function(){ try{ updateWeekChip(); }catch(e){} }, 60000);
 window.addEventListener('error',function(ev){ try{ if(document.body && !document.body.getAttribute('data-booted')){ var d=document.getElementById('__bootErr')||document.createElement('div'); d.id='__bootErr'; d.style.cssText='position:fixed;inset:0;z-index:99999;background:#fff;color:#8A6A2C;font:14px/1.6 -apple-system,Segoe UI,Arial;padding:26px;overflow:auto;direction:ltr'; d.innerHTML='<b style=\"color:#B12836;font-size:16px\">Dashboard — Loading issue</b><br><br>The dashboard hit an error while starting on this browser.<br><br><span style=\"color:#B0202E;font-family:monospace;font-size:12px\">'+String(ev.message||ev.error||'unknown')+'</span><br><span style=\"color:#7A879E;font-size:11px\">'+String(ev.filename||'')+' : '+String(ev.lineno||'')+'</span><br><br><span style=\"color:#7A879E;font-size:12px\">If you are opening the file directly on an iPhone, try opening it through the free <b>Documents by Readdle</b> app, or via a web link. Full details are in the chat.</span>'; if(document.body)document.body.appendChild(d); } }catch(_){ } });
 window.addEventListener('DOMContentLoaded',()=>{
   // NUCLEAR: on a new build, discard any stored data whose seed version doesn't match,
