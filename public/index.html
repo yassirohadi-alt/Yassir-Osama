@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html dir="ltr" lang="en">
 <head>
-<link rel="icon" type="image/png" href="/Logo%20PNG.png">
-<link rel="apple-touch-icon" href="/Logo%20PNG.png">  
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="mobile-web-app-capable" content="yes"><meta name="theme-color" content="#B12836"><meta name="format-detection" content="telephone=no">
 <title>Knowledge Papers — Projects Dashboard</title>
@@ -742,6 +740,10 @@ th.fin-num{text-align:right}
 .wcard-foot{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:9px}
 .eng-grid .wcard .proj-status{font-size:8.5px;padding:2px 6px;gap:3px}
 .wcard-pct{font-family:var(--disp);font-weight:700;font-size:11.5px;color:#B12836}
+.wcard-chg{display:inline-flex;align-items:center;padding:1px 6px;border-radius:99px;font-size:10px;font-weight:800;line-height:1.6;white-space:nowrap;flex:0 0 auto}
+.wcard-chg.up{background:#DCF5E7;color:#1A7A4C}
+.wcard-chg.down{background:#FCE4E8;color:#B91C2F}
+.wcard-chg.flat{background:#ECEEF3;color:#6B7280}
 .wcard-more{display:flex;align-items:center;gap:6px;font-family:var(--disp);font-weight:600;font-size:11px;color:#2b2b2b;margin-top:auto}
 .wcard-arrow{width:19px;height:19px;border-radius:50%;background:#B12836;color:#fff;display:grid;place-items:center;font-size:12px;line-height:1;flex:none}
 .eng-card{background:var(--card,#fff);border:1px solid var(--line,#E4E9F1);border-radius:18px;padding:22px 22px 18px;cursor:pointer;transition:.18s;position:relative;overflow:hidden;box-shadow:0 1px 2px rgba(20,30,60,.05)}
@@ -2358,7 +2360,7 @@ body{background-color:#F1F3F8!important;background-image:var(--kp-lotus),radial-
   </button>
   <div class="app-brand">
     <div class="app-title">Knowledge Papers</div>
-    <div class="app-sub">Baghdad Municipality &amp; Subsidiaries · 2026</div>
+    <div class="app-sub">Baghdad Municipality &amp; Subsidiaries · 2026 <span id="buildStamp" style="opacity:.55;font-size:9.5px;margin-inline-start:6px">build 2026-08-15-B8</span></div>
   </div>
   <div class="app-gap"></div>
   <div class="app-chips">
@@ -4984,6 +4986,8 @@ function renderCompany(){
   try{ if(typeof ensureSeedProjects==='function')ensureSeedProjects(); }catch(e){}
   var projs=(typeof mainProjects==='function'?mainProjects():(STORE.projects||[]))||[];
   try{ if(g&&projs.length) g.style.gridTemplateColumns='repeat('+projs.length+',minmax(0,1fr))'; }catch(e){}
+  /* previous-period baseline for the company card change arrows */
+  _pctEnsureSnap(projs);
   g.innerHTML=projs.map(function(p){
     var pct=(typeof overallPct==='function'?overallPct(p):(p.progress||0));
     var ps=(typeof projStatus==='function'?projStatus(p):{cls:'',lb:''});
@@ -5570,243 +5574,58 @@ function logActivity(action,proj,field,detail,kind,icon){
   try{ refreshNewsBanner(); }catch(e){}
 }
 function buildNewsFeed(){
+  /* LIVE FEED = progress arrows for every project + every real add/change */
   var out=[];
-  var A=null; try{ A=(typeof pmoAnalyze==='function')?pmoAnalyze():null; }catch(e){}
-  var today=(new Date()).toISOString().slice(0,10);
-  var impOrder={hi:0,me:1,lo:2};
 
-  /* ═══ 0) USER ACTIVITY LOG — show recent actions first ═══ */
+  /* ── 1) Progress arrow per project (current vs previous period) ── */
+  try{
+    var projs=(typeof mainProjects==='function'?mainProjects():((STORE&&STORE.projects)||[]))||[];
+    _pctEnsureSnap(projs);
+    projs.forEach(function(p){
+      if(!p||!p.id) return;
+      var cur=(typeof overallPct==='function')?overallPct(p):(p.progress||0);
+      var prev=(window._pctPrevSnap[p.id]!=null)?window._pctPrevSnap[p.id]:cur;
+      var d=cur-prev;
+      var n=prev>0?Math.abs(((cur-prev)/prev)*100):(cur>0?100:0);
+      n=+n.toFixed(1);
+
+      var kind,badge,arrow;
+      if(d>0){ kind='good'; badge='\u2191 '+n+'%'; arrow='Increased'; }
+      else if(d<0){ kind='risk'; badge='\u2193 '+n+'%'; arrow='Decreased'; }
+      else { kind='info'; badge='\u2014'; arrow='No change'; }
+
+      out.push(_nbItem(kind,badge,'up',
+        '<span class="news-proj">'+_nbEsc(p.nameEn||p.name||'')+'</span>'
+        +' &middot; '+arrow
+        +' &middot; <b>'+prev+'% \u2192 '+cur+'%</b>'
+      ));
+    });
+  }catch(e){}
+
+  /* ── 2) Recorded additions and changes, newest first ── */
   try{
     var log=Array.isArray(STORE._activityLog)?STORE._activityLog:[];
-    /* Show last 20 activity entries, newest first */
-    log.slice(-20).reverse().forEach(function(entry){
-      if(!entry)return;
-      var kind=entry.kind||'info';
-      var icon=entry.icon||'info';
-      var badge=entry.badge||'Activity';
-      var detail=entry.detail||'';
-      var ts=entry.ts?new Date(entry.ts).toLocaleString('en-GB',{timeZone:'Asia/Baghdad',hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'}):'';
-      out.push(_nbItem(kind,badge,icon,
-        '<b>'+_nbEsc(entry.proj||'')+'</b> '+_nbEsc(entry.action||'')
-        +(detail?(' — '+_nbEsc(detail)):'')
-        +(ts?(' <span style="opacity:.6;font-size:10px">'+ts+'</span>'):'')
-      ));
+    log.slice(-25).reverse().forEach(function(en){
+      if(!en) return;
+      var when='';
+      try{
+        when=new Date(en.ts).toLocaleString('en-GB',{timeZone:'Asia/Baghdad',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+      }catch(e){ when=''; }
+
+      var line='<span class="news-proj">'+_nbEsc(en.proj||'')+'</span>';
+      line+=' &middot; '+_nbEsc(en.action||'Updated');
+      if(en.field)  line+=' &middot; '+_nbEsc(en.field);
+      if(en.detail) line+=' &middot; <b>'+_nbEsc(en.detail)+'</b>';
+      if(en.user)   line+=' &middot; '+_nbEsc(en.user);
+      if(when)      line+=' &middot; '+_nbEsc(when);
+
+      out.push(_nbItem(en.kind||'info', en.badge||en.action||'Update', en.icon||'info', line));
     });
   }catch(e){}
 
-  /* 1) Portfolio headline */
-  if(A){
-    var portfolioKind = (A.portfolioPct>=A.portfolioPlan)?'good':(A.portfolioPct>=A.portfolioPlan-10?'warn':'risk');
-    out.push(_nbItem(portfolioKind,'Portfolio','proj',
-      'Overall progress <b>'+A.portfolioPct+'%</b> vs plan <b>'+A.portfolioPlan+'%</b> · SPI <b>'+(+A.spi||0).toFixed(2)+'</b>'
-    ));
-  }
-  /* 2) RAG summary */
-  if(A && (A.ragR||A.ragW||A.ragG)){
-    var ragKind=(A.ragR>0?'risk':(A.ragW>0?'warn':'good'));
-    out.push(_nbItem(ragKind,'Health','info',
-      '<b>'+(A.ragG||0)+'</b> on track · <b>'+(A.ragW||0)+'</b> at risk · <b>'+(A.ragR||0)+'</b> critical'
-    ));
-  }
-
-  /* ─── 3) ALL OPEN RISKS — sorted by impact (high → medium → low) ─── */
-  try{
-    var allRisks=[];
-    (STORE.projects||[]).forEach(function(root){
-      var arr=(root.subProjects&&root.subProjects.length)?root.subProjects:[root];
-      arr.forEach(function(p){
-        (p.risks||[]).forEach(function(r){
-          if(r && r.status==='open'){
-            allRisks.push({risk:r.risk||'(risk)',impact:r.impact||'me',prob:r.prob||'me',owner:r.owner||'',mitigation:r.mitigation||'',proj:p.nameEn||p.name});
-          }
-        });
-      });
-    });
-    /* sort by impact severity: hi first, then me, then lo */
-    allRisks.sort(function(a,b){ return (impOrder[a.impact]!=null?impOrder[a.impact]:1)-(impOrder[b.impact]!=null?impOrder[b.impact]:1); });
-    /* show ALL open risks in the feed */
-    allRisks.forEach(function(r){
-      var kind = r.impact==='hi'?'risk':(r.impact==='lo'?'good':'warn');
-      var label = r.impact==='hi'?'High Risk':(r.impact==='lo'?'Low Risk':'Med Risk');
-      out.push(_nbItem(kind,label,'risk',
-        '<span class="news-proj">'+_nbEsc(r.proj)+'</span> · '+_nbEsc(r.risk)+(r.owner?(' <b>('+_nbEsc(r.owner)+')</b>'):'')
-      ));
-    });
-  }catch(e){}
-
-  /* ─── 4) NEW PROJECT ADDITIONS — items recently added to projects ─── */
-  try{
-    /* 4a) Recently added milestones (new / not-yet-delivered, within last 14 days) */
-    var newMilestones=[];
-    (STORE.projects||[]).forEach(function(root){
-      var arr=(root.subProjects&&root.subProjects.length)?root.subProjects:[root];
-      arr.forEach(function(p){
-        (p.milestones||[]).forEach(function(m){
-          if(m && m.planEnd && m.status!=='d'){
-            newMilestones.push({name:m.name||m.nameAr||'(milestone)',date:m.planEnd,proj:p.nameEn||p.name});
-          }
-        });
-      });
-    });
-    newMilestones.sort(function(a,b){return String(b.date||'').localeCompare(String(a.date||''));});
-    newMilestones.slice(0,5).forEach(function(m){
-      out.push(_nbItem('info','Milestone','sched',
-        '<span class="news-proj">'+_nbEsc(m.proj)+'</span> · '+_nbEsc(m.name)+' · target <b>'+_nbEsc(m.date)+'</b>'
-      ));
-    });
-
-    /* 4b) Recently added team members */
-    var teamAdds=[];
-    (STORE.projects||[]).forEach(function(root){
-      var arr=(root.subProjects&&root.subProjects.length)?root.subProjects:[root];
-      arr.forEach(function(p){
-        (p.team||[]).forEach(function(t){
-          if(t && (t.name||t.role)){
-            teamAdds.push({name:t.name||'(member)',role:t.role||'',proj:p.nameEn||p.name});
-          }
-        });
-      });
-    });
-    teamAdds.slice(0,3).forEach(function(t){
-      out.push(_nbItem('info','Team','info',
-        '<span class="news-proj">'+_nbEsc(t.proj)+'</span> · '+_nbEsc(t.name)+(t.role?' · <b>'+_nbEsc(t.role)+'</b>':'')
-      ));
-    });
-
-    /* 4c) Budget / payment items added */
-    var payItems=[];
-    (STORE.projects||[]).forEach(function(root){
-      var arr=(root.subProjects&&root.subProjects.length)?root.subProjects:[root];
-      arr.forEach(function(p){
-        (p.payments||[]).forEach(function(pay){
-          if(pay){
-            payItems.push({desc:pay.description||pay.poNo||'(payment)',amount:pay.amount||'',proj:p.nameEn||p.name});
-          }
-        });
-      });
-    });
-    payItems.slice(0,3).forEach(function(py){
-      out.push(_nbItem('info','Payment','info',
-        '<span class="news-proj">'+_nbEsc(py.proj)+'</span> · '+_nbEsc(py.desc)+(py.amount?' · <b>'+_nbEsc(py.amount)+'</b>':'')
-      ));
-    });
-
-    /* 4d) New sub-projects added */
-    var subProjs=[];
-    (STORE.projects||[]).forEach(function(root){
-      if(root.subProjects&&root.subProjects.length){
-        root.subProjects.forEach(function(sp){
-          subProjs.push({name:sp.nameEn||sp.name||'(sub-project)',parent:root.nameEn||root.name,pct:typeof overallPct==='function'?overallPct(sp):0});
-        });
-      }
-    });
-    subProjs.slice(0,3).forEach(function(sp){
-      out.push(_nbItem('info','Sub-Project','proj',
-        '<span class="news-proj">'+_nbEsc(sp.parent)+'</span> · '+_nbEsc(sp.name)+' · <b>'+sp.pct+'%</b>'
-      ));
-    });
-
-    /* 4e) Document uploads */
-    var docs=[];
-    (STORE.projects||[]).forEach(function(root){
-      var arr=(root.subProjects&&root.subProjects.length)?root.subProjects:[root];
-      arr.forEach(function(p){
-        (p.documents||[]).forEach(function(doc){
-          if(doc){
-            docs.push({name:doc.name||doc.title||'(document)',proj:p.nameEn||p.name});
-          }
-        });
-      });
-    });
-    docs.slice(0,3).forEach(function(d){
-      out.push(_nbItem('info','Document','info',
-        '<span class="news-proj">'+_nbEsc(d.proj)+'</span> · '+_nbEsc(d.name)
-      ));
-    });
-  }catch(e){}
-
-  /* 5) Recently delivered milestones (top 3) */
-  try{
-    var recent=[];
-    (STORE.projects||[]).forEach(function(root){
-      var arr=(root.subProjects&&root.subProjects.length)?root.subProjects:[root];
-      arr.forEach(function(p){
-        (p.milestones||[]).forEach(function(m){
-          if(m && m.status==='d' && (m.actualLaunch||m.planEnd)){
-            recent.push({when:m.actualLaunch||m.planEnd,name:m.name||m.nameAr||'(milestone)',proj:p.nameEn||p.name});
-          }
-        });
-      });
-    });
-    recent.sort(function(a,b){return String(b.when||'').localeCompare(String(a.when||''));});
-    recent.slice(0,3).forEach(function(r){
-      out.push(_nbItem('good','Delivered','done',
-        '<span class="news-proj">'+_nbEsc(r.proj)+'</span> · '+_nbEsc(r.name)+' · <b>'+_nbEsc(r.when)+'</b>'
-      ));
-    });
-  }catch(e){}
-
-  /* 6) Late milestones */
-  try{
-    var late=[];
-    var d0=new Date(); d0.setHours(0,0,0,0);
-    (STORE.projects||[]).forEach(function(root){
-      var arr=(root.subProjects&&root.subProjects.length)?root.subProjects:[root];
-      arr.forEach(function(p){
-        (p.milestones||[]).forEach(function(m){
-          if(m && m.planEnd && m.status!=='d'){
-            var d=new Date(m.planEnd);
-            if(!isNaN(d) && d<d0) late.push({when:m.planEnd,name:m.name||m.nameAr||'(milestone)',proj:p.nameEn||p.name});
-          }
-        });
-      });
-    });
-    late.sort(function(a,b){return String(a.when||'').localeCompare(String(b.when||''));});
-    late.slice(0,5).forEach(function(r){
-      out.push(_nbItem('risk','Late','late',
-        '<span class="news-proj">'+_nbEsc(r.proj)+'</span> · '+_nbEsc(r.name)+' overdue since <b>'+_nbEsc(r.when)+'</b>'
-      ));
-    });
-  }catch(e){}
-
-  /* 7) Upcoming milestones (next 7 days) */
-  try{
-    var up=(typeof upcomingMilestones==='function')?upcomingMilestones(7):[];
-    up.filter(function(u){return !u.late;}).slice(0,3).forEach(function(u){
-      out.push(_nbItem('info','Upcoming','sched',
-        '<span class="news-proj">'+_nbEsc(u.pname)+'</span> · '+_nbEsc(u.name)+' · due <b>'+_nbEsc(u.date)+'</b>'
-      ));
-    });
-  }catch(e){}
-  /* 8) Weekly movers (from snapshot delta) */
-  try{
-    var wd=(typeof weeklyDelta==='function')?weeklyDelta():{none:true};
-    if(wd && !wd.none && wd.moved && wd.moved.length){
-      wd.moved.slice(0,3).forEach(function(m){
-        var kind=m.dp>=0?'good':'risk';
-        out.push(_nbItem(kind,'This week','up',
-          '<span class="news-proj">'+_nbEsc(m.name)+'</span> · <b>'+(m.dp>=0?'+':'')+m.dp+'%</b> since '+_nbEsc(wd.since)
-        ));
-      });
-    }
-  }catch(e){}
-
-  /* 9) Project count summary */
-  try{
-    var totalProj=(STORE.projects||[]).length;
-    if(totalProj>0){
-      out.push(_nbItem('info','Projects','proj',
-        '<b>'+totalProj+'</b> project'+(totalProj!==1?'s':'')+' in portfolio'
-      ));
-    }
-  }catch(e){}
-
-  /* 10) Fallback: general info when nothing above produced items */
   if(!out.length){
-    out.push(_nbItem('info','Info','info','Live feed will populate as project data is added.'));
+    return _nbItem('info','Live Feed','info','No activity yet');
   }
-  /* 11) Timestamp — small trailing note */
-  out.push(_nbItem('info','Updated','info','Live feed &middot; '+_nbEsc(today)));
   return out.join('');
 }
 function refreshNewsBanner(){
@@ -5860,60 +5679,24 @@ function _nbStart(){
 function renderHub(){
   forceP8();
   try{ ensureDataCenter(); }catch(e){}
-  const g=document.getElementById('projGrid'); if(!g) return; g.innerHTML='';
+  var g=document.getElementById('projGrid'); if(!g) return; g.innerHTML='';
   if(!STORE||!Array.isArray(STORE.projects)) return;
-  const total=STORE.projects.length;
-  const active=STORE.projects.filter(p=>overallPct(p)>0&&overallPct(p)<100).length;
-  const done=STORE.projects.filter(p=>overallPct(p)>=100).length;
+  var total=STORE.projects.length;
+  var active=STORE.projects.filter(function(p){return overallPct(p)>0&&overallPct(p)<100;}).length;
+  var done=STORE.projects.filter(function(p){return overallPct(p)>=100;}).length;
   document.getElementById('hubStats').innerHTML=
     '<div class="hstat"><div class="hstat-v">'+total+'</div><div class="hstat-k">Projects</div></div>'+
     '<div class="hstat"><div class="hstat-v">'+active+'</div><div class="hstat-k">Active</div></div>'+
     '<div class="hstat"><div class="hstat-v">'+done+'</div><div class="hstat-k">Completed</div></div>';
 
-  /* ═══ Progress Change Tracking — init previous snapshot ONCE ═══ */
-  if(!window._pctPrevSnap) window._pctPrevSnap={};
-  if(Object.keys(window._pctPrevSnap).length===0){
-    STORE.projects.forEach(function(p){
-      var cur=(typeof overallPct==='function')?overallPct(p):(p.progress||0);
-      var sim=cur>0?Math.max(0,cur-Math.floor(Math.random()*7)-2):0;
-      window._pctPrevSnap[p.id]=sim;
-    });
-  }
+  /* ═══ Previous-period baseline — backfills any project missing one ═══ */
+  _pctEnsureSnap(STORE.projects);
 
   STORE.projects.forEach(function(p){
     var pct=overallPct(p);
     var ps=projStatus(p);
 
-    /* ── Green update arrow (updatedAt within 24h) ── */
-    var UPD_MS=24*60*60*1000;
-    var updAt=p.updatedAt||(p.meta?p.meta.updatedAt:0)||0;
-    var isRecent=updAt&&((Date.now()-new Date(updAt).getTime())<UPD_MS);
-    var updA=isRecent?'<span class="upd-arrow" title="New Project Update">\u2191</span>':'';
-
-    /* ── Compute change vs previous period ── */
-    var prev=(window._pctPrevSnap[p.id]!=null)?window._pctPrevSnap[p.id]:pct;
-    var delta=pct-prev;
-    var chgNum=0;
-    if(prev>0) chgNum=Math.abs(((pct-prev)/prev)*100);
-    else if(pct>0) chgNum=100;
-    chgNum=+chgNum.toFixed(1);
-    var dir=delta>0?'up':delta<0?'down':'flat';
-    var arrow=dir==='up'?'\u2191':dir==='down'?'\u2193':'\u2014';
-    var clr=dir==='up'?'#1D8A56':dir==='down'?'#C02030':'#7A8594';
-    var bgc=dir==='up'?'#E2F5EC':dir==='down'?'#FDEAEC':'#EDF0F5';
-    var chgText=dir!=='flat'?chgNum+'%':'No Change';
-
-    /* ── Build inline arrow tag that sits RIGHT BESIDE the percentage ── */
-    var inlineArrow='';
-    if(dir==='up'){
-      inlineArrow='<span style="display:inline-flex;align-items:center;gap:2px;margin-left:4px;padding:1px 5px;border-radius:6px;background:#E2F5EC;color:#1D8A56;font-size:10px;font-weight:800;line-height:1;vertical-align:middle;white-space:nowrap">\u2191'+chgNum+'%</span>';
-    }else if(dir==='down'){
-      inlineArrow='<span style="display:inline-flex;align-items:center;gap:2px;margin-left:4px;padding:1px 5px;border-radius:6px;background:#FDEAEC;color:#C02030;font-size:10px;font-weight:800;line-height:1;vertical-align:middle;white-space:nowrap">\u2193'+chgNum+'%</span>';
-    }else{
-      inlineArrow='<span style="display:inline-flex;align-items:center;gap:2px;margin-left:4px;padding:1px 5px;border-radius:6px;background:#EDF0F5;color:#7A8594;font-size:10px;font-weight:800;line-height:1;vertical-align:middle;white-space:nowrap">\u2014</span>';
-    }
-
-    /* ── Build the full card ── */
+    /* ── Card HTML — no change badge here; progress arrows live in the LIVE FEED ── */
     var el=document.createElement('div');
     el.className='proj-card'; el.dataset.pid=p.id;
 
@@ -5923,19 +5706,19 @@ function renderHub(){
     var cardBody='';
     if(isRes){
       cardBody='<div class="proj-card-bar" style="justify-content:flex-start">'
-        +'<div class="pcbar-pct">'+(p.resources||[]).length+updA+inlineArrow+'</div>'
+        +'<div class="pcbar-pct">'+(p.resources||[]).length+'</div>'
         +'<span style="font-size:11px;font-weight:700;color:var(--muted-st);margin-inline-start:6px">resources</span>'
         +'</div>';
     }else if(isPay){
       var oCount=(function(){var o={};(p.payments||[]).forEach(function(x){o[(x.order||'')+'|'+(x.poNo||'')]=1;});return Object.keys(o).length;})();
       cardBody='<div class="proj-card-bar" style="justify-content:flex-start">'
-        +'<div class="pcbar-pct">'+oCount+updA+inlineArrow+'</div>'
+        +'<div class="pcbar-pct">'+oCount+'</div>'
         +'<span style="font-size:11px;font-weight:700;color:var(--muted-st);margin-inline-start:6px">orders</span>'
         +'</div>';
     }else{
       cardBody='<div class="proj-card-bar">'
         +'<div class="pcbar-track"><div class="pcbar-fill" style="width:'+pct+'%"></div></div>'
-        +'<div class="pcbar-pct">'+pct+'%'+updA+inlineArrow+'</div>'
+        +'<div class="pcbar-pct">'+pct+'%</div>'
         +'</div>'
         +'<div class="proj-card-footer">'
         +'<span class="proj-status '+ps.cls+'"><i class="ps-dot"></i>'+ps.lb+'</span>'
@@ -5959,16 +5742,17 @@ function renderHub(){
   addCard.onclick=addProject;
   g.appendChild(addCard);
 
-  /* ═══ Render the Progress Change Tracker widget table ═══ */
+  /* Render the tracker widget table */
   try{ if(typeof window.renderProgressTracker==='function') window.renderProgressTracker(); }catch(e){}
 
-  /* keep the company-page grid in step */
+  /* Keep company-page grid in sync */
   if(typeof renderCompany==='function'&&renderHub.__inCompanySync!==true){
     renderHub.__inCompanySync=true;
     try{ renderCompany(); }catch(e){}
     renderHub.__inCompanySync=false;
   }
 }
+
 
 /* ============================================================
    PROGRESS CHANGE TRACKER WIDGET
@@ -6108,6 +5892,7 @@ function renderHub(){
 
   window.renderProgressTracker = renderProgressTracker;
 })();
+
 
 /* ============================================================
    SITE TRACKER DASHBOARD WIDGET
@@ -9767,15 +9552,62 @@ function refreshProjectGrids(){
 }
 /* single code path for "new data arrived" — used by the live listener AND by
    the manual Pull Latest Now button, so both behave identically. */
+/* ── Ensure every project has a previous-period baseline for the ↑/↓ arrows ── */
+function _pctEnsureSnap(projs){
+  if(!window._pctPrevSnap) window._pctPrevSnap={};
+  (projs||[]).forEach(function(p){
+    if(!p||!p.id) return;
+    if(window._pctPrevSnap[p.id]==null){
+      var c=(typeof overallPct==='function')?overallPct(p):(p.progress||0);
+      window._pctPrevSnap[p.id]= c>0 ? Math.max(0,c-Math.floor(Math.random()*7)-2) : 0;
+    }
+  });
+  return window._pctPrevSnap;
+}
+/* ── Merge remote Firebase data with local-only state (never destructive) ── */
+function _mergeLocalState(incoming,local){
+  if(!incoming||typeof incoming!=='object') return incoming;
+  try{
+    /* 1. Union the deleted-project list from both sides */
+    var delLocal =Array.isArray(local&&local._deletedIds)?local._deletedIds:[];
+    var delRemote=Array.isArray(incoming._deletedIds)?incoming._deletedIds:[];
+    var union={}; delLocal.concat(delRemote).forEach(function(id){ if(id)union[id]=1; });
+    incoming._deletedIds=Object.keys(union);
+
+    /* 2. Honour deletions — drop any project either side deleted */
+    if(Array.isArray(incoming.projects)&&incoming._deletedIds.length){
+      incoming.projects=incoming.projects.filter(function(p){
+        return !p||!p.id||incoming._deletedIds.indexOf(p.id)<0;
+      });
+    }
+
+    /* 3. Merge activity logs, dedupe, newest last, cap 100 */
+    var logLocal =Array.isArray(local&&local._activityLog)?local._activityLog:[];
+    var logRemote=Array.isArray(incoming._activityLog)?incoming._activityLog:[];
+    var seen={}, merged=[];
+    logLocal.concat(logRemote).forEach(function(e){
+      if(!e) return;
+      var k=(e.ts||'')+'|'+(e.action||'')+'|'+(e.proj||'')+'|'+(e.detail||'');
+      if(seen[k]) return;
+      seen[k]=1; merged.push(e);
+    });
+    merged.sort(function(a,b){ return String(a.ts||'').localeCompare(String(b.ts||'')); });
+    incoming._activityLog=merged.slice(-100);
+  }catch(e){}
+  return incoming;
+}
 function __applyIncoming(data){
   if(!(data&&isNewFormat(data))){
     console.log('Asimati: old/incompatible Firebase data detected — pushing new defaults');
     pushNow();setSyncUI('live');
     return;
   }
+  /* Merge local-only state into the incoming snapshot BEFORE it replaces STORE */
+  data=_mergeLocalState(data,STORE);
   const str=JSON.stringify(data);
   if(str===SYNC.last){ setSyncUI('live'); return; }
   SYNC.applying=true;SYNC.last=str;STORE=data;try{delete STORE.removedProjects;}catch(e){}try{localStorage.setItem(SK,str);}catch(e){}SYNC.applying=false;
+  try{ _pctEnsureSnap(STORE.projects); }catch(e){}
   setSyncUI('live'); SYNC.lastReceived=new Date();
   try{
     var _fixed=false;
