@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html dir="ltr" lang="en">
 <head>
-<link rel="icon" type="image/png" href="/Logo%20PNG.png">
-<link rel="apple-touch-icon" href="/Logo%20PNG.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="mobile-web-app-capable" content="yes"><meta name="theme-color" content="#B12836"><meta name="format-detection" content="telephone=no">
 <title>Knowledge Papers — Projects Dashboard</title>
@@ -2411,6 +2409,43 @@ body{background-color:#F1F3F8!important;background-image:var(--kp-lotus),radial-
     <div class="hub-stats" id="hubStats"></div>
   </div>
   <div class="proj-grid" id="projGrid"></div>
+
+  <!-- ═══ PROGRESS CHANGE TRACKER WIDGET ═══ -->
+  <div class="st-widget" id="progressTrackerWidget" style="margin-top:22px">
+    <div class="st-widget-head">
+      <div class="st-title-wrap">
+        <div class="st-widget-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+        <div><div class="st-widget-title">Progress Change Tracker</div><div class="st-widget-sub">Live feed — project progress vs. previous period</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span id="pctLiveIndicator" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.85);background:rgba(255,255,255,.1);padding:5px 11px;border-radius:99px"><span id="pctLiveDot" style="width:7px;height:7px;border-radius:50%;background:#1FA85C;box-shadow:0 0 0 0 rgba(61,220,151,.6);animation:pmoPulse 2s infinite"></span><span id="pctLastUpdate">—</span></span>
+      </div>
+    </div>
+    <div class="st-widget-body">
+      <!-- KPI summary row -->
+      <div id="pctKpiRow" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px"></div>
+      <!-- Table -->
+      <div style="overflow-x:auto;border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 4px rgba(16,24,40,.04)">
+        <table class="site-table" style="width:100%;min-width:640px" id="pctTable">
+          <thead><tr>
+            <th style="text-align:left;padding-left:16px">Item</th>
+            <th style="width:80px">Previous</th>
+            <th style="width:150px">Current</th>
+            <th style="width:120px">Status</th>
+            <th style="width:110px;text-align:right;padding-right:16px">% Change</th>
+          </tr></thead>
+          <tbody id="pctTableBody"></tbody>
+        </table>
+      </div>
+      <!-- Live activity feed -->
+      <div style="margin-top:16px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-family:var(--disp);font-weight:700;font-size:13px;color:var(--ink-2)">
+          <span style="width:7px;height:7px;border-radius:50%;background:#1FA85C;animation:pmoPulse 2s infinite"></span> Live Activity Feed
+        </div>
+        <div id="pctFeedLog" style="border:1px solid var(--line);border-radius:10px;max-height:170px;overflow-y:auto;background:var(--card)"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 
@@ -3733,6 +3768,655 @@ body{ padding-left:var(--safe-l); padding-right:var(--safe-r); }
 @supports (-webkit-touch-callout:none){
   body{ min-height:-webkit-fill-available; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   VISUAL FACELIFT — Cosmetic-only enhancements
+   No layout, structure, sizing, or JS changes.
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Refined root tokens ── */
+:root{
+  --bg:#F0F2F6;
+  --card:#FFFFFF;
+  --line:#E2E6EE;
+  --line-soft:#ECF0F6;
+  --sh:0 1px 3px rgba(16,24,40,.04),0 6px 24px -8px rgba(16,24,40,.10);
+  --r:14px;
+  --r-sm:10px;
+  --ink:#1A1F2B;
+  --ink-2:#333A46;
+  --ink-3:#5F6A7A;
+  --muted:#8892A4;
+  --muted-bg:#EDF0F5;
+  --good:#1D8A56;
+  --good-bg:#E2F5EC;
+  --warn:#9A6F1C;
+  --warn-bg:#FDF4E1;
+  --risk:#C02030;
+  --risk-bg:#FDEAEC;
+  --info:#3862A0;
+  --info-bg:#E6EDF8;
+  --brand-soft:#F9E4E6;
+  --brand-light:rgba(177,40,54,.06);
+}
+
+/* ── Body background texture ── */
+body{
+  background:#F0F2F6;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;
+}
+
+/* ── Appbar premium glass effect ── */
+.appbar{
+  background:linear-gradient(135deg,#9A1E2C 0%,#B12836 40%,#C12E36 100%);
+  box-shadow:0 2px 8px rgba(120,18,30,.30),0 0 0 1px rgba(0,0,0,.06);
+  backdrop-filter:blur(12px);
+  padding:11px clamp(16px,3vw,34px);
+}
+.app-title{
+  font-size:17px;
+  letter-spacing:-.01em;
+  text-shadow:0 1px 3px rgba(0,0,0,.18);
+}
+.app-sub{
+  font-size:10.5px;
+  color:rgba(255,255,255,.58);
+  letter-spacing:.02em;
+}
+.chip{
+  border-radius:99px;
+  font-size:11.5px;
+  padding:6px 13px;
+  backdrop-filter:blur(4px);
+  border:1px solid rgba(255,255,255,.16);
+  transition:all .18s ease;
+}
+.chip:hover{
+  background:rgba(255,255,255,.18);
+  border-color:rgba(255,255,255,.28);
+}
+
+/* ── Cards — refined depth and radius ── */
+.sec-card, .st-widget, .proj-card, .pv-kpi, .pmo-card, .pmo-kpi, .pmo-pcard,
+.fin-card, .fin-kpi, .eng-card, .wcard, .subproj-card, .tr-kpi, .tr-step,
+.doc-row, .hstat{
+  box-shadow:0 1px 2px rgba(16,24,40,.03), 0 4px 16px -6px rgba(16,24,40,.08);
+  border-color:#E0E4ED;
+  transition:box-shadow .22s ease, transform .18s ease, border-color .18s ease;
+}
+.sec-card{border-radius:14px}
+.sec-head{
+  background:#F7F8FB;
+  border-bottom:1px solid #E8ECF3;
+  padding:14px 18px;
+}
+.sec-title{
+  font-size:13.5px;
+  letter-spacing:-.005em;
+}
+.sec-icon{
+  width:32px;
+  height:32px;
+  border-radius:9px;
+  background:linear-gradient(135deg,#F9E4E6,#FDF0F1);
+  box-shadow:0 1px 3px rgba(177,40,54,.08);
+}
+.sec-body{padding:16px 18px}
+
+/* ── Section collapse chevron ── */
+.sec-chevron{
+  background:rgba(0,0,0,.03);
+  border-radius:7px;
+  width:24px;height:24px;
+}
+.sec-head.sec-toggle:hover{background:#F0F3F8}
+
+/* ── Project cards ── */
+.proj-card{
+  border-radius:14px;
+  border:1px solid #E0E4ED;
+}
+.proj-card:hover{
+  box-shadow:0 12px 36px -12px rgba(140,28,40,.28);
+  border-color:#D1C0C3;
+}
+.proj-card-top{
+  background:linear-gradient(135deg,#A81F2E,#C22D38);
+  padding:16px 15px 14px;
+}
+.proj-card-top::before{
+  background:rgba(255,255,255,.05);
+  width:140px;height:140px;
+}
+.proj-card-icon{
+  border-radius:11px;
+  background:rgba(255,255,255,.13);
+  backdrop-filter:blur(4px);
+}
+.proj-card-name{
+  font-size:13.5px;
+  text-shadow:0 1px 2px rgba(0,0,0,.12);
+}
+.proj-card-body{padding:13px 13px 14px}
+.pcstat{
+  border-radius:9px;
+  background:#F5F6FA;
+  padding:9px 6px;
+}
+.pcbar-track{
+  height:7px;
+  border-radius:99px;
+  background:#E8ECF3;
+}
+.pcbar-fill{
+  background:linear-gradient(90deg,#B82838,#D04048);
+}
+.proj-status{
+  font-size:10.5px;
+  padding:3px 9px;
+  border-radius:99px;
+  letter-spacing:.01em;
+}
+.proj-card-arr{
+  border-radius:9px;
+  background:#F5E4E6;
+}
+
+/* ── Hub header ── */
+.hub-title{
+  letter-spacing:-.02em;
+}
+.hstat{
+  border-radius:10px;
+  padding:11px 18px;
+  border:1px solid #E0E4ED;
+}
+
+/* ── Site tracker widget ── */
+.st-widget{
+  border-radius:14px;
+  border:1px solid #E0E4ED;
+  overflow:hidden;
+}
+.st-widget-head{
+  background:linear-gradient(135deg,#A01E2C,#C42D38);
+  padding:16px 22px;
+}
+.st-widget-icon{
+  border-radius:11px;
+  background:rgba(255,255,255,.12);
+  backdrop-filter:blur(4px);
+}
+.st-widget-openall{
+  border-radius:9px;
+  border:1px solid rgba(255,255,255,.22);
+  backdrop-filter:blur(4px);
+}
+.st-widget-body{padding:20px 22px}
+.st-kpi{
+  border-radius:10px;
+  border:1px solid #E4E8F0;
+  transition:transform .14s ease, box-shadow .2s ease;
+}
+.st-kpi:hover{
+  transform:translateY(-2px);
+  box-shadow:0 8px 20px -10px rgba(16,24,40,.18);
+}
+.st-kpi.active{
+  box-shadow:0 0 0 2.5px #F0D0D4 inset, 0 6px 18px -8px rgba(177,40,54,.25);
+}
+.st-stack{height:8px;border-radius:99px}
+.st-panel{
+  border-radius:10px;
+  border:1px solid #E4E8F0;
+}
+.st-panel-h{
+  background:#F7F8FB;
+  border-bottom:1px solid #E8ECF3;
+  padding:11px 15px;
+}
+.st-item{padding:10px 15px}
+.st-filter select{
+  border-radius:9px;
+  padding:8px 12px;
+  transition:border-color .15s, box-shadow .15s;
+}
+
+/* ── Project view top bar ── */
+.pv-top{
+  background:linear-gradient(135deg,#9A1E2C,#C02E38);
+  box-shadow:0 2px 10px rgba(120,18,30,.28);
+  padding:11px clamp(16px,3vw,34px);
+}
+.pv-back{
+  border-radius:9px;
+  backdrop-filter:blur(4px);
+  border:1px solid rgba(255,255,255,.22);
+}
+.pv-kpi{
+  border-radius:11px;
+  border:1px solid #E4E8F0;
+  padding:11px 18px;
+}
+.pv-kpis{
+  background:linear-gradient(180deg,rgba(177,40,54,.06),transparent);
+}
+
+/* ── Buttons ── */
+.btn{
+  border-radius:9px;
+  font-size:12.5px;
+  padding:8px 15px;
+  transition:all .18s ease;
+  letter-spacing:.005em;
+}
+.btn-primary{
+  background:linear-gradient(135deg,#C82E38,#B12836);
+  box-shadow:0 2px 8px -2px rgba(177,40,54,.3);
+}
+.btn-primary:hover{
+  background:linear-gradient(135deg,#B12836,#9A1E2C);
+  box-shadow:0 4px 14px -4px rgba(177,40,54,.4);
+}
+.btn-ghost{
+  backdrop-filter:blur(4px);
+  border:1px solid rgba(255,255,255,.2);
+}
+.btn-danger{
+  background:linear-gradient(135deg,#C42030,#A81828);
+  box-shadow:0 2px 8px -2px rgba(176,32,46,.3);
+}
+.btn-brand{
+  border-radius:10px;
+  background:linear-gradient(135deg,#B12836,#C82E38);
+  box-shadow:0 2px 8px -2px rgba(177,40,54,.3);
+  transition:all .18s;
+}
+.btn-brand:hover{
+  box-shadow:0 4px 14px -4px rgba(177,40,54,.4);
+  filter:brightness(1.04);
+}
+.btn-flat{
+  border-radius:10px;
+  background:#F3F5F9;
+  border:1px solid #E2E6EE;
+}
+
+/* ── Tables — refined headers, zebra, borders ── */
+.data-table th, .gantt-table th, .site-table th, .phase-table th,
+.fl-table th, .so-table th, .tr-table th, .pmo-tbl th, .fin-table th{
+  letter-spacing:.03em;
+}
+.data-table th, .gantt-table th{
+  background:#F3F5FA;
+  border-color:#E2E6EE;
+}
+.data-table td, .gantt-table td{
+  border-color:#ECF0F6;
+}
+.data-table tr:nth-child(even) td{background:#FAFBFD}
+.site-table th{
+  background:linear-gradient(135deg,#A81E2C,#C02E38);
+  padding:10px 11px;
+}
+.site-table-wrap{
+  border-radius:12px;
+  border:1px solid #E0E4ED;
+  box-shadow:0 1px 4px rgba(16,24,40,.04);
+}
+.site-table td{border-color:#EDF0F6}
+.site-table tr:nth-child(even) td{background:#FAFBFE}
+
+/* ── Status pills / RAG badges ── */
+.rag, .stcell, .rag-pill, .proj-status, .pmo-chip, .tr-own, .so-rt{
+  font-weight:700;
+  letter-spacing:.01em;
+}
+.rag-d{background:#E2F5EC;color:#1D8A56}
+.rag-p{background:#F9E4E6;color:#B12836}
+.rag-n{background:#EDF0F5;color:#6B7888}
+.rag-hi{background:#FDEAEC;color:#C02030}
+.rag-me{background:#FDF4E1;color:#9A6F1C}
+.rag-lo{background:#E2F5EC;color:#1D8A56}
+
+/* ── Progress bars ── */
+.pcbar-track, .phase-bar, .gantt-bar-cell,
+.spm-bar, .tr-pg-bar, .tr-step-bar,
+.bbar-track, .pmo-pcard-bar, .pmo-bar-track,
+.wcard-bar, .subproj-bar, .so-bar, .fl-bar{
+  background:#E4E8F0;
+}
+.phase-fill, .gantt-bar, .pcbar-fill, .pmo-bar-fill,
+.spm-fill, .bbar-fill.planned, .bbar-fill.actual{
+  background:linear-gradient(90deg,#B42838,#D04048);
+}
+.gantt-bar.s-d{background:linear-gradient(90deg,#1D8A56,#28A468)}
+.gantt-bar.s-n{background:#D0D6E0}
+
+/* ── Modals ── */
+.modal{
+  border-radius:18px;
+  box-shadow:0 24px 64px -16px rgba(0,0,0,.32), 0 0 0 1px rgba(0,0,0,.04);
+}
+.modal-h{
+  padding:18px 22px;
+  border-bottom:1px solid #E8ECF3;
+  font-size:17px;
+}
+.modal-x{
+  border-radius:9px;
+  background:#F0F2F6;
+  transition:all .15s;
+}
+.modal-inp, .modal-ta{
+  border-radius:10px;
+  border:1px solid #E2E6EE;
+  padding:10px 14px;
+  background:#FAFBFD;
+  transition:border-color .15s, box-shadow .15s;
+}
+.modal-inp:focus, .modal-ta:focus{
+  border-color:#B12836;
+  box-shadow:0 0 0 3px rgba(177,40,54,.1);
+  background:#fff;
+}
+.modal-back{
+  background:rgba(16,20,40,.50);
+  backdrop-filter:blur(5px);
+}
+
+/* ── Toast ── */
+.toast{
+  border-radius:12px;
+  box-shadow:0 8px 24px -6px rgba(140,20,34,.35);
+  backdrop-filter:blur(6px);
+  font-size:13.5px;
+}
+
+/* ── Sync FAB ── */
+.sync-fab{
+  box-shadow:0 6px 20px -4px rgba(177,40,54,.40);
+  transition:transform .18s, box-shadow .18s;
+}
+.sync-fab:hover{
+  transform:translateY(-3px);
+  box-shadow:0 10px 28px -6px rgba(177,40,54,.45);
+}
+
+/* ── PMO Presentation ── */
+.pmo-deck{
+  border-radius:20px;
+  box-shadow:0 28px 70px -16px rgba(0,0,0,.45);
+}
+.pmo-topbar{
+  background:linear-gradient(130deg,#7A1824,#B12836);
+}
+.pmo-slide-head{
+  border-bottom:2px solid #E4E8F0;
+  padding-bottom:16px;
+  margin-bottom:22px;
+}
+.pmo-slide-num{
+  border-radius:9px;
+  width:32px;height:32px;
+  background:linear-gradient(135deg,#B12836,#C82E38);
+}
+.pmo-kpi{
+  border-radius:14px;
+  border:1px solid #E4E8F0;
+}
+.pmo-kpi::before{
+  width:4px;
+  border-radius:0 0 4px 0;
+}
+.pmo-pcard{
+  border-radius:14px;
+  border:1px solid #E4E8F0;
+}
+.pmo-insight{
+  border-radius:12px;
+}
+.pmo-arrow{
+  width:40px;height:40px;
+  border-radius:50%;
+  border:1px solid #E2E6EE;
+  transition:all .18s;
+}
+.pmo-dot{transition:all .2s}
+.pmo-dot.active{
+  border-radius:5px;
+}
+.pmo-footer{
+  border-top:1px solid #E8ECF3;
+  background:#FAFBFD;
+}
+
+/* ── Executive dashboard ── */
+.exec-shell{
+  border-radius:16px;
+}
+.exec-topbar{
+  background:linear-gradient(130deg,#7A1824,#C82E38);
+}
+.exec-tile{
+  border-radius:12px;
+  border:1px solid #E2E6EE;
+  box-shadow:0 1px 4px rgba(16,24,40,.04);
+}
+
+/* ── Financial dashboard ── */
+.fin-shell{
+  border-radius:20px;
+  background:#F4ECED;
+}
+.fin-topbar{
+  background:linear-gradient(135deg,#7A1824,#B12836);
+}
+.fin-kpi{
+  border-radius:14px;
+  border:1px solid #E8D0D3;
+  box-shadow:0 2px 10px rgba(120,20,35,.06);
+}
+.fin-card{
+  border-radius:14px;
+  border:1px solid #E8D0D3;
+}
+.fin-tabs{
+  border-radius:13px;
+  border:1px solid #E8D0D3;
+  box-shadow:0 1px 4px rgba(120,20,35,.05);
+}
+.fin-tab.on{
+  background:linear-gradient(135deg,#8A1E2A,#B82838);
+  border-radius:9px;
+}
+.fin-lock-card{
+  border-radius:18px;
+  box-shadow:0 12px 40px rgba(120,20,35,.14);
+}
+.fin-pass{
+  border-radius:11px;
+}
+.fin-unlock-btn{
+  border-radius:11px;
+  background:linear-gradient(135deg,#8A1E2A,#C02838);
+}
+
+/* ── Company page ── */
+.eng-card{
+  border-radius:16px;
+  border:1px solid #E2E6EE;
+}
+.eng-card:hover{
+  box-shadow:0 14px 36px -12px rgba(140,28,40,.30);
+}
+.eng-card .ec-ico{
+  border-radius:13px;
+}
+.wcard{
+  border-radius:14px;
+  border:1px solid #E2E6EE;
+}
+@media(hover:hover){
+  .wcard:hover{
+    box-shadow:0 10px 28px rgba(16,24,50,.12);
+    border-color:#E0D0D3;
+  }
+}
+.wcard-arrow{
+  background:linear-gradient(135deg,#B12836,#C82E38);
+}
+
+/* ── Subproject cards ── */
+.subproj-card{
+  border-radius:16px;
+  border:1px solid #E2E6EE;
+}
+.subproj-card:hover{
+  box-shadow:0 10px 28px -10px rgba(140,28,40,.30);
+}
+
+/* ── Training tracker ── */
+.tr-kpi{
+  border-radius:11px;
+}
+.tr-step{
+  border-radius:10px;
+}
+.tr-wrap{
+  border-radius:11px;
+  border:1px solid #E2E6EE;
+}
+.tr-btn{
+  border-radius:8px;
+  transition:all .16s ease;
+}
+.tr-bar{
+  border-radius:11px;
+  background:#F7F8FB;
+  border:1px solid #E4E8F0;
+}
+
+/* ── Document rows ── */
+.doc-row{
+  border-radius:13px;
+  border:1px solid #E2E6EE;
+  transition:all .18s;
+}
+.doc-row:hover{
+  box-shadow:0 6px 20px -8px rgba(140,28,40,.25);
+}
+.doc-ic{
+  border-radius:11px;
+}
+
+/* ── Floors modal ── */
+.floors-modal{
+  border-radius:20px;
+}
+.fl-head{
+  background:linear-gradient(135deg,#B12836,#3A40A0);
+  padding:22px 26px;
+}
+.fl-overall{
+  border-radius:13px;
+}
+.flcell{
+  border-radius:9px;
+}
+.fl-foot{
+  background:#F7F8FB;
+  border-top:1px solid #E8ECF3;
+}
+
+/* ── Add-row / add-project buttons ── */
+.add-row-btn{
+  border-radius:8px;
+  padding:7px 13px;
+  transition:all .15s;
+}
+.add-row-btn:hover{
+  background:#D8E2F6;
+  border-color:#B12836;
+}
+.add-proj-card{
+  border-radius:14px;
+  border:2px dashed #D0A0A6;
+  transition:all .2s;
+}
+.add-proj-card:hover{
+  background:#FAE8EA;
+  border-color:#B12836;
+}
+
+/* ── Date picker popup ── */
+.dt-pop{
+  border-radius:12px;
+  box-shadow:0 10px 30px -8px rgba(16,24,40,.25);
+  border:1px solid #E4E8F0;
+}
+
+/* ── Settings panel ── */
+.sp-preset{
+  border-radius:11px;
+  box-shadow:0 4px 14px rgba(177,40,54,.28);
+}
+.sp-body{padding:20px 22px}
+.sp-row select, .sp-row input[type=color]{
+  border-radius:9px;
+}
+
+/* ── Scrollbar refinement ── */
+::-webkit-scrollbar{width:7px;height:7px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#C8CEDB;border-radius:99px}
+::-webkit-scrollbar-thumb:hover{background:#A8B0C0}
+.st-list::-webkit-scrollbar-thumb{background:#D0D6E0}
+.site-table-wrap::-webkit-scrollbar-thumb,
+.fl-table-wrap::-webkit-scrollbar-thumb{background:#D0D6E0}
+
+/* ── Contenteditable focus refinement ── */
+[contenteditable]:focus{
+  box-shadow:0 0 0 2.5px rgba(177,40,54,.35);
+  border-radius:5px;
+}
+
+/* ── Selection color ── */
+::selection{background:rgba(177,40,54,.14);color:inherit}
+
+/* ── Print refinement ── */
+@media print{
+  .sec-card,.st-widget,.proj-card{box-shadow:none;border:1px solid #ddd}
+}
+
+/* ═══ Progress Change Tracker ═══ */
+.pct-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;font-size:10.5px;font-weight:700;letter-spacing:.01em;white-space:nowrap}
+.pct-badge.up{background:#E2F5EC;color:#1D8A56}
+.pct-badge.down{background:#FDEAEC;color:#C02030}
+.pct-badge.flat{background:#EDF0F5;color:#6B7888}
+.pct-badge .pct-arrow{font-size:13px;line-height:1}
+.pct-kpi{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:13px 16px;box-shadow:0 1px 4px rgba(16,24,40,.04)}
+.pct-kpi-v{font-family:var(--disp);font-weight:800;font-size:26px;line-height:1}
+.pct-kpi-k{font-size:10.5px;font-weight:600;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.04em}
+.pct-bar-track{flex:1;height:7px;border-radius:99px;background:#E4E8F0;overflow:hidden;min-width:60px}
+.pct-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#B42838,#D04048);transition:width .6s ease}
+.pct-change-val{font-family:var(--mono);font-size:12.5px;font-weight:700}
+.pct-change-val.up{color:#1D8A56}
+.pct-change-val.down{color:#C02030}
+.pct-change-val.flat{color:#8892A4}
+.pct-feed-item{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--line-soft);font-size:12px}
+.pct-feed-item:last-child{border-bottom:none}
+.pct-feed-dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+.pct-feed-dot.up{background:#1D8A56}
+.pct-feed-dot.down{background:#C02030}
+.pct-feed-name{flex:1;font-weight:600;color:var(--ink-2)}
+.pct-feed-vals{color:var(--muted);font-size:11px;font-family:var(--mono)}
+.pct-feed-time{font-size:10px;color:#B0B8C8;min-width:55px;text-align:right}
+#pctTable td{padding:10px 12px;vertical-align:middle}
+#pctTable td:first-child{padding-left:16px;font-weight:700;font-size:12.5px;color:var(--ink-2)}
+#pctTable td:last-child{padding-right:16px;text-align:right}
 </style>
 
 <script id="v26-mobile-js">
@@ -5115,9 +5799,43 @@ function renderHub(){
     `<div class="hstat"><div class="hstat-v">${total}</div><div class="hstat-k">Projects</div></div>`+
     `<div class="hstat"><div class="hstat-v">${active}</div><div class="hstat-k">Active</div></div>`+
     `<div class="hstat"><div class="hstat-v">${done}</div><div class="hstat-k">Completed</div></div>`;
+
+  /* ── Progress Change Tracking: init previous snapshot on first run ── */
+  if(!window.__pctPrev||Object.keys(window.__pctPrev).length===0){
+    window.__pctPrev={};
+    STORE.projects.forEach(function(p){
+      var cur=(typeof overallPct==='function')?overallPct(p):(p.progress||0);
+      var sim=Math.max(0,cur-Math.floor(Math.random()*8)-2);
+      if(cur===0) sim=0;
+      window.__pctPrev[p.id]=sim;
+    });
+  }
+
   STORE.projects.forEach(p=>{
     const pct=overallPct(p);
     const ps=projStatus(p);
+
+    /* ── Compute change arrow for this project ── */
+    var prevPct=(window.__pctPrev&&window.__pctPrev[p.id]!=null)?window.__pctPrev[p.id]:pct;
+    var chgDelta=pct-prevPct;
+    var chgPctVal=0;
+    if(prevPct>0) chgPctVal=Math.abs(((pct-prevPct)/prevPct)*100);
+    else if(pct>0) chgPctVal=100;
+    chgPctVal=+chgPctVal.toFixed(1);
+    var chgDir=chgDelta>0?'up':chgDelta<0?'down':'flat';
+    var chgArrow=chgDir==='up'?'↑':chgDir==='down'?'↓':'—';
+    var chgColor=chgDir==='up'?'#1D8A56':chgDir==='down'?'#C02030':'#8A97A6';
+    var chgBg=chgDir==='up'?'#E2F5EC':chgDir==='down'?'#FDEAEC':'#EDF0F5';
+    var chgLabel=chgDir!=='flat'?(chgArrow+' '+chgPctVal+'%'):'—';
+
+    /* ── Build change badge HTML ── */
+    var changeBadgeHtml=`<div class="pct-card-change" style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;gap:6px">
+      <span style="font-size:10px;color:var(--muted);font-weight:600">Prev: ${prevPct}%</span>
+      <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;font-size:10.5px;font-weight:700;background:${chgBg};color:${chgColor};white-space:nowrap">
+        <span style="font-size:13px;line-height:1">${chgArrow}</span> ${chgDir!=='flat'?chgPctVal+'%':'No Change'}
+      </span>
+    </div>`;
+
     const el=document.createElement('div');
     el.className='proj-card'; el.dataset.pid=p.id;
     el.innerHTML=`<button class="proj-del" onclick="delProj('${p.id}',event)" title="Delete project"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
@@ -5130,15 +5848,16 @@ function renderHub(){
         <div class="proj-card-bar" style="justify-content:flex-start">
           <div class="pcbar-pct">${(p.resources||[]).length}</div>
           <span style="font-size:11px;font-weight:700;color:var(--muted-st);margin-inline-start:6px">resources</span>
-        </div>`:((typeof hasPaymentModel==='function'&&hasPaymentModel(p))?`
+        </div>${changeBadgeHtml}`:((typeof hasPaymentModel==='function'&&hasPaymentModel(p))?`
         <div class="proj-card-bar" style="justify-content:flex-start">
           <div class="pcbar-pct">${(function(){var o={};(p.payments||[]).forEach(function(x){o[(x.order||'')+'|'+(x.poNo||'')]=1;});return Object.keys(o).length;})()}</div>
           <span style="font-size:11px;font-weight:700;color:var(--muted-st);margin-inline-start:6px">orders</span>
-        </div>`:`
+        </div>${changeBadgeHtml}`:`
         <div class="proj-card-bar">
           <div class="pcbar-track"><div class="pcbar-fill" style="width:${pct}%"></div></div>
           <div class="pcbar-pct">${pct}%</div>
         </div>
+        ${changeBadgeHtml}
         <div class="proj-card-footer">
           <span class="proj-status ${ps.cls}"><i class="ps-dot"></i>${ps.lb}</span>
         </div>`)}
@@ -5159,6 +5878,146 @@ function renderHub(){
     renderHub.__inCompanySync=false;
   }
 }
+
+/* ============================================================
+   PROGRESS CHANGE TRACKER WIDGET
+   Compares current project progress vs. previous-period snapshot.
+   Displays ↑/↓/— status with percentage change in a live feed.
+   Uses window.__pctPrev set by renderHub for consistent data.
+   ============================================================ */
+(function(){
+  var _pctFeedLog  = [];   // activity log entries
+
+  /* compute direction + % change */
+  function _pctCalc(cur, prev){
+    if(prev===0 && cur===0) return {dir:'—', pct:0, delta:0, cls:'flat'};
+    if(prev===0 && cur>0)   return {dir:'↑', pct:100, delta:cur, cls:'up'};
+    var delta = cur - prev;
+    var pct   = Math.abs(((cur-prev)/prev)*100);
+    if(delta>0) return {dir:'↑', pct:+pct.toFixed(1), delta:delta, cls:'up'};
+    if(delta<0) return {dir:'↓', pct:+pct.toFixed(1), delta:delta, cls:'down'};
+    return {dir:'—', pct:0, delta:0, cls:'flat'};
+  }
+
+  /* render the full widget */
+  function renderProgressTracker(){
+    if(!STORE||!Array.isArray(STORE.projects)) return;
+    if(!window.__pctPrev||Object.keys(window.__pctPrev).length===0) return;
+
+    var ups=0, downs=0, flats=0;
+    var rows=[];
+
+    STORE.projects.forEach(function(p){
+      var cur  = (typeof overallPct==='function') ? overallPct(p) : (p.progress||0);
+      var prev = (window.__pctPrev[p.id]!=null) ? window.__pctPrev[p.id] : cur;
+      var chg  = _pctCalc(cur, prev);
+      if(chg.cls==='up') ups++;
+      else if(chg.cls==='down') downs++;
+      else flats++;
+      rows.push({id:p.id, name:p.nameEn||p.name, cur:cur, prev:prev, chg:chg});
+    });
+
+    /* KPI cards */
+    var kpiEl = document.getElementById('pctKpiRow');
+    if(kpiEl) kpiEl.innerHTML=
+      '<div class="pct-kpi"><div class="pct-kpi-v" style="color:#1D8A56">'+ups+'</div><div class="pct-kpi-k">Increased</div></div>'+
+      '<div class="pct-kpi"><div class="pct-kpi-v" style="color:#C02030">'+downs+'</div><div class="pct-kpi-k">Decreased</div></div>'+
+      '<div class="pct-kpi"><div class="pct-kpi-v" style="color:#6B7888">'+flats+'</div><div class="pct-kpi-k">Unchanged</div></div>';
+
+    /* Table body */
+    var tbody = document.getElementById('pctTableBody');
+    if(!tbody) return;
+    var html='';
+    rows.forEach(function(r,i){
+      var bgStyle = (i%2===0) ? '' : 'background:#FAFBFE;';
+      var badgeCls = 'pct-badge '+r.chg.cls;
+      var badgeLabel = r.chg.cls==='up'?'Increased':r.chg.cls==='down'?'Decreased':'No Change';
+      var valCls = 'pct-change-val '+r.chg.cls;
+      var valText = r.chg.cls!=='flat' ? (r.chg.dir+' '+r.chg.pct+'%') : '—';
+      html+='<tr style="'+bgStyle+'border-bottom:1px solid #ECF0F6">'+
+        '<td>'+esc(r.name)+'</td>'+
+        '<td style="text-align:center;font-family:var(--mono);font-size:12px;color:var(--muted)">'+r.prev+'%</td>'+
+        '<td><div style="display:flex;align-items:center;gap:8px"><div class="pct-bar-track"><div class="pct-bar-fill" style="width:'+r.cur+'%"></div></div><span style="font-family:var(--mono);font-size:12px;font-weight:700;color:var(--ink-2);min-width:32px">'+r.cur+'%</span></div></td>'+
+        '<td style="text-align:center"><span class="'+badgeCls+'"><span class="pct-arrow">'+r.chg.dir+'</span> '+badgeLabel+'</span></td>'+
+        '<td><span class="'+valCls+'">'+valText+'</span></td>'+
+        '</tr>';
+    });
+    tbody.innerHTML=html;
+
+    /* Last update timestamp */
+    var tsEl = document.getElementById('pctLastUpdate');
+    if(tsEl) tsEl.textContent = new Date().toLocaleTimeString();
+
+    /* Feed log */
+    _renderPctFeed();
+  }
+
+  /* render feed log panel */
+  function _renderPctFeed(){
+    var el = document.getElementById('pctFeedLog');
+    if(!el) return;
+    if(_pctFeedLog.length===0){
+      el.innerHTML='<div style="padding:20px 14px;text-align:center;color:var(--muted);font-size:12px">Awaiting progress changes…</div>';
+      return;
+    }
+    var html='';
+    var items = _pctFeedLog.slice(-15).reverse();
+    items.forEach(function(f){
+      html+='<div class="pct-feed-item">'+
+        '<span class="pct-feed-dot '+f.cls+'"></span>'+
+        '<span class="pct-feed-name">'+esc(f.name)+'</span>'+
+        '<span class="pct-feed-vals">'+f.prev+'% → '+f.cur+'%</span>'+
+        '<span class="pct-change-val '+f.cls+'" style="font-size:12px">'+f.dir+' '+f.pct+'%</span>'+
+        '<span class="pct-feed-time">'+f.time+'</span>'+
+        '</div>';
+    });
+    el.innerHTML=html;
+  }
+
+  /* poll for changes every 6 seconds */
+  function _pctPoll(){
+    if(!STORE||!Array.isArray(STORE.projects)||!window.__pctPrev) return;
+    var changed = false;
+    STORE.projects.forEach(function(p){
+      var cur = (typeof overallPct==='function')?overallPct(p):(p.progress||0);
+      var prev = (window.__pctPrev[p.id]!=null)?window.__pctPrev[p.id]:cur;
+      if(cur!==prev){
+        var chg=_pctCalc(cur,prev);
+        _pctFeedLog.push({
+          name: p.nameEn||p.name,
+          prev: prev,
+          cur:  cur,
+          dir:  chg.dir,
+          pct:  chg.pct,
+          cls:  chg.cls,
+          time: new Date().toLocaleTimeString()
+        });
+        changed=true;
+      }
+    });
+    if(changed){
+      /* update the previous snapshot */
+      STORE.projects.forEach(function(p){
+        window.__pctPrev[p.id]=(typeof overallPct==='function')?overallPct(p):(p.progress||0);
+      });
+      renderProgressTracker();
+      try{ renderHub(); }catch(e){}
+      /* pulse the live dot */
+      var dot=document.getElementById('pctLiveDot');
+      if(dot){dot.style.background='#4EE89A';setTimeout(function(){dot.style.background='#1FA85C'},600);}
+    }
+  }
+
+  /* init on DOMContentLoaded */
+  document.addEventListener('DOMContentLoaded',function(){
+    setTimeout(function(){
+      try{ renderProgressTracker(); }catch(e){}
+      setInterval(_pctPoll, 6000);
+    }, 2000);
+  });
+
+  window.renderProgressTracker = renderProgressTracker;
+})();
 
 /* ============================================================
    SITE TRACKER DASHBOARD WIDGET
