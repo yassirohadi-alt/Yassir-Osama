@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html dir="ltr" lang="en">
 <head>
-<link rel="icon" type="image/png" href="/Logo%20PNG.png">
-<link rel="apple-touch-icon" href="/Logo%20PNG.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="mobile-web-app-capable" content="yes"><meta name="theme-color" content="#B12836"><meta name="format-detection" content="telephone=no">
 <title>Knowledge Papers — Projects Dashboard</title>
@@ -5793,7 +5791,8 @@ function _nbStart(){
 function renderHub(){
   forceP8();
   try{ ensureDataCenter(); }catch(e){}
-  const g=document.getElementById('projGrid'); g.innerHTML='';
+  const g=document.getElementById('projGrid'); if(!g) return; g.innerHTML='';
+  if(!STORE||!Array.isArray(STORE.projects)) return;
   const total=STORE.projects.length;
   const active=STORE.projects.filter(p=>overallPct(p)>0&&overallPct(p)<100).length;
   const done=STORE.projects.filter(p=>overallPct(p)>=100).length;
@@ -5802,14 +5801,15 @@ function renderHub(){
     `<div class="hstat"><div class="hstat-v">${active}</div><div class="hstat-k">Active</div></div>`+
     `<div class="hstat"><div class="hstat-v">${done}</div><div class="hstat-k">Completed</div></div>`;
 
-  /* ── Progress Change Tracking: init previous snapshot on first run ── */
-  if(!window.__pctPrev||Object.keys(window.__pctPrev).length===0){
-    window.__pctPrev={};
+  /* ═══ Progress Change Tracking — init previous snapshot ONCE ═══ */
+  if(!window._pctPrevSnap) window._pctPrevSnap={};
+  var needsInit=(Object.keys(window._pctPrevSnap).length===0);
+  if(needsInit){
     STORE.projects.forEach(function(p){
       var cur=(typeof overallPct==='function')?overallPct(p):(p.progress||0);
-      var sim=Math.max(0,cur-Math.floor(Math.random()*8)-2);
-      if(cur===0) sim=0;
-      window.__pctPrev[p.id]=sim;
+      /* simulate a realistic previous-period baseline */
+      var sim=cur>0?Math.max(0,cur-Math.floor(Math.random()*7)-2):0;
+      window._pctPrevSnap[p.id]=sim;
     });
   }
 
@@ -5817,26 +5817,25 @@ function renderHub(){
     const pct=overallPct(p);
     const ps=projStatus(p);
 
-    /* ── Compute change arrow for this project ── */
-    var prevPct=(window.__pctPrev&&window.__pctPrev[p.id]!=null)?window.__pctPrev[p.id]:pct;
-    var chgDelta=pct-prevPct;
-    var chgPctVal=0;
-    if(prevPct>0) chgPctVal=Math.abs(((pct-prevPct)/prevPct)*100);
-    else if(pct>0) chgPctVal=100;
-    chgPctVal=+chgPctVal.toFixed(1);
-    var chgDir=chgDelta>0?'up':chgDelta<0?'down':'flat';
-    var chgArrow=chgDir==='up'?'↑':chgDir==='down'?'↓':'—';
-    var chgColor=chgDir==='up'?'#1D8A56':chgDir==='down'?'#C02030':'#8A97A6';
-    var chgBg=chgDir==='up'?'#E2F5EC':chgDir==='down'?'#FDEAEC':'#EDF0F5';
-    var chgLabel=chgDir!=='flat'?(chgArrow+' '+chgPctVal+'%'):'—';
+    /* ── Compute ↑ / ↓ / — for this card ── */
+    var prev=(window._pctPrevSnap[p.id]!=null)?window._pctPrevSnap[p.id]:pct;
+    var delta=pct-prev;
+    var chgPctNum=0;
+    if(prev>0) chgPctNum=Math.abs(((pct-prev)/prev)*100);
+    else if(pct>0) chgPctNum=100;
+    chgPctNum=+chgPctNum.toFixed(1);
+    var dir=delta>0?'up':delta<0?'down':'flat';
+    var arrow=dir==='up'?'↑':dir==='down'?'↓':'—';
+    var clr=dir==='up'?'#1D8A56':dir==='down'?'#C02030':'#8A97A6';
+    var bg=dir==='up'?'#E2F5EC':dir==='down'?'#FDEAEC':'#EDF0F5';
 
-    /* ── Build change badge HTML ── */
-    var changeBadgeHtml=`<div class="pct-card-change" style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;gap:6px">
-      <span style="font-size:10px;color:var(--muted);font-weight:600">Prev: ${prevPct}%</span>
-      <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;font-size:10.5px;font-weight:700;background:${chgBg};color:${chgColor};white-space:nowrap">
-        <span style="font-size:13px;line-height:1">${chgArrow}</span> ${chgDir!=='flat'?chgPctVal+'%':'No Change'}
-      </span>
-    </div>`;
+    /* ── Change badge strip ── */
+    var badge='<div style="display:flex;align-items:center;justify-content:space-between;margin-top:7px;padding:4px 6px;border-radius:8px;background:'+bg+'">'
+      +'<span style="font-size:10px;color:'+clr+';font-weight:700">Prev: '+prev+'%</span>'
+      +'<span style="display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:800;color:'+clr+'">'
+      +'<span style="font-size:15px;line-height:1">'+arrow+'</span>'
+      +(dir!=='flat'?chgPctNum+'%':'No Change')
+      +'</span></div>';
 
     const el=document.createElement('div');
     el.className='proj-card'; el.dataset.pid=p.id;
@@ -5850,30 +5849,35 @@ function renderHub(){
         <div class="proj-card-bar" style="justify-content:flex-start">
           <div class="pcbar-pct">${(p.resources||[]).length}</div>
           <span style="font-size:11px;font-weight:700;color:var(--muted-st);margin-inline-start:6px">resources</span>
-        </div>${changeBadgeHtml}`:((typeof hasPaymentModel==='function'&&hasPaymentModel(p))?`
+        </div>${badge}`:((typeof hasPaymentModel==='function'&&hasPaymentModel(p))?`
         <div class="proj-card-bar" style="justify-content:flex-start">
           <div class="pcbar-pct">${(function(){var o={};(p.payments||[]).forEach(function(x){o[(x.order||'')+'|'+(x.poNo||'')]=1;});return Object.keys(o).length;})()}</div>
           <span style="font-size:11px;font-weight:700;color:var(--muted-st);margin-inline-start:6px">orders</span>
-        </div>${changeBadgeHtml}`:`
+        </div>${badge}`:`
         <div class="proj-card-bar">
           <div class="pcbar-track"><div class="pcbar-fill" style="width:${pct}%"></div></div>
           <div class="pcbar-pct">${pct}%</div>
         </div>
-        ${changeBadgeHtml}
+        ${badge}
         <div class="proj-card-footer">
           <span class="proj-status ${ps.cls}"><i class="ps-dot"></i>${ps.lb}</span>
         </div>`)}
       </div>`;
     g.appendChild(el);
   });
+
+  /* Add-project button (PM only) */
   const addCard=document.createElement('button');
   addCard.className='add-proj-card pm-only';
   addCard.style.display= ROLE==='pm'?'flex':'none';
   addCard.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Add Project</span>`;
   addCard.onclick=addProject;
   g.appendChild(addCard);
-  /* keep the company-page grid in step with whatever just changed here, whether
-     or not that page happens to be the one currently on screen */
+
+  /* ═══ Also render the Progress Change Tracker table widget ═══ */
+  try{ if(typeof renderProgressTracker==='function') renderProgressTracker(); }catch(e){}
+
+  /* keep the company-page grid in step */
   if(typeof renderCompany==='function'&&renderHub.__inCompanySync!==true){
     renderHub.__inCompanySync=true;
     try{ renderCompany(); }catch(e){}
@@ -7514,10 +7518,17 @@ function ensureSmartMeter(){
   return false;
 }
 /* ===== FLOOR-BY-FLOOR INSTALLATION CHECKLIST (Network & Infrastructure) ===== */
-const FLOOR_ITEMS=[['cabinet','Cabinet'],['power','Power'],['access','Maintenance Access Opening'],['tray','Cable Ladder / Tray'],['fiber','Fiber Connectivity'],['cabPower','Cabinet Power Connection'],['rack','Rack Installation & Fixation'],['testing','Testing & Commissioning']];
+const FLOOR_ITEMS_DEFAULT=[['cabinet','Cabinet'],['power','Power'],['access','Maintenance Access Opening'],['tray','Cable Ladder / Tray'],['fiber','Fiber Connectivity'],['cabPower','Cabinet Power Connection'],['rack','Rack Installation & Fixation'],['testing','Testing & Commissioning']];
+const FLOOR_ITEMS=FLOOR_ITEMS_DEFAULT;
 const DEFAULT_FLOORS=['Basement','First Floor','Second Floor','Third Floor','Fourth Floor','Fifth Floor','Sixth Floor','Seventh Floor','Eighth Floor','Ninth Floor','Tenth Floor'];
 function hasFloorModel(p){ return !!p && (p.floorModel===true || p.id==='p5' || /الشبكات والبنى|network\s*&?\s*infra/i.test((p.nameEn||'')+' '+(p.name||''))); }
-function newFloor(name){ var it={}; FLOOR_ITEMS.forEach(function(x){ it[x[0]]='n'; }); return {name:name||'New Floor',items:it}; }
+/* ── Dynamic floor columns: per-site override of FLOOR_ITEMS ── */
+function getFloorCols(site){ if(site&&Array.isArray(site.floorColumns)&&site.floorColumns.length) return site.floorColumns; return FLOOR_ITEMS_DEFAULT.map(function(x){return [x[0],x[1]];}); }
+function ensureFloorCols(site){ if(!site) return FLOOR_ITEMS_DEFAULT; if(!Array.isArray(site.floorColumns)||!site.floorColumns.length){ site.floorColumns=FLOOR_ITEMS_DEFAULT.map(function(x){return [x[0],x[1]];}); } return site.floorColumns; }
+function newFloor(name,cols){ var it={}; (cols||FLOOR_ITEMS_DEFAULT).forEach(function(x){ it[x[0]]='n'; }); return {name:name||'New Floor',items:it}; }
+function addFloorColumn(){ if(!CUR_FLOOR)return; if(!isEditor())return; var s=projByID(CUR_FLOOR.pid).sites[CUR_FLOOR.idx]; if(!s)return; var nm=window.prompt('New column name:',''); if(nm===null)return; nm=(nm||'').trim(); if(!nm)return; var key='fc_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); var cols=ensureFloorCols(s); cols.push([key,nm]); ensureFloors(s); (s.floors||[]).forEach(function(f){ if(!f.items)f.items={}; f.items[key]='n'; }); floorSave(); renderFloors(); try{toast('Column "'+nm+'" added',true);}catch(e){} }
+function delFloorColumn(key){ if(!CUR_FLOOR)return; if(!isEditor())return; var s=projByID(CUR_FLOOR.pid).sites[CUR_FLOOR.idx]; if(!s)return; var cols=ensureFloorCols(s); if(cols.length<=1){ try{toast('At least one column required',false);}catch(e){} return; } if(!window.confirm('Remove this column?'))return; s.floorColumns=cols.filter(function(c){return c[0]!==key;}); (s.floors||[]).forEach(function(f){ if(f.items) delete f.items[key]; }); floorSave(); renderFloors(); }
+function renameFloorColumn(key,newLabel){ if(!CUR_FLOOR)return; if(!isEditor())return; var s=projByID(CUR_FLOOR.pid).sites[CUR_FLOOR.idx]; if(!s)return; var v=(newLabel||'').trim(); if(!v)return; var cols=ensureFloorCols(s); var col=cols.find(function(c){return c[0]===key;}); if(col){col[1]=v;} floorSave(); renderFloors(); }
 function ensureDataCenter(){
   try{
     if(typeof PROJECTS_SEED==='undefined'||!STORE) return false;
@@ -7537,9 +7548,9 @@ function ensureDataCenter(){
 function aggSites(p){ if(p.subProjects&&p.subProjects.length) return p.subProjects.reduce(function(a,s){return a+((s.sites||[]).length);},0); return (p.sites||[]).length; }
 function aggMsDone(p){ if(p.subProjects&&p.subProjects.length) return p.subProjects.reduce(function(a,s){return a+((s.milestones||[]).filter(function(m){return m.status==='d';}).length);},0); return (p.milestones||[]).filter(function(m){return m.status==='d';}).length; }
 function aggRisks(p){ if(p.subProjects&&p.subProjects.length) return p.subProjects.reduce(function(a,s){return a+((s.risks||[]).filter(function(r){return r.status==='open';}).length);},0); return (p.risks||[]).filter(function(r){return r.status==='open';}).length; }
-function ensureFloors(site){ if(!site) return []; if(!Array.isArray(site.floors)||!site.floors.length){ site.floors=DEFAULT_FLOORS.map(function(n){return newFloor(n);}); } else { site.floors.forEach(function(f){ if(!f.items)f.items={}; FLOOR_ITEMS.forEach(function(x){ if(f.items[x[0]]==null)f.items[x[0]]='n'; }); }); } return site.floors; }
-function floorPct(f){ var s=FLOOR_ITEMS.reduce(function(a,x){var v=(f.items||{})[x[0]]||'n';return a+(v==='d'?1:v==='p'?0.5:0);},0); return Math.round(s/FLOOR_ITEMS.length*100); }
-function siteFloorPct(site){ var fl=(site&&site.floors)||[]; if(!fl.length) return 0; return Math.round(fl.reduce(function(a,f){return a+floorPct(f);},0)/fl.length); }
+function ensureFloors(site){ if(!site) return []; var cols=getFloorCols(site); if(!Array.isArray(site.floors)||!site.floors.length){ site.floors=DEFAULT_FLOORS.map(function(n){return newFloor(n,cols);}); } else { site.floors.forEach(function(f){ if(!f.items)f.items={}; cols.forEach(function(x){ if(f.items[x[0]]==null)f.items[x[0]]='n'; }); }); } return site.floors; }
+function floorPct(f,site){ var cols=getFloorCols(site); var s=cols.reduce(function(a,x){var v=(f.items||{})[x[0]]||'n';return a+(v==='d'?1:v==='p'?0.5:0);},0); return Math.round(s/Math.max(1,cols.length)*100); }
+function siteFloorPct(site){ var fl=(site&&site.floors)||[]; if(!fl.length) return 0; return Math.round(fl.reduce(function(a,f){return a+floorPct(f,site);},0)/fl.length); }
 function siteDesignPct(s){ if(!s)return 0; var d=(s.survey==='d'?1:0)+(s.design==='d'?1:0)+(s.submit==='d'?1:0); return Math.round(d/3*100); }
 function siteFinalPct(s){ if(!s)return 0; return Math.round((siteDesignPct(s)+siteFloorPct(s))/2); }
 function renameSite(pid,i){ var p=projByID(pid); if(!p)return; var s=p.sites[i]; if(!s)return; var n=window.prompt('Department / site name:', s.name||''); if(n&&n.trim()){ s.name=n.trim(); try{persist();}catch(e){} if(CUR_PROJ===pid && typeof renderProjectView==='function')renderProjectView(CUR_PROJ); } }
@@ -7551,24 +7562,34 @@ function openFloors(pid,idx){ var p=projByID(pid); if(!p)return; var site=p.site
 }
 function closeFloors(){ var b=document.getElementById('floorsBack'); if(b)b.classList.remove('show'); document.body.style.overflow=''; var wasP=CUR_FLOOR?CUR_FLOOR.pid:null; CUR_FLOOR=null; try{ if(wasP&&CUR_PROJ===wasP&&typeof renderProjectView==='function')renderProjectView(CUR_PROJ); }catch(e){} }
 function floorSave(){ try{ if(typeof persist==='function')persist(); }catch(e){} }
-function cycleFloorItem(fi,k){ if(!CUR_FLOOR)return; var s=projByID(CUR_FLOOR.pid).sites[CUR_FLOOR.idx]; var f=s.floors[fi]; var o=['n','p','d']; f.items[k]=o[(o.indexOf(f.items[k]||'n')+1)%3]; floorSave(); renderFloors(); }
-function addFloor(){ if(!CUR_FLOOR)return; var s=projByID(CUR_FLOOR.pid).sites[CUR_FLOOR.idx]; ensureFloors(s); var nm=window.prompt('Floor name:','Floor '+s.floors.length); if(nm===null)return; s.floors.push(newFloor((nm||'').trim()||('Floor '+(s.floors.length+1)))); floorSave(); renderFloors(); }
-function delFloor(fi){ if(!CUR_FLOOR)return; var s=projByID(CUR_FLOOR.pid).sites[CUR_FLOOR.idx]; if((s.floors||[]).length<=1){ toast('At least one floor is required',false); return; } if(window.confirm('Remove this floor?')){ s.floors.splice(fi,1); floorSave(); renderFloors(); } }
+function cycleFloorItem(fi,k){ if(!CUR_FLOOR||!isEditor())return; var s=projByID(CUR_FLOOR.pid).sites[CUR_FLOOR.idx]; var f=s.floors[fi]; var o=['n','p','d']; f.items[k]=o[(o.indexOf(f.items[k]||'n')+1)%3]; floorSave(); renderFloors(); }
+function addFloor(){ if(!CUR_FLOOR||!isEditor())return; var s=projByID(CUR_FLOOR.pid).sites[CUR_FLOOR.idx]; var cols=getFloorCols(s); ensureFloors(s); var nm=window.prompt('Floor name:','Floor '+s.floors.length); if(nm===null)return; s.floors.push(newFloor((nm||'').trim()||('Floor '+(s.floors.length+1)),cols)); floorSave(); renderFloors(); }
+function delFloor(fi){ if(!CUR_FLOOR||!isEditor())return; var s=projByID(CUR_FLOOR.pid).sites[CUR_FLOOR.idx]; if((s.floors||[]).length<=1){ toast('At least one floor is required',false); return; } if(window.confirm('Remove this floor?')){ s.floors.splice(fi,1); floorSave(); renderFloors(); } }
 function renderFloors(){ if(!CUR_FLOOR)return; var p=projByID(CUR_FLOOR.pid); if(!p)return; var site=p.sites[CUR_FLOOR.idx]; if(!site)return;
+  var PM=isEditor();
+  var cols=getFloorCols(site);
   var floors=ensureFloors(site); var overall=siteFloorPct(site); var oc=overall>=70?'var(--good)':overall>=35?'var(--teal)':'var(--risk)'; var designPct=siteDesignPct(site); var finalPct=siteFinalPct(site); var fcol=finalPct>=70?'var(--good)':finalPct>=35?'var(--teal)':'var(--risk)';
-  var head='<th class="fl-floor-h">Floor</th>'+FLOOR_ITEMS.map(function(x){return '<th>'+x[1]+'</th>';}).join('')+'<th>Progress</th><th></th>';
+  var head='<th class="fl-floor-h">Floor</th>'+cols.map(function(x){
+    return '<th>'+(PM?'<span contenteditable="true" style="cursor:text;padding:1px 4px;border-radius:3px" onblur="renameFloorColumn(\''+x[0]+'\',this.textContent)">'+esc(x[1])+'</span>'
+    +'<button onclick="delFloorColumn(\''+x[0]+'\')" style="margin-left:4px;background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:4px;width:18px;height:18px;font-size:11px;cursor:pointer;font-weight:800" title="Remove column">&times;</button>'
+    :esc(x[1]))+'</th>';
+  }).join('')+'<th>Progress</th><th></th>';
   var rows=floors.map(function(f,fi){
-    var cells=FLOOR_ITEMS.map(function(x){ var v=(f.items||{})[x[0]]||'n'; var g=v==='d'?'\u2713':v==='p'?'\u25D0':''; return '<td><span class="flcell st-'+v+'" onclick="cycleFloorItem('+fi+',\''+x[0]+'\')" title="Click to change">'+g+'</span></td>'; }).join('');
-    var fp=floorPct(f); var fc=fp>=70?'var(--good)':fp>=35?'var(--teal)':'var(--muted-st)';
+    var cells=cols.map(function(x){ var v=(f.items||{})[x[0]]||'n'; var g=v==='d'?'\u2713':v==='p'?'\u25D0':''; return '<td><span class="flcell st-'+v+'" onclick="cycleFloorItem('+fi+',\''+x[0]+'\')" title="Click to change">'+g+'</span></td>'; }).join('');
+    var fp=floorPct(f,site); var fc=fp>=70?'var(--good)':fp>=35?'var(--teal)':'var(--muted-st)';
     return '<tr><td class="fl-floor" contenteditable="true" data-fl="'+fi+'">'+esc(f.name)+'</td>'+cells+
       '<td><div class="fl-prog"><div class="fl-bar"><div class="fl-fill" style="width:'+fp+'%;background:'+fc+'"></div></div><span style="color:'+fc+'">'+fp+'%</span></div></td>'+
       '<td><button class="fl-del" onclick="delFloor('+fi+')" title="Remove floor">\u2715</button></td></tr>';
   }).join('');
   document.getElementById('floorsModal').innerHTML=
     '<div class="fl-head"><div class="fl-head-l"><div class="fl-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M6 21V7l6-4 6 4v14M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01"/></svg></div>'+
-    '<div><div class="fl-title">'+esc(site.name)+'</div><div class="fl-sub">Installation checklist \u00b7 '+floors.length+' floors</div></div></div>'+
+    '<div><div class="fl-title">'+esc(site.name)+'</div><div class="fl-sub">Installation checklist \u00b7 '+floors.length+' floors \u00b7 '+cols.length+' columns</div></div></div>'+
     '<div class="fl-head-r"><div class="fl-metric"><div class="fl-metric-v">'+designPct+'%</div><div class="fl-metric-k">Site Tracker</div></div><div class="fl-metric"><div class="fl-metric-v">'+overall+'%</div><div class="fl-metric-k">Installation</div></div><div class="fl-overall" style="color:'+fcol+'">'+finalPct+'%<span>Final</span></div><button class="fl-x" onclick="closeFloors()">\u2715</button></div></div>'+
-    '<div class="fl-legend"><span><i class="lg d"></i>Done</span><span><i class="lg p"></i>In Progress</span><span><i class="lg n"></i>Not Started</span><span class="fl-hint">Tap any cell to cycle Not&nbsp;Started \u2192 In&nbsp;Progress \u2192 Done</span></div>'+
+    '<div class="fl-legend"><span><i class="lg d"></i>Done</span><span><i class="lg p"></i>In Progress</span><span><i class="lg n"></i>Not Started</span><span class="fl-hint">Tap any cell to cycle status</span></div>'+
+    (PM?'<div style="display:flex;gap:8px;margin:0 18px 10px;flex-wrap:wrap">'
+      +'<button class="fl-add" onclick="addFloorColumn()" style="font-size:11.5px;padding:5px 14px">+ Add Column</button>'
+      +'<span style="font-size:11px;color:var(--muted);align-self:center">Click column headers to rename · × to delete</span>'
+    +'</div>':'')+
     '<div class="fl-table-wrap"><table class="fl-table"><thead><tr>'+head+'</tr></thead><tbody>'+rows+'</tbody></table></div>'+
     '<div class="fl-foot"><button class="fl-add" onclick="addFloor()">+ Add Floor</button><button class="fl-done" onclick="closeFloors()">Done</button></div>';
   document.querySelectorAll('#floorsModal [data-fl]').forEach(function(el){ el.addEventListener('blur',function(){ var fi=+el.getAttribute('data-fl'); var s=projByID(CUR_FLOOR.pid).sites[CUR_FLOOR.idx]; if(s.floors[fi]){ s.floors[fi].name=el.textContent.trim()||('Floor '+(fi+1)); floorSave(); } }); });
@@ -8690,7 +8711,7 @@ function siteTrackerHeaderCell(p,col,idx,PM){
 }
 function renderSiteTracker(p){
   if(isPhaseModel(p)) return renderPhaseTracker(p);
-  var PM=ROLE==='pm', FM=hasFloorModel(p), sites=(p.sites||[]).filter(Boolean), cols=siteTrackerVisibleColumns(p);
+  var PM=isEditor(), FM=hasFloorModel(p), sites=(p.sites||[]).filter(Boolean), cols=siteTrackerVisibleColumns(p);
   var fSites=(siteFilter==='all'?sites:sites.filter(function(s){ return s && (s.survey===siteFilter || s.design===siteFilter || s.submit===siteFilter); }));
   var doneAll=sites.filter(function(s){ return s&&s.survey==='d'&&s.design==='d'&&s.submit==='d'; }).length;
   var hiddenCount=ensureSiteTrackerColumns(p).filter(function(c){ return c.hidden; }).length;
@@ -8751,7 +8772,7 @@ function moveSiteCol(pid,key,dir){
   persist(); if(CUR_PROJ===pid)renderProjectView(pid);
 }
 function renameSiteCol(pid,key,label){
-  if(ROLE!=='pm')return;
+  if(!isEditor())return;
   var p=projByID(pid); if(!p)return;
   var col=ensureSiteTrackerColumns(p).find(function(c){ return c.key===key; }); if(!col)return;
   var v=String(label||'').trim(); if(!v){ if(CUR_PROJ===pid)renderProjectView(pid); return; }
@@ -8789,15 +8810,15 @@ function applySiteColsToAll(pid){
   try{toast('Tracker column layout applied across all Site Tracker projects',true);}catch(e){}
 }
 function addSite(pid){
-  if(ROLE!=='pm')return; var p=projByID(pid); if(!p)return;
+  if(!isEditor())return; var p=projByID(pid); if(!p)return;
   var n=window.prompt('Site name:',''); if(n===null)return; n=String(n||'').trim(); if(!n)return;
   ensureSiteTrackerColumns(p);
   var row={name:n,survey:'n',surveyDate:'',design:'n',designDate:'',submit:'n',submitDate:'',notes:'',ks:0,ksDone:0};
   p.siteColumns.forEach(function(c){ if(!c.builtin && row[c.key]==null) row[c.key]=(c.type==='number'?0:''); });
   p.sites.push(row); persist(); renderProjectView(pid);
 }
-function delSite(pid,i){ if(ROLE!=='pm')return; var p=projByID(pid); if(!p||!confirm('Delete this site?'))return; p.sites.splice(i,1); persist(); renderProjectView(pid); try{renderHub();}catch(e){} }
-function cycleSiteField(pid,i,field){ if(ROLE!=='pm')return; var p=projByID(pid); if(!p||!p.sites[i])return; p.sites[i][field]=stNext(p.sites[i][field]); p.progress=overallPct(p); persist(); renderProjectView(pid); renderHub(); }
+function delSite(pid,i){ if(!isEditor())return; var p=projByID(pid); if(!p||!confirm('Delete this site?'))return; p.sites.splice(i,1); persist(); renderProjectView(pid); try{renderHub();}catch(e){} }
+function cycleSiteField(pid,i,field){ if(!isEditor())return; var p=projByID(pid); if(!p||!p.sites[i])return; p.sites[i][field]=stNext(p.sites[i][field]); p.progress=overallPct(p); persist(); renderProjectView(pid); renderHub(); }
 function openSiteDatePick(pid,si,field,anchor){
   if(ROLE!=='pm')return;
   if(__dpActive){__dpActive.remove();__dpActive=null;}
