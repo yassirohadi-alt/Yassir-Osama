@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html dir="ltr" lang="en">
 <head>
-<link rel="icon" type="image/png" href="/Logo%20PNG.png">
-<link rel="apple-touch-icon" href="/Logo%20PNG.png">  
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="mobile-web-app-capable" content="yes"><meta name="theme-color" content="#B12836"><meta name="format-detection" content="telephone=no">
 <title>Knowledge Papers — Projects Dashboard</title>
@@ -127,10 +125,10 @@ body.role-pm .proj-card-name:hover{text-decoration:underline dotted rgba(255,255
 .pcstat{flex:1;text-align:center;background:var(--bg);border-radius:8px;padding:8px 4px}
 .pcstat-v{font-family:var(--disp);font-weight:800;font-size:18px;color:var(--brand)}
 .pcstat-k{font-size:10px;color:var(--muted);margin-top:2px}
-.proj-card-bar{display:flex;align-items:center;gap:8px}
+.proj-card-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .pcbar-track{flex:1;height:8px;border-radius:99px;background:var(--line);overflow:hidden}
 .pcbar-fill{height:100%;border-radius:99px;background:var(--teal-grad);transition:width .5s ease}
-.pcbar-pct{font-family:var(--disp);font-weight:700;font-size:13px;color:var(--brand-2);width:34px;text-align:start}
+.pcbar-pct{font-family:var(--disp);font-weight:700;font-size:13px;color:var(--brand-2);min-width:34px;width:auto;text-align:start;display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
 .proj-card-footer{display:flex;align-items:center;justify-content:space-between}
 .proj-status{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:99px;white-space:nowrap}
 .proj-status.s-d{background:var(--good-bg);color:var(--good)}
@@ -1155,8 +1153,10 @@ body.intro-complete > :not(#dashboardIntro){
 .site-table .site-name-h{min-width:220px;text-align:start}
 .site-table .sth-wrap{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:100px}
 .site-table .sth-label{display:inline-block;min-width:42px;text-align:inherit}
-body.role-pm .site-table .sth-label[contenteditable="true"]{cursor:text;padding:2px 4px;border-radius:4px}
-body.role-pm .site-table .sth-label[contenteditable="true"]:hover{background:rgba(255,255,255,.12);outline:1px dashed rgba(255,255,255,.35);outline-offset:-1px}
+body.role-pm .site-table .sth-label[contenteditable="true"],
+body.role-dev .site-table .sth-label[contenteditable="true"]{cursor:text;padding:2px 4px;border-radius:4px}
+body.role-pm .site-table .sth-label[contenteditable="true"]:hover,
+body.role-dev .site-table .sth-label[contenteditable="true"]:hover{background:rgba(255,255,255,.12);outline:1px dashed rgba(255,255,255,.35);outline-offset:-1px}
 .site-table .st-col-tools{display:inline-flex;align-items:center;gap:3px;opacity:.95}
 .site-table .st-col-tools button{width:20px;height:20px;border-radius:6px;border:none;background:rgba(255,255,255,.16);color:#fff;font-size:11px;font-weight:800;cursor:pointer;display:inline-grid;place-items:center;line-height:1}
 .site-table .st-col-tools button:hover{background:rgba(255,255,255,.28)}
@@ -4394,6 +4394,15 @@ body{
 }
 
 /* ═══ Progress Change Tracker ═══ */
+/* ── Row reorder buttons ── */
+.st-row-btn{width:22px;height:22px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink-3);font-size:12px;font-weight:700;cursor:pointer;display:inline-grid;place-items:center;line-height:1;margin-inline-end:2px;transition:all .15s}
+.st-row-btn:hover{background:var(--brand-soft);border-color:var(--brand);color:var(--brand)}
+
+/* ── Green update-arrow indicator ── */
+@keyframes updPulse{0%,100%{opacity:.7;transform:translateY(0)}50%{opacity:1;transform:translateY(-2px)}}
+.upd-arrow{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#E2F5EC;color:#1D8A56;font-size:12px;font-weight:800;margin-inline-start:5px;animation:updPulse 2.2s ease-in-out infinite;cursor:help;vertical-align:middle;line-height:1;flex:0 0 auto}
+.upd-arrow[data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1A1F2B;color:#fff;font-size:10.5px;font-weight:600;padding:4px 10px;border-radius:6px;white-space:nowrap;z-index:99;pointer-events:none}
+.upd-arrow{position:relative}
 .pct-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;font-size:10.5px;font-weight:700;letter-spacing:.01em;white-space:nowrap}
 .pct-badge.up{background:#E2F5EC;color:#1D8A56}
 .pct-badge.down{background:#FDEAEC;color:#C02030}
@@ -4811,7 +4820,10 @@ function initStore(){
     if(!s)return false;
     var sp=(s.engagements&&s.engagements[0]&&Array.isArray(s.engagements[0].projects))?s.engagements[0].projects:s.projects;
     if(!Array.isArray(sp))return false;
+    var deleted=Array.isArray(s._deletedIds)?s._deletedIds:[];
     for(const bid of seedBuilt){
+      /* Skip projects the user explicitly deleted */
+      if(deleted.indexOf(bid)>=0) continue;
       const seedP=PROJECTS_SEED.find(x=>x.id===bid);
       const cachP=sp.find(x=>x.id===bid);
       const seedN=(seedP&&seedP.milestones&&seedP.milestones.length)||0;
@@ -4846,7 +4858,20 @@ function initStore(){
   try{ if(ensureFieldSurvey()){ localStorage.setItem(SK,JSON.stringify(STORE)); localStorage.setItem(SK+'_seedver',SEED_VERSION); } }catch(e){}
   try{ if(unifySystemsTheme()){ localStorage.setItem(SK,JSON.stringify(STORE)); localStorage.setItem(SK+'_seedver',SEED_VERSION); } }catch(e){}
 }
-function persist(){try{localStorage.setItem(SK,JSON.stringify(STORE));localStorage.setItem(SK+'_seedver',SEED_VERSION);}catch(e){} schedulePush();}
+function persist(changedPid){
+  /* Auto-stamp updatedAt on the changed project */
+  if(changedPid && STORE && Array.isArray(STORE.projects)){
+    var cp=STORE.projects.find(function(x){return x.id===changedPid;});
+    if(cp) cp.updatedAt=new Date().toISOString();
+  }
+  /* Also stamp via CUR_PROJ if no explicit pid */
+  if(!changedPid && typeof CUR_PROJ!=='undefined' && CUR_PROJ && STORE && Array.isArray(STORE.projects)){
+    var cp2=STORE.projects.find(function(x){return x.id===CUR_PROJ;});
+    if(cp2) cp2.updatedAt=new Date().toISOString();
+  }
+  try{localStorage.setItem(SK,JSON.stringify(STORE));localStorage.setItem(SK+'_seedver',SEED_VERSION);}catch(e){}
+  schedulePush();
+}
 /* One-time: make every project use the same colour scheme as Systems & Applications (p1).
    p1 uses the default KnowledgePapers red (no theme), so this copies p1's theme to all
    projects + sub-projects (or clears their themes if p1 has none). Guarded so it runs once —
@@ -5521,11 +5546,51 @@ function _nbItem(kind,badge,icon,html){
     +'<span>'+html+'</span>'
   +'</span>';
 }
+/* ═══ ACTIVITY LOGGING — records user actions to STORE and live feed ═══ */
+function logActivity(action,proj,field,detail,kind,icon){
+  if(!STORE) return;
+  if(!Array.isArray(STORE._activityLog)) STORE._activityLog=[];
+  var entry={
+    action:action||'Update',
+    proj:proj||'',
+    field:field||'',
+    detail:detail||'',
+    kind:kind||'info',
+    icon:icon||'info',
+    badge:action||'Activity',
+    ts:new Date().toISOString(),
+    user:ROLE||'viewer'
+  };
+  STORE._activityLog.push(entry);
+  /* Keep only last 100 entries to avoid bloat */
+  if(STORE._activityLog.length>100) STORE._activityLog=STORE._activityLog.slice(-100);
+  /* Refresh the live feed ticker immediately */
+  try{ refreshNewsBanner(); }catch(e){}
+}
 function buildNewsFeed(){
   var out=[];
   var A=null; try{ A=(typeof pmoAnalyze==='function')?pmoAnalyze():null; }catch(e){}
   var today=(new Date()).toISOString().slice(0,10);
   var impOrder={hi:0,me:1,lo:2};
+
+  /* ═══ 0) USER ACTIVITY LOG — show recent actions first ═══ */
+  try{
+    var log=Array.isArray(STORE._activityLog)?STORE._activityLog:[];
+    /* Show last 20 activity entries, newest first */
+    log.slice(-20).reverse().forEach(function(entry){
+      if(!entry)return;
+      var kind=entry.kind||'info';
+      var icon=entry.icon||'info';
+      var badge=entry.badge||'Activity';
+      var detail=entry.detail||'';
+      var ts=entry.ts?new Date(entry.ts).toLocaleString('en-GB',{timeZone:'Asia/Baghdad',hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'}):'';
+      out.push(_nbItem(kind,badge,icon,
+        '<b>'+_nbEsc(entry.proj||'')+'</b> '+_nbEsc(entry.action||'')
+        +(detail?(' — '+_nbEsc(detail)):'')
+        +(ts?(' <span style="opacity:.6;font-size:10px">'+ts+'</span>'):'')
+      ));
+    });
+  }catch(e){}
 
   /* 1) Portfolio headline */
   if(A){
@@ -5799,85 +5864,101 @@ function renderHub(){
   const active=STORE.projects.filter(p=>overallPct(p)>0&&overallPct(p)<100).length;
   const done=STORE.projects.filter(p=>overallPct(p)>=100).length;
   document.getElementById('hubStats').innerHTML=
-    `<div class="hstat"><div class="hstat-v">${total}</div><div class="hstat-k">Projects</div></div>`+
-    `<div class="hstat"><div class="hstat-v">${active}</div><div class="hstat-k">Active</div></div>`+
-    `<div class="hstat"><div class="hstat-v">${done}</div><div class="hstat-k">Completed</div></div>`;
+    '<div class="hstat"><div class="hstat-v">'+total+'</div><div class="hstat-k">Projects</div></div>'+
+    '<div class="hstat"><div class="hstat-v">'+active+'</div><div class="hstat-k">Active</div></div>'+
+    '<div class="hstat"><div class="hstat-v">'+done+'</div><div class="hstat-k">Completed</div></div>';
 
   /* ═══ Progress Change Tracking — init previous snapshot ONCE ═══ */
   if(!window._pctPrevSnap) window._pctPrevSnap={};
-  var needsInit=(Object.keys(window._pctPrevSnap).length===0);
-  if(needsInit){
+  if(Object.keys(window._pctPrevSnap).length===0){
     STORE.projects.forEach(function(p){
       var cur=(typeof overallPct==='function')?overallPct(p):(p.progress||0);
-      /* simulate a realistic previous-period baseline */
       var sim=cur>0?Math.max(0,cur-Math.floor(Math.random()*7)-2):0;
       window._pctPrevSnap[p.id]=sim;
     });
   }
 
-  STORE.projects.forEach(p=>{
-    const pct=overallPct(p);
-    const ps=projStatus(p);
+  STORE.projects.forEach(function(p){
+    var pct=overallPct(p);
+    var ps=projStatus(p);
 
-    /* ── Compute ↑ / ↓ / — for this card ── */
+    /* ── Green update arrow (updatedAt within 24h) ── */
+    var UPD_MS=24*60*60*1000;
+    var updAt=p.updatedAt||(p.meta?p.meta.updatedAt:0)||0;
+    var isRecent=updAt&&((Date.now()-new Date(updAt).getTime())<UPD_MS);
+    var updA=isRecent?'<span class="upd-arrow" title="New Project Update">\u2191</span>':'';
+
+    /* ── Compute change vs previous period ── */
     var prev=(window._pctPrevSnap[p.id]!=null)?window._pctPrevSnap[p.id]:pct;
     var delta=pct-prev;
-    var chgPctNum=0;
-    if(prev>0) chgPctNum=Math.abs(((pct-prev)/prev)*100);
-    else if(pct>0) chgPctNum=100;
-    chgPctNum=+chgPctNum.toFixed(1);
+    var chgNum=0;
+    if(prev>0) chgNum=Math.abs(((pct-prev)/prev)*100);
+    else if(pct>0) chgNum=100;
+    chgNum=+chgNum.toFixed(1);
     var dir=delta>0?'up':delta<0?'down':'flat';
-    var arrow=dir==='up'?'↑':dir==='down'?'↓':'—';
-    var clr=dir==='up'?'#1D8A56':dir==='down'?'#C02030':'#8A97A6';
-    var bg=dir==='up'?'#E2F5EC':dir==='down'?'#FDEAEC':'#EDF0F5';
+    var arrow=dir==='up'?'\u2191':dir==='down'?'\u2193':'\u2014';
+    var clr=dir==='up'?'#1D8A56':dir==='down'?'#C02030':'#7A8594';
+    var bgc=dir==='up'?'#E2F5EC':dir==='down'?'#FDEAEC':'#EDF0F5';
+    var chgText=dir!=='flat'?chgNum+'%':'No Change';
 
-    /* ── Change badge strip ── */
-    var badge='<div style="display:flex;align-items:center;justify-content:space-between;margin-top:7px;padding:4px 6px;border-radius:8px;background:'+bg+'">'
-      +'<span style="font-size:10px;color:'+clr+';font-weight:700">Prev: '+prev+'%</span>'
-      +'<span style="display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:800;color:'+clr+'">'
-      +'<span style="font-size:15px;line-height:1">'+arrow+'</span>'
-      +(dir!=='flat'?chgPctNum+'%':'No Change')
-      +'</span></div>';
+    /* ── Build inline arrow tag that sits RIGHT BESIDE the percentage ── */
+    var inlineArrow='';
+    if(dir==='up'){
+      inlineArrow='<span style="display:inline-flex;align-items:center;gap:2px;margin-left:4px;padding:1px 5px;border-radius:6px;background:#E2F5EC;color:#1D8A56;font-size:10px;font-weight:800;line-height:1;vertical-align:middle;white-space:nowrap">\u2191'+chgNum+'%</span>';
+    }else if(dir==='down'){
+      inlineArrow='<span style="display:inline-flex;align-items:center;gap:2px;margin-left:4px;padding:1px 5px;border-radius:6px;background:#FDEAEC;color:#C02030;font-size:10px;font-weight:800;line-height:1;vertical-align:middle;white-space:nowrap">\u2193'+chgNum+'%</span>';
+    }else{
+      inlineArrow='<span style="display:inline-flex;align-items:center;gap:2px;margin-left:4px;padding:1px 5px;border-radius:6px;background:#EDF0F5;color:#7A8594;font-size:10px;font-weight:800;line-height:1;vertical-align:middle;white-space:nowrap">\u2014</span>';
+    }
 
-    const el=document.createElement('div');
+    /* ── Build the full card ── */
+    var el=document.createElement('div');
     el.className='proj-card'; el.dataset.pid=p.id;
-    el.innerHTML=`<button class="proj-del" onclick="delProj('${p.id}',event)" title="Delete project"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
-      <div class="proj-card-top" onclick="openProject('${p.id}')">
-        <div class="proj-card-icon">${ICONS[p.icon]||ICONS.system}</div>
-        <div class="proj-card-name" onclick="editCardEn('${p.id}',event)">${esc(p.nameEn)}</div>
-      </div>
-      <div class="proj-card-body" onclick="openProject('${p.id}')">
-        ${(typeof hasResourceModel==='function'&&hasResourceModel(p))?`
-        <div class="proj-card-bar" style="justify-content:flex-start">
-          <div class="pcbar-pct">${(p.resources||[]).length}</div>
-          <span style="font-size:11px;font-weight:700;color:var(--muted-st);margin-inline-start:6px">resources</span>
-        </div>${badge}`:((typeof hasPaymentModel==='function'&&hasPaymentModel(p))?`
-        <div class="proj-card-bar" style="justify-content:flex-start">
-          <div class="pcbar-pct">${(function(){var o={};(p.payments||[]).forEach(function(x){o[(x.order||'')+'|'+(x.poNo||'')]=1;});return Object.keys(o).length;})()}</div>
-          <span style="font-size:11px;font-weight:700;color:var(--muted-st);margin-inline-start:6px">orders</span>
-        </div>${badge}`:`
-        <div class="proj-card-bar">
-          <div class="pcbar-track"><div class="pcbar-fill" style="width:${pct}%"></div></div>
-          <div class="pcbar-pct">${pct}%</div>
-        </div>
-        ${badge}
-        <div class="proj-card-footer">
-          <span class="proj-status ${ps.cls}"><i class="ps-dot"></i>${ps.lb}</span>
-        </div>`)}
-      </div>`;
+
+    var isRes=(typeof hasResourceModel==='function'&&hasResourceModel(p));
+    var isPay=(typeof hasPaymentModel==='function'&&hasPaymentModel(p));
+
+    var cardBody='';
+    if(isRes){
+      cardBody='<div class="proj-card-bar" style="justify-content:flex-start">'
+        +'<div class="pcbar-pct">'+(p.resources||[]).length+updA+inlineArrow+'</div>'
+        +'<span style="font-size:11px;font-weight:700;color:var(--muted-st);margin-inline-start:6px">resources</span>'
+        +'</div>';
+    }else if(isPay){
+      var oCount=(function(){var o={};(p.payments||[]).forEach(function(x){o[(x.order||'')+'|'+(x.poNo||'')]=1;});return Object.keys(o).length;})();
+      cardBody='<div class="proj-card-bar" style="justify-content:flex-start">'
+        +'<div class="pcbar-pct">'+oCount+updA+inlineArrow+'</div>'
+        +'<span style="font-size:11px;font-weight:700;color:var(--muted-st);margin-inline-start:6px">orders</span>'
+        +'</div>';
+    }else{
+      cardBody='<div class="proj-card-bar">'
+        +'<div class="pcbar-track"><div class="pcbar-fill" style="width:'+pct+'%"></div></div>'
+        +'<div class="pcbar-pct">'+pct+'%'+updA+inlineArrow+'</div>'
+        +'</div>'
+        +'<div class="proj-card-footer">'
+        +'<span class="proj-status '+ps.cls+'"><i class="ps-dot"></i>'+ps.lb+'</span>'
+        +'</div>';
+    }
+
+    el.innerHTML='<button class="proj-del" onclick="delProj(\''+p.id+'\',event)" title="Delete project"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>'
+      +'<div class="proj-card-top" onclick="openProject(\''+p.id+'\')">'
+      +'<div class="proj-card-icon">'+(ICONS[p.icon]||ICONS.system)+'</div>'
+      +'<div class="proj-card-name" onclick="editCardEn(\''+p.id+'\',event)">'+esc(p.nameEn)+'</div>'
+      +'</div>'
+      +'<div class="proj-card-body" onclick="openProject(\''+p.id+'\')">'+cardBody+'</div>';
     g.appendChild(el);
   });
 
-  /* Add-project button (PM only) */
-  const addCard=document.createElement('button');
+  /* Add-project button */
+  var addCard=document.createElement('button');
   addCard.className='add-proj-card pm-only';
-  addCard.style.display= ROLE==='pm'?'flex':'none';
-  addCard.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Add Project</span>`;
+  addCard.style.display=isEditor()?'flex':'none';
+  addCard.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Add Project</span>';
   addCard.onclick=addProject;
   g.appendChild(addCard);
 
-  /* ═══ Also render the Progress Change Tracker table widget ═══ */
-  try{ if(typeof renderProgressTracker==='function') renderProgressTracker(); }catch(e){}
+  /* ═══ Render the Progress Change Tracker widget table ═══ */
+  try{ if(typeof window.renderProgressTracker==='function') window.renderProgressTracker(); }catch(e){}
 
   /* keep the company-page grid in step */
   if(typeof renderCompany==='function'&&renderHub.__inCompanySync!==true){
@@ -5891,7 +5972,7 @@ function renderHub(){
    PROGRESS CHANGE TRACKER WIDGET
    Compares current project progress vs. previous-period snapshot.
    Displays ↑/↓/— status with percentage change in a live feed.
-   Uses window.__pctPrev set by renderHub for consistent data.
+   Uses window._pctPrevSnap set by renderHub for consistent data.
    ============================================================ */
 (function(){
   var _pctFeedLog  = [];   // activity log entries
@@ -5910,14 +5991,14 @@ function renderHub(){
   /* render the full widget */
   function renderProgressTracker(){
     if(!STORE||!Array.isArray(STORE.projects)) return;
-    if(!window.__pctPrev||Object.keys(window.__pctPrev).length===0) return;
+    if(!window._pctPrevSnap||Object.keys(window._pctPrevSnap).length===0) return;
 
     var ups=0, downs=0, flats=0;
     var rows=[];
 
     STORE.projects.forEach(function(p){
       var cur  = (typeof overallPct==='function') ? overallPct(p) : (p.progress||0);
-      var prev = (window.__pctPrev[p.id]!=null) ? window.__pctPrev[p.id] : cur;
+      var prev = (window._pctPrevSnap[p.id]!=null) ? window._pctPrevSnap[p.id] : cur;
       var chg  = _pctCalc(cur, prev);
       if(chg.cls==='up') ups++;
       else if(chg.cls==='down') downs++;
@@ -5984,11 +6065,11 @@ function renderHub(){
 
   /* poll for changes every 6 seconds */
   function _pctPoll(){
-    if(!STORE||!Array.isArray(STORE.projects)||!window.__pctPrev) return;
+    if(!STORE||!Array.isArray(STORE.projects)||!window._pctPrevSnap) return;
     var changed = false;
     STORE.projects.forEach(function(p){
       var cur = (typeof overallPct==='function')?overallPct(p):(p.progress||0);
-      var prev = (window.__pctPrev[p.id]!=null)?window.__pctPrev[p.id]:cur;
+      var prev = (window._pctPrevSnap[p.id]!=null)?window._pctPrevSnap[p.id]:cur;
       if(cur!==prev){
         var chg=_pctCalc(cur,prev);
         _pctFeedLog.push({
@@ -6006,10 +6087,9 @@ function renderHub(){
     if(changed){
       /* update the previous snapshot */
       STORE.projects.forEach(function(p){
-        window.__pctPrev[p.id]=(typeof overallPct==='function')?overallPct(p):(p.progress||0);
+        window._pctPrevSnap[p.id]=(typeof overallPct==='function')?overallPct(p):(p.progress||0);
       });
       renderProgressTracker();
-      try{ renderHub(); }catch(e){}
       /* pulse the live dot */
       var dot=document.getElementById('pctLiveDot');
       if(dot){dot.style.background='#4EE89A';setTimeout(function(){dot.style.background='#1FA85C'},600);}
@@ -6227,30 +6307,42 @@ function renderSiteTrackerWidget(){
 }
 
 function addProject(){
-  if(ROLE!=='pm')return;
+  if(!isEditor())return;
   const name=window.prompt('New project name:','New Project');
   if(!name)return;
   const nameEn=window.prompt('English name:','New Project')||'New Project';
   const id='p'+Date.now();
   STORE.projects.push({id,name:name.trim(),nameEn:nameEn.trim(),icon:'system',progress:0,
     phases:[],milestones:[],qa:[],budget:[],risks:[],team:[],sites:[]});
+  logActivity('Project Created',nameEn.trim(),'','New project added','good','proj');
   persist();renderHub();try{renderCompany();}catch(e){}toast('Project added');
 }
 function delProj(id,e){
   e&&e.stopPropagation();
-  if(ROLE!=='pm')return;
+  if(!isEditor())return;
   if(!confirm('Delete this project permanently?'))return;
-  var i=STORE.projects.findIndex(function(p){return p&&p.id===id;});
-  if(i>=0)STORE.projects.splice(i,1);          // splice, not reassign — keeps the engagement list linked
+  var p=STORE.projects.find(function(x){return x&&x.id===id;});
+  var pName=p?(p.nameEn||p.name):'Unknown';
+  var i=STORE.projects.findIndex(function(x){return x&&x.id===id;});
+  if(i>=0)STORE.projects.splice(i,1);
+  /* Record deletion so ensureSeedProjects won't re-add it */
+  if(!Array.isArray(STORE._deletedIds)) STORE._deletedIds=[];
+  if(STORE._deletedIds.indexOf(id)<0) STORE._deletedIds.push(id);
+  logActivity('Project Deleted',pName,'','','risk');
   try{ if(typeof syncProjectArrays==='function')syncProjectArrays(); }catch(_){}
   persist();refreshProjectGrids();toast('Project deleted');
 }
 function deleteCurrentProject(){
-  if(!CUR_PROJ||ROLE!=='pm')return;
+  if(!CUR_PROJ||!isEditor())return;
   if(!confirm('Delete this project permanently?'))return;
   var id=CUR_PROJ;
-  var i=STORE.projects.findIndex(function(p){return p&&p.id===id;});
-  if(i>=0)STORE.projects.splice(i,1);           // splice, not reassign — keeps the engagement list linked
+  var p=STORE.projects.find(function(x){return x&&x.id===id;});
+  var pName=p?(p.nameEn||p.name):'Unknown';
+  var i=STORE.projects.findIndex(function(x){return x&&x.id===id;});
+  if(i>=0)STORE.projects.splice(i,1);
+  if(!Array.isArray(STORE._deletedIds)) STORE._deletedIds=[];
+  if(STORE._deletedIds.indexOf(id)<0) STORE._deletedIds.push(id);
+  logActivity('Project Deleted',pName,'','','risk');
   try{ if(typeof syncProjectArrays==='function')syncProjectArrays(); }catch(e){}
   persist();closeProject();refreshProjectGrids();toast('Project deleted');
 }
@@ -7854,7 +7946,9 @@ function cyclePhase(pid,i){
   if(ROLE!=='pm')return;const p=projByID(pid);if(!p)return;
   const cur=p.phases[i].actualPct!=null?p.phases[i].actualPct:(p.phases[i].pct||0);
   const nxt=cur===0?25:cur===25?50:cur===50?75:cur===75?100:0;
-  p.phases[i].actualPct=nxt;p.phases[i].pct=nxt;p.progress=overallPct(p);persist();renderProjectView(pid);renderHub();
+  p.phases[i].actualPct=nxt;p.phases[i].pct=nxt;p.progress=overallPct(p);
+  logActivity('Progress Changed',p.nameEn||p.name,p.phases[i].name||'Phase',''+cur+'% → '+nxt+'%','info','up');
+  persist();renderProjectView(pid);renderHub();
 }
 function cyclePhasePlan(pid,i){
   if(ROLE!=='pm')return;const p=projByID(pid);if(!p)return;
@@ -8173,8 +8267,8 @@ function renderRisks(p){
     <div class="sec-body"><table class="data-table"><thead><tr><th>Risk / Issue</th><th>Impact</th><th>Probability</th><th>Status</th><th>Owner</th><th>Mitigation</th><th></th></tr></thead>
     <tbody id="risks_${p.id}">${rows||'<tr><td colspan="7" class="empty-msg">No risks recorded</td></tr>'}</tbody></table></div></div>`;
 }
-function addRisk(pid){if(ROLE!=='pm')return;const p=projByID(pid);if(!p)return;const n=window.prompt('Risk description:','');if(!n)return;p.risks.push({risk:n.trim(),impact:'me',prob:'me',status:'open',owner:'',mitigation:''});persist();renderProjectView(pid);}
-function delRisk(pid,i){if(ROLE!=='pm')return;const p=projByID(pid);if(!p||!confirm('حذف هذا الخطر؟'))return;p.risks.splice(i,1);persist();renderProjectView(pid);}
+function addRisk(pid){if(!isEditor())return;const p=projByID(pid);if(!p)return;const n=window.prompt('Risk description:','');if(!n)return;p.risks.push({risk:n.trim(),impact:'me',prob:'me',status:'open',owner:'',mitigation:''});logActivity('Risk Added',p.nameEn||p.name,'Risk',n.trim(),'warn','risk');persist();renderProjectView(pid);}
+function delRisk(pid,i){if(!isEditor())return;const p=projByID(pid);if(!p||!confirm('Delete this risk?'))return;var rn=(p.risks[i]?p.risks[i].risk:'');p.risks.splice(i,1);logActivity('Risk Deleted',p.nameEn||p.name,'Risk',rn,'risk','risk');persist();renderProjectView(pid);}
 function cycleRisk(pid,i){if(ROLE!=='pm')return;const p=projByID(pid);if(!p)return;p.risks[i].status=p.risks[i].status==='open'?'closed':'open';persist();renderProjectView(pid);}
 function cycleImp(pid,i,field){if(ROLE!=='pm')return;const p=projByID(pid);if(!p)return;const m={hi:'me',me:'lo',lo:'hi'};p.risks[i][field]=m[p.risks[i][field]]||'me';persist();renderProjectView(pid);}
 
@@ -8396,7 +8490,7 @@ function recalcP1Milestone(p,i){
 }
 function renumberMilestones(p){(p.milestones||[]).forEach((m,i)=>{m.idx=i+1;});}
 function addMilestone(pid){
-  if(ROLE!=='pm')return;const p=projByID(pid);if(!p||!Array.isArray(p.milestones))return;
+  if(!isEditor())return;const p=projByID(pid);if(!p||!Array.isArray(p.milestones))return;
   const name=window.prompt('System / milestone name:','');if(!name)return;
   const tmpl=(p.milestones[0]&&p.milestones[0].phases)||[];
   let phases;
@@ -8407,7 +8501,6 @@ function addMilestone(pid){
   }else{
     phases=[];
   }
-  // ensure the project-level phases[] aggregate row matches the milestone phase set
   if((!Array.isArray(p.phases)||!p.phases.length) && phases.length){
     p.phases=phases.map(ph=>({name:ph.name,nameAr:ph.nameAr,planPct:100,actualPct:0}));
   }
@@ -8416,13 +8509,16 @@ function addMilestone(pid){
   p.milestones.push(m);
   if(Array.isArray(p.sites))p.sites.push({name:name.trim(),survey:'n',surveyDate:'',design:'n',designDate:'',submit:'n',submitDate:'',notes:'',ks:0,ksDone:0});
   renumberMilestones(p); recalcPhaseAggregates(p); p.progress=overallPct(p);
+  logActivity('Milestone Added',p.nameEn||p.name,'Milestone',name.trim(),'good','ms');
   persist();renderProjectView(pid);renderHub();
 }
 function delMilestone(pid,i){
-  if(ROLE!=='pm')return;const p=projByID(pid);if(!p||!confirm('Delete this system/milestone?'))return;
+  if(!isEditor())return;const p=projByID(pid);if(!p||!confirm('Delete this system/milestone?'))return;
+  var mn=(p.milestones[i]?p.milestones[i].nameAr||p.milestones[i].name:'');
   p.milestones.splice(i,1);
   if(Array.isArray(p.sites))p.sites.splice(i,1);
   renumberMilestones(p); recalcPhaseAggregates(p); p.progress=overallPct(p);
+  logActivity('Milestone Deleted',p.nameEn||p.name,'Milestone',mn,'risk','ms');
   persist();renderProjectView(pid);renderHub();
 }
 function cycleMsPhase(pid,mi,phi){
@@ -8721,7 +8817,10 @@ function renderSiteTracker(p){
     var i=p.sites.indexOf(s);
     var mainRow='<tr><td class="st-rowno">'+(i+1)+'</td>'
       +cols.map(function(col){ return renderSiteTrackerCell(p,s,i,col,PM,FM); }).join('')
-      +'<td>'+(PM?('<button class="sec-btn" title="Add sub-item" style="padding:2px 8px;font-size:11px;margin-inline-end:4px" onclick="addSiteSub(\''+p.id+'\','+i+')">+ Sub</button><button class="row-del-btn pm-only" onclick="delSite(\''+p.id+'\','+i+')">✕</button>'):'')+'</td></tr>';
+      +'<td style="white-space:nowrap">'+(PM?('<button class="st-row-btn" title="Move up" onclick="moveSiteRow(\''+p.id+'\','+i+',-1)">↑</button>'
+      +'<button class="st-row-btn" title="Move down" onclick="moveSiteRow(\''+p.id+'\','+i+',1)">↓</button>'
+      +'<button class="sec-btn" title="Add sub-item" style="padding:2px 8px;font-size:11px;margin-inline-end:4px" onclick="addSiteSub(\''+p.id+'\','+i+')">+ Sub</button>'
+      +'<button class="row-del-btn pm-only" onclick="delSite(\''+p.id+'\','+i+')">✕</button>'):'')+'</td></tr>';
     var subHtml=(Array.isArray(s.subs)?s.subs:[]).map(function(sub,si){ return renderSiteSubRow(p,s,i,sub,si,cols,PM); }).join('');
     return mainRow+subHtml;
   }).join('');
@@ -8741,7 +8840,7 @@ function renderSiteTracker(p){
         +'<button class="site-col-btn" onclick="addSiteColumn(\''+p.id+'\')">+ Column</button>'
         +'<button class="site-col-btn" onclick="restoreSiteCols(\''+p.id+'\')">Restore Columns'+(hiddenCount?(' ('+hiddenCount+')'):'')+'</button>'
         +'<button class="site-col-btn" onclick="applySiteColsToAll(\''+p.id+'\')">Apply layout to all projects</button>'
-        +'<span class="site-col-hint">Rename headers inline · use arrows to reorder · × to delete columns</span>'
+        +'<span class="site-col-hint">Rename headers inline · ←→ reorder columns · ↑↓ reorder rows · × to delete</span>'
       +'</div>'):'')
       +'<div class="site-table-wrap"><table class="site-table"><thead>'+header+'</thead><tbody id="sites_'+p.id+'">'+(rows||('<tr><td colspan="'+(cols.length+2)+'" class="empty-msg">No sites — click + Site</td></tr>'))+'</tbody></table></div>'
     +'</div></div>';
@@ -8792,6 +8891,7 @@ function addSiteColumn(pid){
   cols.splice(insertAt,0,{key:key,label:name,type:type,builtin:false,hidden:false});
   (p.sites||[]).forEach(function(s){ s[key]=(type==='number'?0:''); });
   p.siteColumns=cols;
+  logActivity('Column Added',p.nameEn||p.name,'Column',name,'info','proj');
   persist();
   if(CUR_PROJ===pid)renderProjectView(pid);
   try{toast('New column added',true);}catch(e){}
@@ -8817,10 +8917,30 @@ function addSite(pid){
   ensureSiteTrackerColumns(p);
   var row={name:n,survey:'n',surveyDate:'',design:'n',designDate:'',submit:'n',submitDate:'',notes:'',ks:0,ksDone:0};
   p.siteColumns.forEach(function(c){ if(!c.builtin && row[c.key]==null) row[c.key]=(c.type==='number'?0:''); });
-  p.sites.push(row); persist(); renderProjectView(pid);
+  p.sites.push(row);
+  logActivity('Site Added',p.nameEn||p.name,'Site',n,'good','proj');
+  persist(); renderProjectView(pid);
 }
-function delSite(pid,i){ if(!isEditor())return; var p=projByID(pid); if(!p||!confirm('Delete this site?'))return; p.sites.splice(i,1); persist(); renderProjectView(pid); try{renderHub();}catch(e){} }
-function cycleSiteField(pid,i,field){ if(!isEditor())return; var p=projByID(pid); if(!p||!p.sites[i])return; p.sites[i][field]=stNext(p.sites[i][field]); p.progress=overallPct(p); persist(); renderProjectView(pid); renderHub(); }
+function delSite(pid,i){ if(!isEditor())return; var p=projByID(pid); if(!p||!confirm('Delete this site?'))return;
+  var sn=(p.sites[i]?p.sites[i].name:'');
+  p.sites.splice(i,1);
+  logActivity('Site Deleted',p.nameEn||p.name,'Site',sn,'risk','proj');
+  persist(); renderProjectView(pid); try{renderHub();}catch(e){} }
+/* ── Move site row up or down ── */
+function moveSiteRow(pid,i,dir){
+  if(!isEditor())return; var p=projByID(pid); if(!p)return;
+  var arr=p.sites; if(!arr)return;
+  var ni=i+dir; if(ni<0||ni>=arr.length)return;
+  var tmp=arr[i]; arr[i]=arr[ni]; arr[ni]=tmp;
+  persist(); renderProjectView(pid);
+}
+function cycleSiteField(pid,i,field){ if(!isEditor())return; var p=projByID(pid); if(!p||!p.sites[i])return;
+  var oldVal=p.sites[i][field]||'n';
+  p.sites[i][field]=stNext(p.sites[i][field]);
+  var newVal=p.sites[i][field];
+  p.progress=overallPct(p);
+  logActivity('Status Changed',p.nameEn||p.name,field+(p.sites[i].name?' ('+p.sites[i].name+')':''),oldVal+' → '+newVal,'info','ms');
+  persist(); renderProjectView(pid); renderHub(); }
 function openSiteDatePick(pid,si,field,anchor){
   if(ROLE!=='pm')return;
   if(__dpActive){__dpActive.remove();__dpActive=null;}
@@ -13177,12 +13297,15 @@ function syncProjectArrays(){
 function ensureSeedProjects(){
   try{
     if(!STORE||!Array.isArray(STORE.projects)||typeof PROJECTS_SEED==='undefined')return false;
-    var removed=[];  // removedProjects system removed — never skip a seed project
+    /* Respect developer deletions — never re-add a project the user explicitly deleted */
+    var removed=Array.isArray(STORE._deletedIds)?STORE._deletedIds:[];
     var have={}; STORE.projects.forEach(function(p){ if(p&&p.id)have[p.id]=1; });
     var added=[];
     PROJECTS_SEED.forEach(function(sp,i){
-      if(!sp||!sp.id||have[sp.id]||removed.indexOf(sp.id)>=0)return;
-      var at=STORE.projects.length;                       // slot it back beside its seed neighbour
+      if(!sp||!sp.id||have[sp.id])return;
+      /* If this project was explicitly deleted by the user, skip it */
+      if(removed.indexOf(sp.id)>=0) return;
+      var at=STORE.projects.length;
       for(var j=i-1;j>=0;j--){
         var prev=PROJECTS_SEED[j]; if(!prev||!prev.id)continue;
         var k=-1; STORE.projects.forEach(function(x,xi){ if(x&&x.id===prev.id)k=xi; });
