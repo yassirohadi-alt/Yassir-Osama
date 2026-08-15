@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html dir="ltr" lang="en">
 <head>
-<link rel="icon" type="image/png" href="/Logo%20PNG.png">
-<link rel="apple-touch-icon" href="/Logo%20PNG.png">  
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="mobile-web-app-capable" content="yes"><meta name="theme-color" content="#B12836"><meta name="format-detection" content="telephone=no">
 <title>Knowledge Papers — Projects Dashboard</title>
@@ -742,6 +740,12 @@ th.fin-num{text-align:right}
 .wcard-foot{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:9px}
 .eng-grid .wcard .proj-status{font-size:8.5px;padding:2px 6px;gap:3px}
 .wcard-pct{font-family:var(--disp);font-weight:700;font-size:11.5px;color:#B12836}
+/* ── Percentage-point change indicators (Live Feed) ── */
+.pp-up{color:#1A7A4C;font-weight:800;cursor:help}
+.pp-down{color:#B91C2F;font-weight:800;cursor:help}
+.pp-flat{color:#6B7280;font-weight:700;cursor:help}
+.news-item.flat .news-icon{background:#ECEEF3;color:#6B7280}
+.news-item.flat .news-badge{background:#ECEEF3;color:#6B7280}
 .wcard-chg{display:inline-flex;align-items:center;padding:1px 6px;border-radius:99px;font-size:10px;font-weight:800;line-height:1.6;white-space:nowrap;flex:0 0 auto}
 .wcard-chg.up{background:#DCF5E7;color:#1A7A4C}
 .wcard-chg.down{background:#FCE4E8;color:#B91C2F}
@@ -1187,11 +1191,20 @@ body.role-dev .site-table .sth-label[contenteditable="true"]:hover{background:rg
 .phase-matrix-filters .sf-btn{border:1px solid var(--line);background:#fff;color:var(--ink-2);padding:7px 12px;border-radius:999px;font-size:11px;font-weight:700;cursor:pointer}
 .phase-matrix-filters .sf-btn.active{background:var(--brand);border-color:var(--brand);color:#fff}
 .phase-matrix-meta{font-size:11px;color:var(--muted)}
-.phase-matrix-wrap{overflow:auto;border:1px solid var(--line);border-radius:14px;background:#fff}
+.phase-matrix-wrap{overflow:auto;border:1px solid var(--line);border-radius:14px;background:#fff;max-height:min(72vh,760px)}
 .phase-matrix-table{width:100%;border-collapse:separate;border-spacing:0;min-width:1500px;font-size:12px}
-.phase-matrix-table thead th{position:sticky;top:0;z-index:2;background:linear-gradient(180deg,#fbfcfe,#f3f6fa);border-bottom:1px solid var(--line);padding:10px 8px;text-align:center;color:var(--ink-2);font-size:11px;font-weight:800;vertical-align:bottom}
-.phase-matrix-table thead th:first-child,.phase-matrix-table tbody td:first-child{position:sticky;left:0;z-index:3;background:inherit}
-.phase-matrix-table thead th:nth-child(2),.phase-matrix-table tbody td:nth-child(2){position:sticky;left:64px;z-index:3;background:inherit}
+.phase-matrix-table thead th{position:sticky;top:0;z-index:2;background:#f5f8fb;border-bottom:1px solid var(--line);padding:10px 8px;text-align:center;color:var(--ink-2);font-size:11px;font-weight:800;vertical-align:bottom}
+/* frozen corner cells must sit above both the sticky row and sticky columns */
+.phase-matrix-table thead th:first-child,.phase-matrix-table thead th:nth-child(2){z-index:5;background:#f5f8fb}
+.phase-matrix-table tbody td:first-child,.phase-matrix-table tbody td:nth-child(2){z-index:3}
+@media print{.phase-matrix-wrap{max-height:none;overflow:visible}}
+.phase-matrix-table thead th:first-child,.phase-matrix-table tbody td:first-child{position:sticky;left:0;z-index:3}
+.phase-matrix-table thead th:nth-child(2),.phase-matrix-table tbody td:nth-child(2){position:sticky;left:64px;z-index:3}
+/* opaque fills for the frozen columns — inherit resolves to transparent */
+.phase-matrix-table tbody td:first-child,.phase-matrix-table tbody td:nth-child(2){background:#fff}
+.phase-matrix-table tbody tr:nth-child(even) td:first-child,.phase-matrix-table tbody tr:nth-child(even) td:nth-child(2){background:#fbfcfd}
+.phase-matrix-table tbody tr.pm-subrow td:first-child,.phase-matrix-table tbody tr.pm-subrow td:nth-child(2){background:#fcf7f8}
+.phase-matrix-table tbody tr:hover td:first-child,.phase-matrix-table tbody tr:hover td:nth-child(2){background:#f8fafc}
 .phase-matrix-table tbody td{border-bottom:1px solid var(--line-soft);padding:9px 8px;vertical-align:top;background:#fff}
 .phase-matrix-table tbody tr:nth-child(even) td{background:#fbfcfd}
 .phase-matrix-table tbody tr.pm-subrow td{background:#fcf7f8}
@@ -2362,7 +2375,7 @@ body{background-color:#F1F3F8!important;background-image:var(--kp-lotus),radial-
   </button>
   <div class="app-brand">
     <div class="app-title">Knowledge Papers</div>
-    <div class="app-sub">Baghdad Municipality &amp; Subsidiaries · 2026 <span id="buildStamp" style="opacity:.55;font-size:9.5px;margin-inline-start:6px">build 2026-08-15-B8</span></div>
+    <div class="app-sub">Baghdad Municipality &amp; Subsidiaries · 2026 <span id="buildStamp" style="opacity:.55;font-size:9.5px;margin-inline-start:6px">build 2026-08-15-C3</span></div>
   </div>
   <div class="app-gap"></div>
   <div class="app-chips">
@@ -2440,7 +2453,7 @@ body{background-color:#F1F3F8!important;background-image:var(--kp-lotus),radial-
             <th style="width:80px">Previous</th>
             <th style="width:150px">Current</th>
             <th style="width:120px">Status</th>
-            <th style="width:110px;text-align:right;padding-right:16px">% Change</th>
+            <th style="width:110px;text-align:right;padding-right:16px" title="Change in percentage points">Change (pp)</th>
           </tr></thead>
           <tbody id="pctTableBody"></tbody>
         </table>
@@ -4676,11 +4689,19 @@ function isNewFormat(s){
   return !!(ps&&ps.length>0&&Array.isArray(ps[0].phases));
 }
 function resetToDefaults(){
+  if(!isEditor()){ try{toast('Editor role required',false);}catch(e){} return; }
   const n=PROJECTS_SEED.length;
   if(!confirm('إعادة تحميل جميع المشاريع من الملف ('+n+' مشاريع)؟\nسيُستبدل كل شيء محفوظ محلياً وفي Firebase بالبيانات المضمّنة في هذا الملف.'))return;
   STORE={v:1,projects:JSON.parse(JSON.stringify(PROJECTS_SEED))};
   try{localStorage.setItem(SK,JSON.stringify(STORE));localStorage.setItem(SK+'_seedver',SEED_VERSION);}catch(e){}
-  if(SYNC.ref){try{SYNC.last=JSON.stringify(STORE);SYNC.ref.set(JSON.parse(JSON.stringify(STORE)));}catch(e){}}
+  /* update(), not set() — the activity history and any field this build does
+     not recognise must survive even a deliberate project reset. */
+  if(SYNC.ref){try{
+    SYNC.last=JSON.stringify(STORE);
+    var _pl=JSON.parse(SYNC.last);
+    delete _pl.activity; delete _pl._activityLog;
+    SYNC.ref.update(_pl);
+  }catch(e){}}
   closeSync();renderHub();if(CUR_PROJ){closeProject();}toast('Loaded '+n+' projects from file',true);
 }
 /* Self-heal: if the Infrastructure Facilities project (p4) is empty in the loaded
@@ -4876,6 +4897,9 @@ function persist(changedPid){
     if(cp2) cp2.updatedAt=new Date().toISOString();
   }
   try{localStorage.setItem(SK,JSON.stringify(STORE));localStorage.setItem(SK+'_seedver',SEED_VERSION);}catch(e){}
+  /* Diff the whole record set and log only what genuinely changed.
+     A save with no real change produces no event. */
+  try{ detectAndLogChanges(); }catch(e){}
   schedulePush();
 }
 /* One-time: make every project use the same colour scheme as Systems & Applications (p1).
@@ -4988,8 +5012,7 @@ function renderCompany(){
   try{ if(typeof ensureSeedProjects==='function')ensureSeedProjects(); }catch(e){}
   var projs=(typeof mainProjects==='function'?mainProjects():(STORE.projects||[]))||[];
   try{ if(g&&projs.length) g.style.gridTemplateColumns='repeat('+projs.length+',minmax(0,1fr))'; }catch(e){}
-  /* previous-period baseline for the company card change arrows */
-  _pctEnsureSnap(projs);
+  /* cards show progress only; change history lives in the Live Feed */
   g.innerHTML=projs.map(function(p){
     var pct=(typeof overallPct==='function'?overallPct(p):(p.progress||0));
     var ps=(typeof projStatus==='function'?projStatus(p):{cls:'',lb:''});
@@ -5554,81 +5577,334 @@ function _nbItem(kind,badge,icon,html){
     +'<span>'+html+'</span>'
   +'</span>';
 }
-/* ═══ ACTIVITY LOGGING — records user actions to STORE and live feed ═══ */
-function logActivity(action,proj,field,detail,kind,icon){
-  if(!STORE) return;
-  if(!Array.isArray(STORE._activityLog)) STORE._activityLog=[];
-  var entry={
-    action:action||'Update',
-    proj:proj||'',
-    field:field||'',
-    detail:detail||'',
-    kind:kind||'info',
-    icon:icon||'info',
-    badge:action||'Activity',
-    ts:new Date().toISOString(),
-    user:ROLE||'viewer'
+/* ══════════════════════════════════════════════════════════════════════
+   ACTIVITY ENGINE — full project change log
+   ══════════════════════════════════════════════════════════════════════
+   Diffs the complete previous project record against the updated record
+   and reports the exact fields and list items that changed.
+
+   Progress is reported ONLY when the number actually moves, and always
+   in percentage POINTS:   deltaPP = newProgress − previousProgress
+   Never relative growth. Never "34% → 34%". Never a zero-pp event.
+   ────────────────────────────────────────────────────────────────────── */
+
+window._ACT       = window._ACT || {};   /* feed records, keyed by push id */
+window._projSnap  = window._projSnap || null;  /* deep clone of last state */
+window._actReady  = false;               /* armed only after history loads */
+
+var _PP_TIP='Change in percentage points';
+
+function _ppRound(n){
+  var r=Math.round(n*10)/10;
+  return (Math.abs(r%1)<0.05)?String(Math.round(r)):r.toFixed(1);
+}
+/* Progress clause. Returns '' when nothing moved — callers must not
+   fabricate an event from an empty string. */
+function _ppClause(prev,cur){
+  if(prev==null||cur==null) return '';
+  var d=cur-prev;
+  if(d===0) return '';
+  var tip=' title="'+_PP_TIP+'"';
+  if(d>0) return 'Progress updated: <b>'+prev+'% \u2192 '+cur+'%</b> &middot; '
+    +'<span class="pp-up"'+tip+'>\u25B2 +'+_ppRound(d)+' pp</span>';
+  return 'Progress updated: <b>'+prev+'% \u2192 '+cur+'%</b> &middot; '
+    +'<span class="pp-down"'+tip+'>\u25BC \u2212'+_ppRound(Math.abs(d))+' pp</span>';
+}
+
+/* ── Field dictionary: which scalar keys are worth reporting, and how to
+      name them in plain English. Unknown keys are ignored, never deleted. */
+var _FIELD_LABELS={
+  nameEn:'Project name', name:'Project name',
+  status:'Project status', stage:'Stage',
+  owner:'Owner', manager:'Project manager', pm:'Project manager',
+  responsible:'Responsible', contractor:'Contractor',
+  planStart:'Planned start', planEnd:'Planned finish',
+  actualStart:'Actual start', actualEnd:'Actual finish',
+  actualLaunch:'Actual launch', targetEnd:'Target finish', dueDate:'Due date',
+  budget:'Budget', cost:'Cost', contractValue:'Contract value',
+  notes:'Notes', note:'Note', latestUpdate:'Latest update',
+  comment:'Comment', remarks:'Remarks', description:'Description'
+};
+/* Lists we track item-by-item: key → [label, identity field] */
+var _LIST_SPECS={
+  milestones:['Milestone',['nameAr','name']],
+  risks:['Risk',['risk','name']],
+  sites:['Site',['name']],
+  phases:['Phase',['name']],
+  qa:['QA item',['item','name']],
+  tasks:['Task',['name','task']],
+  deliverables:['Deliverable',['name']],
+  updates:['Update',['text','name']],
+  documents:['Document',['name','title']],
+  payments:['Payment',['order','poNo']],
+  resources:['Resource',['name']],
+  team:['Team member',['name']],
+  budgetLines:['Budget line',['name']],
+  siteColumns:['Column',['label','key']]
+};
+var _STATUS_WORDS={n:'Not started',p:'In progress',d:'Completed',
+  open:'Open',closed:'Closed',mitigated:'Mitigated'};
+function _sw(v){ var k=String(v==null?'':v); return _STATUS_WORDS[k]||k||'\u2014'; }
+
+function _itemKey(it,fields){
+  if(it==null) return '';
+  if(typeof it!=='object') return String(it);
+  for(var i=0;i<fields.length;i++){
+    if(it[fields[i]]) return String(it[fields[i]]);
+  }
+  return JSON.stringify(it).slice(0,60);
+}
+function _short(v){
+  var s=String(v==null?'':v);
+  if(!s) return '\u2014';
+  return s.length>52?(s.slice(0,52)+'\u2026'):s;
+}
+
+/* ── Deep snapshot of every project, so the next save has something to
+      compare against. silent=true means "just re-baseline, emit nothing". */
+function _snapAll(){
+  var m={};
+  try{
+    var list=(STORE&&Array.isArray(STORE.projects))?STORE.projects:[];
+    list.forEach(function(p){
+      if(p&&p.id) m[p.id]=JSON.parse(JSON.stringify(p));
+    });
+  }catch(e){}
+  window._projSnap=m;
+  return m;
+}
+
+/* ── Compare one project record before vs after. Returns an array of
+      human-readable change phrases. Empty array = nothing changed. */
+function _diffProject(before,after){
+  var parts=[];
+  if(!before||!after) return parts;
+
+  /* progress — percentage points, and only when it actually moves */
+  var pb=(typeof overallPct==='function')?overallPct(before):(before.progress||0);
+  var pa=(typeof overallPct==='function')?overallPct(after):(after.progress||0);
+  if(pb!==pa){
+    var pc=_ppClause(pb,pa);
+    if(pc) parts.push(pc);
+  }
+
+  /* named scalar fields */
+  Object.keys(_FIELD_LABELS).forEach(function(k){
+    if(k==='name'&&after.nameEn!==undefined) return;      /* avoid double report */
+    var a=before[k], b=after[k];
+    if(a===undefined&&b===undefined) return;
+    if(typeof a==='object'||typeof b==='object') return;
+    if(String(a==null?'':a)===String(b==null?'':b)) return;
+    var lbl=_FIELD_LABELS[k];
+    if(a==null||a===''){
+      parts.push(lbl+' added: <b>'+_nbEsc(_short(b))+'</b>');
+    }else if(b==null||b===''){
+      parts.push(lbl+' cleared');
+    }else{
+      parts.push(lbl+' changed: <b>'+_nbEsc(_short(a))+' \u2192 '+_nbEsc(_short(b))+'</b>');
+    }
+  });
+
+  /* any other scalar the dictionary does not know — reported generically so
+     custom fields from older builds still surface, never silently dropped */
+  Object.keys(after).forEach(function(k){
+    if(_FIELD_LABELS[k]||_LIST_SPECS[k]) return;
+    if(k==='id'||k==='progress'||k==='updatedAt'||k==='icon'||k==='meta'||k==='theme') return;
+    var a=before[k], b=after[k];
+    if(typeof b==='object'||typeof a==='object') return;
+    if(String(a==null?'':a)===String(b==null?'':b)) return;
+    parts.push(_nbEsc(k)+' changed: <b>'+_nbEsc(_short(a))+' \u2192 '+_nbEsc(_short(b))+'</b>');
+  });
+
+  /* list items: added / removed / completed / edited */
+  Object.keys(_LIST_SPECS).forEach(function(key){
+    var spec=_LIST_SPECS[key], lbl=spec[0], idf=spec[1];
+    var A=Array.isArray(before[key])?before[key]:[];
+    var B=Array.isArray(after[key]) ?after[key] :[];
+    if(!A.length&&!B.length) return;
+
+    var mapA={},mapB={};
+    A.forEach(function(it){ mapA[_itemKey(it,idf)]=it; });
+    B.forEach(function(it){ mapB[_itemKey(it,idf)]=it; });
+
+    Object.keys(mapB).forEach(function(k){
+      if(!(k in mapA)) parts.push(lbl+' added: <b>'+_nbEsc(_short(k))+'</b>');
+    });
+    Object.keys(mapA).forEach(function(k){
+      if(!(k in mapB)) parts.push(lbl+' removed: <b>'+_nbEsc(_short(k))+'</b>');
+    });
+    /* items present on both sides — look for a status move */
+    Object.keys(mapB).forEach(function(k){
+      if(!(k in mapA)) return;
+      var x=mapA[k], y=mapB[k];
+      if(!x||!y||typeof x!=='object'||typeof y!=='object') return;
+      ['status','survey','design','submit','state'].forEach(function(sf){
+        if(x[sf]===undefined&&y[sf]===undefined) return;
+        if(String(x[sf]||'')===String(y[sf]||'')) return;
+        if(String(y[sf])==='d'||String(y[sf]).toLowerCase()==='done'){
+          parts.push(lbl+' completed: <b>'+_nbEsc(_short(k))+'</b>');
+        }else{
+          parts.push(lbl+' status changed: <b>'+_nbEsc(_short(k))+'</b> '
+            +_nbEsc(_sw(x[sf]))+' \u2192 '+_nbEsc(_sw(y[sf])));
+        }
+      });
+      /* label rename on a custom column */
+      if(key==='siteColumns'&&x.label&&y.label&&x.label!==y.label){
+        parts.push('Column renamed: <b>'+_nbEsc(x.label)+' \u2192 '+_nbEsc(y.label)+'</b>');
+      }
+    });
+  });
+
+  return parts;
+}
+
+/* ── Scan every project, emit one summarised entry per changed project.
+      Called after each save. Emits nothing when nothing really changed. */
+function detectAndLogChanges(){
+  if(!window._actReady) return;
+  try{ if(SYNC&&SYNC.applying) return; }catch(e){}
+  if(!STORE||!Array.isArray(STORE.projects)) return;
+  if(!window._projSnap){ _snapAll(); return; }
+
+  var before=window._projSnap;
+  var now={};
+  STORE.projects.forEach(function(p){ if(p&&p.id) now[p.id]=p; });
+
+  /* new projects */
+  Object.keys(now).forEach(function(id){
+    if(id in before) return;
+    var p=now[id];
+    _actWrite({
+      proj:(p.nameEn||p.name||''),
+      parts:['New project added: <b>'+_nbEsc(p.nameEn||p.name||'')+'</b>'],
+      kind:'good', icon:'proj', user:(ROLE||'viewer')
+    });
+  });
+  /* deleted projects */
+  Object.keys(before).forEach(function(id){
+    if(id in now) return;
+    var p=before[id];
+    _actWrite({
+      proj:(p.nameEn||p.name||''),
+      parts:['Project deleted'],
+      kind:'risk', icon:'proj', user:(ROLE||'viewer')
+    });
+  });
+  /* edited projects — one entry each, all changes summarised */
+  Object.keys(now).forEach(function(id){
+    if(!(id in before)) return;
+    var parts=_diffProject(before[id],now[id]);
+    if(!parts.length) return;                       /* save with no change */
+    var kind='info', icon='info';
+    var joined=parts.join(' ');
+    if(/pp-up/.test(joined)){ kind='good'; icon='up'; }
+    else if(/pp-down/.test(joined)){ kind='risk'; icon='up'; }
+    else if(/removed|deleted|cleared/.test(joined)){ kind='warn'; icon='risk'; }
+    else if(/completed/.test(joined)){ kind='good'; icon='done'; }
+    else if(/Risk added/.test(joined)){ kind='warn'; icon='risk'; }
+    else if(/Milestone added/.test(joined)){ kind='good'; icon='ms'; }
+    if(parts.length>4){
+      var extra=parts.length-4;
+      parts=parts.slice(0,4);
+      parts.push('+'+extra+' more change'+(extra>1?'s':''));
+    }
+    _actWrite({
+      proj:(now[id].nameEn||now[id].name||''),
+      parts:parts, kind:kind, icon:icon, user:(ROLE||'viewer')
+    });
+  });
+
+  _snapAll();                                       /* re-baseline */
+}
+
+/* Legacy shim. Explicit call sites are gone — the diff engine reports
+   everything now — but keep the symbol so nothing throws. */
+function logActivity(){ /* superseded by detectAndLogChanges() */ }
+
+/* ── Write one record. Firebase push id + server timestamp when connected,
+      local id and clock when offline. Only the acting client writes; every
+      other client receives it through the child_added stream. */
+function _actWrite(rec){
+  if(!rec||!rec.parts||!rec.parts.length) return;
+  var payload={
+    proj:rec.proj||'',
+    changes:rec.parts.join(' &middot; '),
+    kind:rec.kind||'info',
+    icon:rec.icon||'info',
+    user:rec.user||(ROLE||'viewer')
   };
-  STORE._activityLog.push(entry);
-  /* Keep only last 100 entries to avoid bloat */
-  if(STORE._activityLog.length>100) STORE._activityLog=STORE._activityLog.slice(-100);
-  /* Refresh the live feed ticker immediately */
+  var wrote=false;
+  try{
+    if(SYNC&&SYNC.actRef&&SYNC.on){
+      var out={};
+      Object.keys(payload).forEach(function(k){ out[k]=payload[k]; });
+      out.ts=firebase.database.ServerValue.TIMESTAMP;
+      SYNC.actRef.push(out);            /* echoes back via child_added */
+      wrote=true;
+    }
+  }catch(e){ wrote=false; }
+  if(!wrote){
+    payload.ts=Date.now();
+    window._ACT['local_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)]=payload;
+    _actTrim();
+    try{ refreshNewsBanner(); }catch(e){}
+  }
+}
+/* Keyed receive — a refresh or re-sync can never duplicate an entry. */
+function _actReceive(id,rec){
+  if(!id||!rec) return;
+  if(window._ACT[id]) return;
+  window._ACT[id]=rec;
+  _actTrim();
   try{ refreshNewsBanner(); }catch(e){}
 }
+function _actTrim(){
+  var keys=Object.keys(window._ACT);
+  if(keys.length<=150) return;
+  keys.sort(function(a,b){ return (window._ACT[a].ts||0)-(window._ACT[b].ts||0); });
+  keys.slice(0,keys.length-150).forEach(function(k){ delete window._ACT[k]; });
+}
+function _actList(){
+  return Object.keys(window._ACT)
+    .map(function(k){ var r=window._ACT[k]; r._id=k; return r; })
+    .sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+}
+
+/* ── Relative time, Baghdad absolute time in the tooltip ── */
+function _relTime(ts){
+  var t=Number(ts)||0; if(!t) return '';
+  var s=Math.floor((Date.now()-t)/1000);
+  if(s<0) s=0;
+  if(s<60)    return 'Just now';
+  var m=Math.floor(s/60);      if(m<60) return m+' min ago';
+  var h=Math.floor(m/60);      if(h<24) return h+' hr ago';
+  var d=Math.floor(h/24);      if(d<7)  return d+' day'+(d>1?'s':'')+' ago';
+  try{
+    return new Date(t).toLocaleString('en-GB',
+      {timeZone:'Asia/Baghdad',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+  }catch(e){ return ''; }
+}
+function _absTime(ts){
+  try{
+    return new Date(Number(ts)||0).toLocaleString('en-GB',
+      {timeZone:'Asia/Baghdad',day:'2-digit',month:'short',year:'numeric',
+       hour:'2-digit',minute:'2-digit'})+' (Baghdad)';
+  }catch(e){ return ''; }
+}
+
 function buildNewsFeed(){
-  /* LIVE FEED = progress arrows for every project + every real add/change */
-  var out=[];
-
-  /* ── 1) Progress arrow per project (current vs previous period) ── */
-  try{
-    var projs=(typeof mainProjects==='function'?mainProjects():((STORE&&STORE.projects)||[]))||[];
-    _pctEnsureSnap(projs);
-    projs.forEach(function(p){
-      if(!p||!p.id) return;
-      var cur=(typeof overallPct==='function')?overallPct(p):(p.progress||0);
-      var prev=(window._pctPrevSnap[p.id]!=null)?window._pctPrevSnap[p.id]:cur;
-      var d=cur-prev;
-      var n=prev>0?Math.abs(((cur-prev)/prev)*100):(cur>0?100:0);
-      n=+n.toFixed(1);
-
-      var kind,badge,arrow;
-      if(d>0){ kind='good'; badge='\u2191 '+n+'%'; arrow='Increased'; }
-      else if(d<0){ kind='risk'; badge='\u2193 '+n+'%'; arrow='Decreased'; }
-      else { kind='info'; badge='\u2014'; arrow='No change'; }
-
-      out.push(_nbItem(kind,badge,'up',
-        '<span class="news-proj">'+_nbEsc(p.nameEn||p.name||'')+'</span>'
-        +' &middot; '+arrow
-        +' &middot; <b>'+prev+'% \u2192 '+cur+'%</b>'
-      ));
-    });
-  }catch(e){}
-
-  /* ── 2) Recorded additions and changes, newest first ── */
-  try{
-    var log=Array.isArray(STORE._activityLog)?STORE._activityLog:[];
-    log.slice(-25).reverse().forEach(function(en){
-      if(!en) return;
-      var when='';
-      try{
-        when=new Date(en.ts).toLocaleString('en-GB',{timeZone:'Asia/Baghdad',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
-      }catch(e){ when=''; }
-
-      var line='<span class="news-proj">'+_nbEsc(en.proj||'')+'</span>';
-      line+=' &middot; '+_nbEsc(en.action||'Updated');
-      if(en.field)  line+=' &middot; '+_nbEsc(en.field);
-      if(en.detail) line+=' &middot; <b>'+_nbEsc(en.detail)+'</b>';
-      if(en.user)   line+=' &middot; '+_nbEsc(en.user);
-      if(when)      line+=' &middot; '+_nbEsc(when);
-
-      out.push(_nbItem(en.kind||'info', en.badge||en.action||'Update', en.icon||'info', line));
-    });
-  }catch(e){}
-
-  if(!out.length){
-    return _nbItem('info','Live Feed','info','No activity yet');
+  var rows=_actList();
+  if(!rows.length){
+    return _nbItem('info','Live Feed','info','No recent project updates');
   }
-  return out.join('');
+  return rows.slice(0,40).map(function(r){
+    var rel=_relTime(r.ts), abs=_absTime(r.ts);
+    var line='<span class="news-proj">'+_nbEsc(r.proj||'')+'</span>';
+    if(r.changes) line+=' &middot; '+r.changes;
+    if(r.user)    line+=' &middot; '+_nbEsc(r.user);
+    if(rel)       line+=' &middot; <span title="'+_nbEsc(abs)+'">'+_nbEsc(rel)+'</span>';
+    return _nbItem(r.kind||'info', r.badge||'', r.icon||'info', line);
+  }).join('');
 }
 function refreshNewsBanner(){
   var html=buildNewsFeed();
@@ -5691,8 +5967,7 @@ function renderHub(){
     '<div class="hstat"><div class="hstat-v">'+active+'</div><div class="hstat-k">Active</div></div>'+
     '<div class="hstat"><div class="hstat-v">'+done+'</div><div class="hstat-k">Completed</div></div>';
 
-  /* ═══ Previous-period baseline — backfills any project missing one ═══ */
-  _pctEnsureSnap(STORE.projects);
+  /* cards show progress only; change history lives in the Live Feed */
 
   STORE.projects.forEach(function(p){
     var pct=overallPct(p);
@@ -5760,33 +6035,38 @@ function renderHub(){
    PROGRESS CHANGE TRACKER WIDGET
    Compares current project progress vs. previous-period snapshot.
    Displays ↑/↓/— status with percentage change in a live feed.
-   Uses window._pctPrevSnap set by renderHub for consistent data.
+   Uses the diff-engine baseline (window._projSnap) for consistency.
    ============================================================ */
 (function(){
   var _pctFeedLog  = [];   // activity log entries
 
-  /* compute direction + % change */
+  /* percentage-POINT delta: cur − prev. Never relative growth. */
   function _pctCalc(cur, prev){
-    if(prev===0 && cur===0) return {dir:'—', pct:0, delta:0, cls:'flat'};
-    if(prev===0 && cur>0)   return {dir:'↑', pct:100, delta:cur, cls:'up'};
     var delta = cur - prev;
-    var pct   = Math.abs(((cur-prev)/prev)*100);
-    if(delta>0) return {dir:'↑', pct:+pct.toFixed(1), delta:delta, cls:'up'};
-    if(delta<0) return {dir:'↓', pct:+pct.toFixed(1), delta:delta, cls:'down'};
-    return {dir:'—', pct:0, delta:0, cls:'flat'};
+    var pp = Math.round(Math.abs(delta)*10)/10;
+    if(delta>0) return {dir:'\u25B2', pct:pp, delta:delta, cls:'up'};
+    if(delta<0) return {dir:'\u25BC', pct:pp, delta:delta, cls:'down'};
+    return {dir:'\u2014', pct:0, delta:0, cls:'flat'};
   }
 
   /* render the full widget */
+  /* previous progress for a project, taken from the diff baseline clone */
+  function _prevPct(p){
+    try{
+      var b=window._projSnap&&window._projSnap[p.id];
+      if(!b) return null;
+      return (typeof overallPct==='function')?overallPct(b):(b.progress||0);
+    }catch(e){ return null; }
+  }
   function renderProgressTracker(){
     if(!STORE||!Array.isArray(STORE.projects)) return;
-    if(!window._pctPrevSnap||Object.keys(window._pctPrevSnap).length===0) return;
 
     var ups=0, downs=0, flats=0;
     var rows=[];
 
     STORE.projects.forEach(function(p){
       var cur  = (typeof overallPct==='function') ? overallPct(p) : (p.progress||0);
-      var prev = (window._pctPrevSnap[p.id]!=null) ? window._pctPrevSnap[p.id] : cur;
+      var _pv=_prevPct(p); var prev = (_pv==null)?cur:_pv;
       var chg  = _pctCalc(cur, prev);
       if(chg.cls==='up') ups++;
       else if(chg.cls==='down') downs++;
@@ -5808,9 +6088,9 @@ function renderHub(){
     rows.forEach(function(r,i){
       var bgStyle = (i%2===0) ? '' : 'background:#FAFBFE;';
       var badgeCls = 'pct-badge '+r.chg.cls;
-      var badgeLabel = r.chg.cls==='up'?'Increased':r.chg.cls==='down'?'Decreased':'No Change';
+      var badgeLabel = r.chg.cls==='up'?'Increased':r.chg.cls==='down'?'Decreased':'\u2014';
       var valCls = 'pct-change-val '+r.chg.cls;
-      var valText = r.chg.cls!=='flat' ? (r.chg.dir+' '+r.chg.pct+'%') : '—';
+      var valText = r.chg.cls!=='flat' ? (r.chg.dir+' '+(r.chg.delta>0?'+':'\u2212')+r.chg.pct+' pp') : '\u2014';
       html+='<tr style="'+bgStyle+'border-bottom:1px solid #ECF0F6">'+
         '<td>'+esc(r.name)+'</td>'+
         '<td style="text-align:center;font-family:var(--mono);font-size:12px;color:var(--muted)">'+r.prev+'%</td>'+
@@ -5853,11 +6133,11 @@ function renderHub(){
 
   /* poll for changes every 6 seconds */
   function _pctPoll(){
-    if(!STORE||!Array.isArray(STORE.projects)||!window._pctPrevSnap) return;
+    if(!STORE||!Array.isArray(STORE.projects)) return;
     var changed = false;
     STORE.projects.forEach(function(p){
       var cur = (typeof overallPct==='function')?overallPct(p):(p.progress||0);
-      var prev = (window._pctPrevSnap[p.id]!=null)?window._pctPrevSnap[p.id]:cur;
+      var _pv=_prevPct(p); var prev = (_pv==null)?cur:_pv;
       if(cur!==prev){
         var chg=_pctCalc(cur,prev);
         _pctFeedLog.push({
@@ -5873,10 +6153,7 @@ function renderHub(){
       }
     });
     if(changed){
-      /* update the previous snapshot */
-      STORE.projects.forEach(function(p){
-        window._pctPrevSnap[p.id]=(typeof overallPct==='function')?overallPct(p):(p.progress||0);
-      });
+      /* baseline is owned by the diff engine — do not touch it here */
       renderProgressTracker();
       /* pulse the live dot */
       var dot=document.getElementById('pctLiveDot');
@@ -6101,9 +6378,10 @@ function addProject(){
   if(!name)return;
   const nameEn=window.prompt('English name:','New Project')||'New Project';
   const id='p'+Date.now();
-  STORE.projects.push({id,name:name.trim(),nameEn:nameEn.trim(),icon:'system',progress:0,
-    phases:[],milestones:[],qa:[],budget:[],risks:[],team:[],sites:[]});
-  logActivity('Project Created',nameEn.trim(),'','New project added','good','proj');
+  const _np={id,name:name.trim(),nameEn:nameEn.trim(),icon:'system',progress:0,
+    phases:[],milestones:[],qa:[],budget:[],risks:[],team:[],sites:[]};
+  STORE.projects.push(_np);
+  logActivity('Project Created',_np,'','','good','proj');
   persist();renderHub();try{renderCompany();}catch(e){}toast('Project added');
 }
 function delProj(id,e){
@@ -6117,7 +6395,7 @@ function delProj(id,e){
   /* Record deletion so ensureSeedProjects won't re-add it */
   if(!Array.isArray(STORE._deletedIds)) STORE._deletedIds=[];
   if(STORE._deletedIds.indexOf(id)<0) STORE._deletedIds.push(id);
-  logActivity('Project Deleted',pName,'','','risk');
+  logActivity('Project Deleted',(p||{nameEn:pName}),'','','risk','proj');
   try{ if(typeof syncProjectArrays==='function')syncProjectArrays(); }catch(_){}
   persist();refreshProjectGrids();toast('Project deleted');
 }
@@ -6131,7 +6409,7 @@ function deleteCurrentProject(){
   if(i>=0)STORE.projects.splice(i,1);
   if(!Array.isArray(STORE._deletedIds)) STORE._deletedIds=[];
   if(STORE._deletedIds.indexOf(id)<0) STORE._deletedIds.push(id);
-  logActivity('Project Deleted',pName,'','','risk');
+  logActivity('Project Deleted',(p||{nameEn:pName}),'','','risk','proj');
   try{ if(typeof syncProjectArrays==='function')syncProjectArrays(); }catch(e){}
   persist();closeProject();refreshProjectGrids();toast('Project deleted');
 }
@@ -7736,7 +8014,7 @@ function cyclePhase(pid,i){
   const cur=p.phases[i].actualPct!=null?p.phases[i].actualPct:(p.phases[i].pct||0);
   const nxt=cur===0?25:cur===25?50:cur===50?75:cur===75?100:0;
   p.phases[i].actualPct=nxt;p.phases[i].pct=nxt;p.progress=overallPct(p);
-  logActivity('Progress Changed',p.nameEn||p.name,p.phases[i].name||'Phase',''+cur+'% → '+nxt+'%','info','up');
+  logActivity('Progress Changed',p,'Phase',(p.phases[i].name||'Phase'),'info','up');
   persist();renderProjectView(pid);renderHub();
 }
 function cyclePhasePlan(pid,i){
@@ -8056,8 +8334,8 @@ function renderRisks(p){
     <div class="sec-body"><table class="data-table"><thead><tr><th>Risk / Issue</th><th>Impact</th><th>Probability</th><th>Status</th><th>Owner</th><th>Mitigation</th><th></th></tr></thead>
     <tbody id="risks_${p.id}">${rows||'<tr><td colspan="7" class="empty-msg">No risks recorded</td></tr>'}</tbody></table></div></div>`;
 }
-function addRisk(pid){if(!isEditor())return;const p=projByID(pid);if(!p)return;const n=window.prompt('Risk description:','');if(!n)return;p.risks.push({risk:n.trim(),impact:'me',prob:'me',status:'open',owner:'',mitigation:''});logActivity('Risk Added',p.nameEn||p.name,'Risk',n.trim(),'warn','risk');persist();renderProjectView(pid);}
-function delRisk(pid,i){if(!isEditor())return;const p=projByID(pid);if(!p||!confirm('Delete this risk?'))return;var rn=(p.risks[i]?p.risks[i].risk:'');p.risks.splice(i,1);logActivity('Risk Deleted',p.nameEn||p.name,'Risk',rn,'risk','risk');persist();renderProjectView(pid);}
+function addRisk(pid){if(!isEditor())return;const p=projByID(pid);if(!p)return;const n=window.prompt('Risk description:','');if(!n)return;p.risks.push({risk:n.trim(),impact:'me',prob:'me',status:'open',owner:'',mitigation:''});logActivity('Risk Added',p,'Risk',n.trim(),'warn','risk');persist();renderProjectView(pid);}
+function delRisk(pid,i){if(!isEditor())return;const p=projByID(pid);if(!p||!confirm('Delete this risk?'))return;var rn=(p.risks[i]?p.risks[i].risk:'');p.risks.splice(i,1);logActivity('Risk Deleted',p,'Risk',rn,'risk','risk');persist();renderProjectView(pid);}
 function cycleRisk(pid,i){if(ROLE!=='pm')return;const p=projByID(pid);if(!p)return;p.risks[i].status=p.risks[i].status==='open'?'closed':'open';persist();renderProjectView(pid);}
 function cycleImp(pid,i,field){if(ROLE!=='pm')return;const p=projByID(pid);if(!p)return;const m={hi:'me',me:'lo',lo:'hi'};p.risks[i][field]=m[p.risks[i][field]]||'me';persist();renderProjectView(pid);}
 
@@ -8298,7 +8576,7 @@ function addMilestone(pid){
   p.milestones.push(m);
   if(Array.isArray(p.sites))p.sites.push({name:name.trim(),survey:'n',surveyDate:'',design:'n',designDate:'',submit:'n',submitDate:'',notes:'',ks:0,ksDone:0});
   renumberMilestones(p); recalcPhaseAggregates(p); p.progress=overallPct(p);
-  logActivity('Milestone Added',p.nameEn||p.name,'Milestone',name.trim(),'good','ms');
+  logActivity('Milestone Added',p,'Milestone',name.trim(),'good','ms');
   persist();renderProjectView(pid);renderHub();
 }
 function delMilestone(pid,i){
@@ -8307,7 +8585,7 @@ function delMilestone(pid,i){
   p.milestones.splice(i,1);
   if(Array.isArray(p.sites))p.sites.splice(i,1);
   renumberMilestones(p); recalcPhaseAggregates(p); p.progress=overallPct(p);
-  logActivity('Milestone Deleted',p.nameEn||p.name,'Milestone',mn,'risk','ms');
+  logActivity('Milestone Deleted',p,'Milestone',mn,'risk','ms');
   persist();renderProjectView(pid);renderHub();
 }
 function cycleMsPhase(pid,mi,phi){
@@ -8680,7 +8958,7 @@ function addSiteColumn(pid){
   cols.splice(insertAt,0,{key:key,label:name,type:type,builtin:false,hidden:false});
   (p.sites||[]).forEach(function(s){ s[key]=(type==='number'?0:''); });
   p.siteColumns=cols;
-  logActivity('Column Added',p.nameEn||p.name,'Column',name,'info','proj');
+  logActivity('Column Added',p,'Column',name,'info','proj');
   persist();
   if(CUR_PROJ===pid)renderProjectView(pid);
   try{toast('New column added',true);}catch(e){}
@@ -8707,13 +8985,13 @@ function addSite(pid){
   var row={name:n,survey:'n',surveyDate:'',design:'n',designDate:'',submit:'n',submitDate:'',notes:'',ks:0,ksDone:0};
   p.siteColumns.forEach(function(c){ if(!c.builtin && row[c.key]==null) row[c.key]=(c.type==='number'?0:''); });
   p.sites.push(row);
-  logActivity('Site Added',p.nameEn||p.name,'Site',n,'good','proj');
+  logActivity('Site Added',p,'Site',n,'good','proj');
   persist(); renderProjectView(pid);
 }
 function delSite(pid,i){ if(!isEditor())return; var p=projByID(pid); if(!p||!confirm('Delete this site?'))return;
   var sn=(p.sites[i]?p.sites[i].name:'');
   p.sites.splice(i,1);
-  logActivity('Site Deleted',p.nameEn||p.name,'Site',sn,'risk','proj');
+  logActivity('Site Deleted',p,'Site',sn,'risk','proj');
   persist(); renderProjectView(pid); try{renderHub();}catch(e){} }
 /* ── Move site row up or down ── */
 function moveSiteRow(pid,i,dir){
@@ -8728,7 +9006,7 @@ function cycleSiteField(pid,i,field){ if(!isEditor())return; var p=projByID(pid)
   p.sites[i][field]=stNext(p.sites[i][field]);
   var newVal=p.sites[i][field];
   p.progress=overallPct(p);
-  logActivity('Status Changed',p.nameEn||p.name,field+(p.sites[i].name?' ('+p.sites[i].name+')':''),oldVal+' → '+newVal,'info','ms');
+  logActivity('Status Changed',p,field+(p.sites[i].name?' ('+p.sites[i].name+')':''),oldVal+' \u2192 '+newVal,'info','ms');
   persist(); renderProjectView(pid); renderHub(); }
 function openSiteDatePick(pid,si,field,anchor){
   if(ROLE!=='pm')return;
@@ -9544,7 +9822,7 @@ const DEFAULT_SYNC_CONFIG={
 };
 const DEFAULT_SYNC_ROOM='asimati-hub-v2';
 const PMO_MASTER_BUILD='2026-08-09-MOBILE-PC-FIREBASE-MASTER';
-const SYNC={ref:null,on:false,applying:false,last:null,cfg:DEFAULT_SYNC_CONFIG,room:DEFAULT_SYNC_ROOM,pushT:null};
+const SYNC={ref:null,actRef:null,on:false,applying:false,last:null,cfg:DEFAULT_SYNC_CONFIG,room:DEFAULT_SYNC_ROOM,pushT:null};
 function setSyncUI(st){const dot=document.getElementById('syncDot'),txt=document.getElementById('syncTxt'),fab=document.getElementById('syncFab'),fd=document.getElementById('fabDot');const m={off:['#8A93A8','Live Connectivity'],connecting:['#8A6A2C','Connecting...'],live:['#2E7D5B','Live'],error:['#B0202E','Error']};const v=m[st]||m.off;if(dot)dot.style.background=v[0];if(txt)txt.textContent=v[1];if(fab)fab.className='sync-fab'+(st==='live'?' live':'');if(fd)fd.style.background=v[0];}
 /* refresh BOTH possible project grids (company view + hub view) — a mutation
    should never depend on guessing which one is currently on screen. */
@@ -9554,18 +9832,6 @@ function refreshProjectGrids(){
 }
 /* single code path for "new data arrived" — used by the live listener AND by
    the manual Pull Latest Now button, so both behave identically. */
-/* ── Ensure every project has a previous-period baseline for the ↑/↓ arrows ── */
-function _pctEnsureSnap(projs){
-  if(!window._pctPrevSnap) window._pctPrevSnap={};
-  (projs||[]).forEach(function(p){
-    if(!p||!p.id) return;
-    if(window._pctPrevSnap[p.id]==null){
-      var c=(typeof overallPct==='function')?overallPct(p):(p.progress||0);
-      window._pctPrevSnap[p.id]= c>0 ? Math.max(0,c-Math.floor(Math.random()*7)-2) : 0;
-    }
-  });
-  return window._pctPrevSnap;
-}
 /* ── Merge remote Firebase data with local-only state (never destructive) ── */
 function _mergeLocalState(incoming,local){
   if(!incoming||typeof incoming!=='object') return incoming;
@@ -9604,12 +9870,22 @@ function __applyIncoming(data){
     pushNow();setSyncUI('live');
     return;
   }
+  /* The activity child rides along on the room snapshot. Peel it off and
+     feed it through the keyed receiver — never let it become STORE data. */
+  try{
+    if(data.activity&&typeof data.activity==='object'){
+      Object.keys(data.activity).forEach(function(k){ _actReceive(k,data.activity[k]); });
+    }
+  }catch(e){}
+  try{ delete data.activity; }catch(e){}
+
   /* Merge local-only state into the incoming snapshot BEFORE it replaces STORE */
   data=_mergeLocalState(data,STORE);
   const str=JSON.stringify(data);
   if(str===SYNC.last){ setSyncUI('live'); return; }
   SYNC.applying=true;SYNC.last=str;STORE=data;try{delete STORE.removedProjects;}catch(e){}try{localStorage.setItem(SK,str);}catch(e){}SYNC.applying=false;
-  try{ _pctEnsureSnap(STORE.projects); }catch(e){}
+  /* Re-baseline silently: a remote edit is not this client's change. */
+  try{ _snapAll(); }catch(e){}
   setSyncUI('live'); SYNC.lastReceived=new Date();
   try{
     var _fixed=false;
@@ -9625,7 +9901,32 @@ function __applyIncoming(data){
   refreshProjectGrids();                          // always redraw — never gated on which view happens to be active
   if(CUR_PROJ)renderProjectView(CUR_PROJ);
 }
-async function initFirebase(){if(!SYNC.cfg){setSyncUI('off');return;}setSyncUI('connecting');try{if(!window.firebase||!firebase.database){await loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');await loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js');}if(!firebase.apps.length)firebase.initializeApp(SYNC.cfg);SYNC.ref=firebase.database().ref('portals/'+SYNC.room);SYNC.on=true;SYNC.ref.on('value',snap=>{ __applyIncoming(snap.val()); },()=>setSyncUI('error'));}catch(e){SYNC.on=false;setSyncUI('error');}}
+async function initFirebase(){if(!SYNC.cfg){setSyncUI('off');return;}setSyncUI('connecting');try{if(!window.firebase||!firebase.database){await loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');await loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js');}if(!firebase.apps.length)firebase.initializeApp(SYNC.cfg);SYNC.ref=firebase.database().ref('portals/'+SYNC.room);SYNC.actRef=firebase.database().ref('portals/'+SYNC.room+'/activity');SYNC.on=true;SYNC.ref.on('value',snap=>{ __applyIncoming(snap.val()); },()=>setSyncUI('error'));_attachActivityStream();}catch(e){SYNC.on=false;setSyncUI('error');_actArm();}}
+/* Replay stored history, then stream new entries. child_added is keyed by
+   push id, so refresh / re-sync can never duplicate an entry, and only the
+   client that performed the action ever writes one. */
+function _attachActivityStream(){
+  if(!SYNC.actRef) { _actArm(); return; }
+  try{
+    SYNC.actRef.off();
+    SYNC.actRef.limitToLast(150).once('value',function(snap){
+      var v=snap.val()||{};
+      Object.keys(v).forEach(function(k){ _actReceive(k,v[k]); });
+      try{ refreshNewsBanner(); }catch(e){}
+      _actArm();                                   /* history replayed — safe to log now */
+      SYNC.actRef.limitToLast(150).on('child_added',function(cs){
+        _actReceive(cs.key,cs.val());
+      });
+    },function(){ _actArm(); });
+  }catch(e){ _actArm(); }
+}
+/* Arm logging only after existing history is loaded, and baseline the
+   current project state at that exact moment so the first user save is
+   diffed against what was really on screen. */
+function _actArm(){
+  try{ _snapAll(); }catch(e){}
+  window._actReady=true;
+}
 /* manual, on-demand refresh — detaching and reattaching the listener forces an
    immediate fresh read, useful if the live push/listen seems stuck. */
 function pullNow(){
@@ -9654,8 +9955,14 @@ function pushNow(){
     console.error('Firebase push failed:',err);
   };
   try{
-    var r=SYNC.ref.set(JSON.parse(str));
-    if(r&&typeof r.then==='function'){ r.then(done,failed); }   // .set() is async — must catch the rejection
+    /* update() — never set(). set() on the room would delete the activity
+       child and any field this build does not know about. Keys absent from
+       the payload are left untouched on the server. */
+    var payload=JSON.parse(str);
+    delete payload.activity;                      // activity is push-only, never overwritten
+    delete payload._activityLog;                  // legacy local mirror — not synced wholesale
+    var r=SYNC.ref.update(payload);
+    if(r&&typeof r.then==='function'){ r.then(done,failed); }
     else { done(); }
   }catch(e){ failed(e); }
 }
@@ -9828,6 +10135,9 @@ window.addEventListener('DOMContentLoaded',()=>{
     initFirebase();
   }
   try{ document.body.setAttribute('data-booted','1'); }catch(e){}
+  /* Safety net: if Firebase never answers, arm the activity logger anyway
+     so offline edits are still recorded locally. */
+  setTimeout(function(){ if(!window._actReady) _actArm(); }, 6000);
 });
 
 
@@ -13189,6 +13499,9 @@ function ensureSeedProjects(){
     window[name]=function(p){
       var html=orig.apply(this,arguments);
       try{
+        /* Supply Equipment (p3) never shows the developer columns table */
+        var _isSupply=(p&&(p.id==='p3'||/supply\s*equipment/i.test(p.nameEn||p.name||'')));
+        if(_isSupply) return html;
         var rows=(p&&p[arrKey])||[];
         var cols=(p&&p[colsKey])||[];
         if(cols.length){ html += customColsHtml(rows, cols, arrKey); }
@@ -13196,12 +13509,13 @@ function ensureSeedProjects(){
       return html;
     };
   }
-  /* Wrap after DOM ready so the base functions exist */
+  /* Wrap after DOM ready so the base functions exist.
+     renderPayments is deliberately NOT wrapped — Supply Equipment (p3) is the
+     payment tracker and must not show the Custom Columns (developer) table. */
   document.addEventListener('DOMContentLoaded', function(){
     wrap('renderServiceOffices','sites','soColumns');
     wrap('renderTraining','training','trainingColumns');
     wrap('renderSurvey','survey','surveyColumns');
-    wrap('renderPayments','payments','payColumns');
   });
 })();
 function devEditCell(listKey, rowIdx, colKey, val){
