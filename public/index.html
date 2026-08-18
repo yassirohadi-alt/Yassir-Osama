@@ -2349,6 +2349,94 @@ body{background-color:#F1F3F8!important;background-image:var(--kp-lotus),radial-
 .proj-view{background-color:#F1F3F8!important;background-image:var(--kp-lotus),radial-gradient(circle at 92% 96%,rgba(177,40,54,.07),transparent 44%),radial-gradient(circle at 5% 3%,rgba(7,16,51,.055),transparent 38%)!important;background-repeat:no-repeat,no-repeat,no-repeat!important;background-position:right -14px bottom -24px,center,center!important;background-size:min(330px,40vw) auto,cover,cover!important;background-attachment:fixed,fixed,fixed!important}
 .pmo-deck{background-image:var(--kp-lotus)!important;background-repeat:no-repeat!important;background-position:right -30px bottom -44px!important;background-size:250px auto!important}
 </style>
+<style id="v500-translation">
+
+/* ══ v500 — Translation layer UI ══ */
+.tr-btn-wrap{display:inline-flex;vertical-align:middle;margin-inline-start:6px}
+.tr-btn{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 8px 2px 6px;border-radius:99px;
+  border:1px solid #C7CCD6;background:#fff;color:#5B6572;
+  font-family:var(--body,'Segoe UI',sans-serif);font-size:10.5px;font-weight:700;
+  line-height:1.6;cursor:pointer;white-space:nowrap;
+  transition:background .14s,border-color .14s,color .14s,box-shadow .14s;
+  vertical-align:middle;
+}
+.tr-btn svg{width:11px;height:11px;flex:0 0 auto}
+.tr-btn:hover{background:var(--brand-soft,#F7E3E5);border-color:var(--brand,#B12836);color:var(--brand-deep,#8A1E2A)}
+.tr-btn:disabled{cursor:default;opacity:.85}
+.tr-btn.is-busy{background:#EEF1F4;border-color:#C7CCD6;color:#5B6572}
+.tr-btn.is-ok{background:#EAF2EC;border-color:#B8D6C4;color:#2E7D5B;padding-inline:6px}
+.tr-btn.is-ok:hover{background:#DBEBE1}
+.tr-btn.is-stale{background:#F2ECDD;border-color:#DFC98F;color:#8A6A2C}
+.tr-btn.is-err{background:#F6E4E6;border-color:#E4B4BA;color:#B0202E}
+.tr-spin{animation:trspin .8s linear infinite;transform-origin:50% 50%}
+@keyframes trspin{to{transform:rotate(360deg)}}
+.tr-translated{border-bottom:1px dotted rgba(46,125,91,.45)}
+
+.tr-toolbar{
+  position:fixed;bottom:22px;right:22px;z-index:99997;
+  display:flex;align-items:center;gap:8px;
+  background:#fff;border:1px solid var(--line,#E5E9F1);
+  padding:8px 10px 8px 12px;border-radius:12px;
+  box-shadow:0 10px 30px -10px rgba(16,24,40,.28);
+  font-family:var(--body,'Segoe UI',sans-serif);font-size:11.5px;
+}
+.tr-toolbar .tr-tb-ic{display:grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--brand-soft,#F7E3E5);color:var(--brand,#B12836);flex:0 0 auto}
+.tr-toolbar .tr-tb-ic svg{width:13px;height:13px}
+.tr-toolbar .tr-tb-t{font-weight:800;color:var(--ink,#20242E);font-size:12px}
+.tr-toolbar .tr-tb-badge{font-size:10.5px;font-weight:700;color:#2E7D5B;background:#EAF2EC;border-radius:99px;padding:2px 8px}
+.tr-toolbar button{
+  border:1px solid var(--line,#E5E9F1);background:#fff;color:var(--ink-2,#3B4048);
+  border-radius:8px;padding:5px 10px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;
+}
+.tr-toolbar button:hover{background:var(--brand-soft,#F7E3E5);border-color:var(--brand,#B12836);color:var(--brand-deep,#8A1E2A)}
+.tr-toolbar button.tr-off{padding:5px 8px;color:var(--muted,#8A97A6)}
+
+.tr-toast{
+  position:fixed;bottom:78px;right:22px;z-index:99999;max-width:420px;
+  background:#20242E;color:#fff;padding:11px 15px;border-radius:10px;
+  font-family:var(--body,'Segoe UI',sans-serif);font-size:12px;font-weight:600;line-height:1.45;
+  box-shadow:0 10px 30px rgba(0,0,0,.32);border-left:4px solid #2E7D5B;
+  opacity:0;transform:translateY(10px);transition:opacity .22s,transform .22s;pointer-events:none;
+}
+.tr-toast.show{opacity:1;transform:translateY(0)}
+.tr-toast.err{border-left-color:#B0202E}
+
+.tr-modal{position:fixed;inset:0;z-index:99999;background:rgba(18,22,38,.5);display:flex;align-items:center;justify-content:center;padding:20px}
+.tr-modal-in{background:#fff;border-radius:14px;width:min(560px,95vw);max-height:90vh;overflow:auto;box-shadow:0 24px 70px rgba(18,22,38,.4);font-family:var(--body,'Segoe UI',sans-serif)}
+.tr-modal-h{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 20px;background:var(--brand,#B12836);color:#fff}
+.tr-modal-t{font-weight:800;font-size:15.5px}
+.tr-modal-s{font-size:11.5px;opacity:.85;margin-top:2px}
+.tr-x{background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:13px;flex:0 0 auto}
+.tr-x:hover{background:rgba(255,255,255,.34)}
+.tr-modal-b{padding:18px 20px;display:flex;flex-direction:column;gap:13px}
+.tr-fld{display:flex;flex-direction:column;gap:5px}
+.tr-fld>span{font-size:11px;font-weight:800;color:var(--muted,#8A97A6);text-transform:uppercase;letter-spacing:.03em}
+.tr-fld select,.tr-fld input{
+  font-family:inherit;font-size:12.5px;color:var(--ink-2,#3B4048);
+  border:1px solid var(--line,#E5E9F1);border-radius:8px;padding:9px 11px;background:#fff;width:100%;
+}
+.tr-fld select:focus,.tr-fld input:focus{outline:none;border-color:var(--brand,#B12836);box-shadow:0 0 0 2px var(--brand-soft,#F7E3E5)}
+.tr-note{font-size:11.5px;line-height:1.55;color:var(--ink-3,#6B7280);background:#F4F6F9;border:1px solid var(--line-soft,#EDF0F5);border-radius:9px;padding:11px 13px}
+.tr-note b{color:var(--ink-2,#3B4048)}
+.tr-note code{font-family:var(--mono,monospace);font-size:11px;background:#E8ECF2;border-radius:4px;padding:1px 5px}
+.tr-note-2{background:#FBFCFD}
+.tr-modal-f{display:flex;align-items:center;gap:10px;padding:14px 20px;border-top:1px solid var(--line,#E5E9F1);background:#FAFBFD}
+.tr-gap{flex:1}
+.tr-b1,.tr-b2{border-radius:9px;padding:9px 16px;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;border:1px solid var(--line,#E5E9F1)}
+.tr-b1{background:var(--brand,#B12836);color:#fff;border-color:var(--brand,#B12836)}
+.tr-b1:hover{filter:brightness(1.08)}
+.tr-b2{background:#fff;color:var(--ink-2,#3B4048)}
+.tr-b2:hover{background:var(--muted-bg,#EEF1F4)}
+.tr-b2:disabled{opacity:.6;cursor:default}
+
+@media(max-width:640px){
+  .tr-toolbar{right:10px;left:10px;bottom:10px;justify-content:space-between;flex-wrap:wrap}
+  .tr-toast{right:10px;left:10px;max-width:none}
+}
+
+</style>
 </head>
 <body class="role-viewer intro-playing">
 
@@ -3118,7 +3206,32 @@ body.god-on .clogo, body.god-on .exec-logo, body.god-on .pmo-logo{ pointer-event
     var el=node; while(el && el.nodeType===1){
       var p=el.getAttribute && el.getAttribute('data-god-path');
       if(p) return p; el=el.parentElement;
-    } return null;
+    }
+    /* v25-fix: infer path from data attributes used by the normal editing system */
+    try{
+      var nd=node;
+      var pid=(typeof CUR_PROJ!=='undefined'&&CUR_PROJ)?CUR_PROJ:null;
+      if(!pid) return null;
+      /* Phase name */
+      if(nd.hasAttribute && nd.hasAttribute('data-phname'))
+        return 'proj:'+pid+':phases:'+nd.getAttribute('data-phname')+':name';
+      if(nd.hasAttribute && nd.hasAttribute('data-phpct'))
+        return 'proj:'+pid+':phases:'+nd.getAttribute('data-phpct')+':planPct';
+      if(nd.hasAttribute && nd.hasAttribute('data-phactual'))
+        return 'proj:'+pid+':phases:'+nd.getAttribute('data-phactual')+':actualPct';
+      /* Milestone fields */
+      if(nd.hasAttribute && nd.hasAttribute('data-msname'))
+        return 'proj:'+pid+':milestones:'+nd.getAttribute('data-msname')+':name';
+      if(nd.hasAttribute && nd.hasAttribute('data-msplan'))
+        return 'proj:'+pid+':milestones:'+nd.getAttribute('data-msplan')+':planPct';
+      if(nd.hasAttribute && nd.hasAttribute('data-msactual'))
+        return 'proj:'+pid+':milestones:'+nd.getAttribute('data-msactual')+':actualPct';
+      if(nd.hasAttribute && nd.hasAttribute('data-msnamear'))
+        return 'proj:'+pid+':milestones:'+nd.getAttribute('data-msnamear')+':nameAr';
+      if(nd.hasAttribute && nd.hasAttribute('data-phasename'))
+        return 'proj:'+pid+':phases:'+nd.getAttribute('data-phasename')+':name';
+    }catch(e){}
+    return null;
   }
   function applyPath(path, newVal){
     if(!path) return false;
@@ -3135,7 +3248,7 @@ body.god-on .clogo, body.god-on .exec-logo, body.god-on .pmo-logo{ pointer-event
           ref=ref[k];
         }
         var last=parts[parts.length-1]; if(/^\d+$/.test(last)) last=+last;
-        ref[last]=newVal;
+        ref[last]=/Pct$/.test(last)?parseInt(newVal,10)||0:newVal;
         if(typeof persist==='function') persist();
         return true;
       }
@@ -3156,6 +3269,21 @@ body.god-on .clogo, body.god-on .exec-logo, body.god-on .pmo-logo{ pointer-event
 
   // ── Delete handling ─────────────────────────────────
   function deletePath(path, el){
+    /* v501 — UI chrome (filter buttons, legends) is a hardcoded HTML literal in
+       the render functions, not data. Removing the node alone is pointless: the
+       next render rebuilds it from the literal. Record the removal in
+       STORE.uiHidden so it is committed to the database and re-applied after
+       every render. */
+    try{
+      if(el && typeof uhKeyFor==='function'){
+        var hit=uhKeyFor(el);
+        if(hit && typeof uhHide==='function'){
+          uhHide(hit.key,(el.textContent||'').trim().slice(0,60));
+          hit.node.style.display='none';
+          return true;
+        }
+      }
+    }catch(e){}
     if(!path){ el && el.remove(); return 'dom-only'; }
     var parts=path.split(':');
     try{
@@ -3301,10 +3429,15 @@ body.god-on .clogo, body.god-on .exec-logo, body.god-on .pmo-logo{ pointer-event
     if(document.getElementById('godToolbar')) return;
     var bar=document.createElement('div');
     bar.id='godToolbar'; bar.className='god-toolbar';
+    var _nHidden=0; try{ _nHidden=(window.STORE&&Array.isArray(STORE.uiHidden))?STORE.uiHidden.length:0; }catch(e){}
     bar.innerHTML='<span class="g-dot"></span><span>GOD MODE</span>'+
       '<button id="godToggle">Pause</button>'+
       '<button id="godScan">Rescan</button>'+
+      '<button id="godRestore" title="Bring back every interface element hidden in Developer Mode">Restore hidden'+(_nHidden?(' ('+_nHidden+')'):'')+'</button>'+
       '<button id="godExit" class="g-off">Exit</button>';
+    document.getElementById('godRestore').onclick=function(){
+      if(typeof uhReset==='function'){ uhReset(); ensureToolbar._refresh&&ensureToolbar._refresh(); }
+    };
     document.body.appendChild(bar);
     document.getElementById('godToggle').onclick=function(){
       GOD_ON=!GOD_ON;
@@ -6424,12 +6557,12 @@ function openProject(id){
   document.body.style.overflow='hidden';
   // Wire pvTop editing (outside pvGrid)
   const pvT=document.getElementById('pvTitle');
-  pvT.oninput=()=>{const p=projByID(CUR_PROJ);if(p&&ROLE==='pm'){p.nameEn=pvT.textContent;renderHub();sched(p);}};
+  pvT.oninput=()=>{const p=projByID(CUR_PROJ);if(p&&isEditor()){p.nameEn=pvT.textContent;renderHub();sched(p);}};
   const pvE=document.getElementById('pvEn');
-  pvE.oninput=()=>{const p=projByID(CUR_PROJ);if(p&&ROLE==='pm'){p.name=pvE.textContent;sched(p);}};
+  pvE.oninput=()=>{const p=projByID(CUR_PROJ);if(p&&isEditor()){p.name=pvE.textContent;sched(p);}};
 }
-function editCardName(pid,e){if(ROLE!=='pm')return;e.stopPropagation();const p=projByID(pid);if(!p)return;const n=window.prompt('Project name:',p.name);if(n&&n.trim()){p.name=n.trim();persist();renderHub();if(CUR_PROJ===pid)document.getElementById('pvEn').textContent=p.name;}}
-function editCardEn(pid,e){if(ROLE!=='pm')return;e.stopPropagation();const p=projByID(pid);if(!p)return;const n=window.prompt('English name:',p.nameEn);if(n&&n.trim()){p.nameEn=n.trim();persist();renderHub();}}
+function editCardName(pid,e){if(!isEditor())return;e.stopPropagation();const p=projByID(pid);if(!p)return;const n=window.prompt('Project name:',p.name);if(n&&n.trim()){p.name=n.trim();persist();renderHub();if(CUR_PROJ===pid)document.getElementById('pvEn').textContent=p.name;}}
+function editCardEn(pid,e){if(!isEditor())return;e.stopPropagation();const p=projByID(pid);if(!p)return;const n=window.prompt('English name:',p.nameEn);if(n&&n.trim()){p.nameEn=n.trim();persist();renderHub();}}
 function pvBack(){ if(CUR_PARENT){ var pid=CUR_PARENT; CUR_PARENT=null; openProject(pid); } else { closeProject(); } }
 function closeProject(){
   document.getElementById('projView').classList.remove('show');
@@ -6560,7 +6693,7 @@ function soEnsureEnglish(p){
 }
 function renderServiceOffices(p){
   if(soEnsureEnglish(p)){ try{persist();}catch(e){} }
-  var offices=(p.sites||[]).filter(Boolean); var overall=soOverall(p); var PM=ROLE==='pm';
+  var offices=(p.sites||[]).filter(Boolean); var overall=soOverall(p); var PM=(typeof isEditor==='function'?isEditor():(ROLE==='pm'||ROLE==='dev'));
   var doneCount=offices.filter(function(o){return soPct(o)>=100;}).length;
   var head='<th class="so-name-h">Service Office / Department</th>'+SO_STEPS.map(function(s){return '<th title="'+esc(SO_STEP_EN[s[0]]||s[2])+'">'+s[1]+'</th>';}).join('')+'<th>Response</th><th>Area</th><th>Progress</th><th>Notes</th>'+(PM?'<th></th>':'');
   var rows=offices.map(function(o,i){
@@ -6578,7 +6711,7 @@ function renderServiceOffices(p){
     '</tr>';
   }).join('');
   return '<div class="sec-card pv-full"><div class="sec-head"><div class="sec-head-l"><div class="sec-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01"/></svg></div><div class="sec-title">Service Offices Site Tracker <span style="font-size:10.5px;font-weight:600;color:#fff;background:var(--good);padding:2px 9px;border-radius:99px;margin-inline-start:6px">'+overall+'% \u00b7 '+doneCount+'/'+offices.length+' complete</span></div></div><div class="sec-actions">'+(PM?'<button class="sec-btn" onclick="addOffice(\''+p.id+'\')">+ Office</button>':'')+'</div></div>'+
-    '<div class="sec-body"><div class="so-legend"><span><i class="lg d"></i>Done</span><span><i class="lg p"></i>In Progress</span><span><i class="lg n"></i>Not Done</span><span class="so-hint">Tap any step to cycle its status \u00b7 hover a step to see its date</span></div>'+
+    '<div class="sec-body"><div class="so-legend" data-ui-key="legend:'+p.id+':offices"><span data-ui-key="legend:'+p.id+':offices:d"><i class="lg d"></i>Done</span><span data-ui-key="legend:'+p.id+':offices:p"><i class="lg p"></i>In Progress</span><span data-ui-key="legend:'+p.id+':offices:n"><i class="lg n"></i>Not Done</span><span class="so-hint">Tap any step to cycle its status \u00b7 hover a step to see its date</span></div>'+
     '<div class="so-wrap"><table class="so-table"><thead><tr>'+head+'</tr></thead><tbody>'+rows+'</tbody></table></div></div></div>';
 }
 /* ===== DATA CENTER item checklist model (Temporary / Permanent data centers) ===== */
@@ -6592,7 +6725,7 @@ function dcEdit(pid,i,field,val){ var p=projByID(pid); if(!p||!p.items||!p.items
 function dcAdd(pid,group){ var p=projByID(pid); if(!p)return; if(!p.items)p.items=[]; var g=group; if(!g){ g=window.prompt('Category (e.g. Server, UPS, Camera):','')||'General'; } var nm=window.prompt('Item name:',''); if(nm===null)return; p.items.push({group:g,name:(nm||'').trim()||'New Item',status:'n',start:'',end:'',notes:''}); dcSave(pid); }
 function dcDel(pid,i){ var p=projByID(pid); if(!p||!p.items)return; if(window.confirm('Remove this item?')){ p.items.splice(i,1); dcSave(pid); } }
 function renderDataCenter(p){
-  var items=(p.items||[]); var PM=ROLE==='pm'; var pct=dcPct(p);
+  var items=(p.items||[]); var PM=(typeof isEditor==='function'?isEditor():(ROLE==='pm'||ROLE==='dev')); var pct=dcPct(p);
   var doneCount=items.filter(function(it){return (it.status||'n')==='d';}).length;
   var order=[], byCat={};
   items.forEach(function(it,idx){ var g=it.group||'General'; if(!byCat[g]){byCat[g]=[];order.push(g);} byCat[g].push(idx); });
@@ -6618,7 +6751,7 @@ function renderDataCenter(p){
   }).join('');
   var badge=items.length?'<span style="font-size:10.5px;font-weight:600;color:#fff;background:var(--good);padding:2px 9px;border-radius:99px;margin-inline-start:6px">'+pct+'% \u00b7 '+doneCount+'/'+items.length+' done</span>':'<span style="font-size:10.5px;font-weight:600;color:#fff;background:var(--muted-st);padding:2px 9px;border-radius:99px;margin-inline-start:6px">empty \u00b7 add items</span>';
   return '<div class="sec-card pv-full"><div class="sec-head"><div class="sec-head-l"><div class="sec-icon">'+DC_ICON+'</div><div class="sec-title">Data Center Site Tracker '+badge+'</div></div><div class="sec-actions">'+(PM?'<button class="sec-btn" onclick="dcAdd(\''+p.id+'\',\'\')">+ Item</button>':'')+'</div></div>'+
-    '<div class="sec-body"><div class="so-legend"><span><i class="lg d"></i>Done</span><span><i class="lg p"></i>In Progress</span><span><i class="lg n"></i>Not Done</span><span class="so-hint">Tap status to cycle \u00b7 pick Start/End dates \u00b7 edit item &amp; notes inline</span></div>'+
+    '<div class="sec-body"><div class="so-legend" data-ui-key="legend:'+p.id+':items"><span data-ui-key="legend:'+p.id+':items:d"><i class="lg d"></i>Done</span><span data-ui-key="legend:'+p.id+':items:p"><i class="lg p"></i>In Progress</span><span data-ui-key="legend:'+p.id+':items:n"><i class="lg n"></i>Not Done</span><span class="so-hint">Tap status to cycle \u00b7 pick Start/End dates \u00b7 edit item &amp; notes inline</span></div>'+
     '<div class="so-wrap"><table class="so-table"><thead><tr>'+head+'</tr></thead><tbody>'+(body||'<tr><td colspan="'+cols+'" style="padding:16px;text-align:center;color:#8a8f98">No items yet \u2014 use \u201c+ Item\u201d to build the checklist.</td></tr>')+'</tbody></table></div></div></div>';
 }
 /* ===== RESOURCES EXECUTIVE DASHBOARD (workforce / capacity) ===== */
@@ -6797,7 +6930,7 @@ function resStatusColor(s){ s=(s||'').toLowerCase(); if(/resign/.test(s))return 
 function resLoadColor(h){ if(h>44)return '#C0392B'; if(h>=32)return '#2E7D5B'; if(h<=0)return '#c3c7cd'; return '#C08A2E'; }
 
 function renderResources(p){
-  var PM=(typeof ROLE!=='undefined'&&ROLE==='pm');
+  var PM=(typeof isEditor==='function'?isEditor():(typeof ROLE!=='undefined'&&(ROLE==='pm'||ROLE==='dev')));
   var all=resAll(); var L=resFilterList(all); var M=resMeta();
   var total=L.length;
   var active=L.filter(function(r){return /active/i.test(r.status);}).length;
@@ -7346,7 +7479,7 @@ function payEditCustom(id,key,val){
   try{if(typeof auditLog==='function')auditLog(p.id,'row','pay-edit',key+'='+r[key]);}catch(e){}
 }
 function renderPayments(p){
-  var PM=(typeof ROLE!=='undefined'&&ROLE==='pm');
+  var PM=(typeof isEditor==='function'?isEditor():(typeof ROLE!=='undefined'&&(ROLE==='pm'||ROLE==='dev')));
   var all=payAll(); var L=payFilterList(all);
   // grouping (order + PO)
   var groups=[], gmap={};
@@ -7552,7 +7685,7 @@ function svEditCustom(id,key,val){
 }
 
 function renderSurvey(p){
-  var PM=(typeof ROLE!=='undefined'&&ROLE==='pm');
+  var PM=(typeof isEditor==='function'?isEditor():(typeof ROLE!=='undefined'&&(ROLE==='pm'||ROLE==='dev')));
   var all=surveyAll(); var L=surveyFilterList(all);
   var count=L.length;
   var totA=L.reduce(function(a,r){return a+(+r.assignees||0);},0);
@@ -7746,7 +7879,7 @@ function renderFloors(){ if(!CUR_FLOOR)return; var p=projByID(CUR_FLOOR.pid); if
     '<div class="fl-head"><div class="fl-head-l"><div class="fl-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M6 21V7l6-4 6 4v14M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01"/></svg></div>'+
     '<div><div class="fl-title">'+esc(site.name)+'</div><div class="fl-sub">Installation checklist \u00b7 '+floors.length+' floors \u00b7 '+cols.length+' columns</div></div></div>'+
     '<div class="fl-head-r"><div class="fl-metric"><div class="fl-metric-v">'+designPct+'%</div><div class="fl-metric-k">Site Tracker</div></div><div class="fl-metric"><div class="fl-metric-v">'+overall+'%</div><div class="fl-metric-k">Installation</div></div><div class="fl-overall" style="color:'+fcol+'">'+finalPct+'%<span>Final</span></div><button class="fl-x" onclick="closeFloors()">\u2715</button></div></div>'+
-    '<div class="fl-legend"><span><i class="lg d"></i>Done</span><span><i class="lg p"></i>In Progress</span><span><i class="lg n"></i>Not Started</span><span class="fl-hint">Tap any cell to cycle status</span></div>'+
+    '<div class="fl-legend" data-ui-key="legend:floors"><span data-ui-key="legend:floors:d"><i class="lg d"></i>Done</span><span data-ui-key="legend:floors:p"><i class="lg p"></i>In Progress</span><span data-ui-key="legend:floors:n"><i class="lg n"></i>Not Started</span><span class="fl-hint">Tap any cell to cycle status</span></div>'+
     (PM?'<div style="display:flex;gap:8px;margin:0 18px 10px;flex-wrap:wrap">'
       +'<button class="fl-add" onclick="addFloorColumn()" style="font-size:11.5px;padding:5px 14px">+ Add Column</button>'
       +'<span style="font-size:11px;color:var(--muted);align-self:center">Click column headers to rename · × to delete</span>'
@@ -7793,8 +7926,8 @@ function renderProjectView(id){
 
   document.getElementById('pvTitle').textContent=p.nameEn||p.name;
   document.getElementById('pvEn').textContent='';
-  document.getElementById('pvTitle').setAttribute('contenteditable',ROLE==='pm'?'true':'false');
-  document.getElementById('pvEn').setAttribute('contenteditable',ROLE==='pm'?'true':'false');
+  document.getElementById('pvTitle').setAttribute('contenteditable',isEditor()?'true':'false');
+  document.getElementById('pvEn').setAttribute('contenteditable',isEditor()?'true':'false');
   const grid=document.getElementById('pvGrid');
   grid.classList.add('official-view');
   // ── KPI strip (adapts per project type) ──
@@ -7893,7 +8026,7 @@ function progRing(pct){
 }
 function renderProgress(p,pct){
   const phases=p.phases||[];
-  const PM=ROLE==='pm';
+  const PM=(typeof isEditor==='function'?isEditor():(ROLE==='pm'||ROLE==='dev'));
   const mono=true;
   // Compute plan pct (from planPct field or fall back to single pct)
   const planAvg=phases.length?Math.round(phases.reduce((a,ph)=>a+(ph.planPct!=null?ph.planPct:(ph.pct||0)),0)/phases.length):100;
@@ -8071,7 +8204,7 @@ function initGanttArrows(pid){
 
 function renderGantt(p){
   return ''; /* Gantt — Milestone Timeline removed by request */
-  const PM=ROLE==='pm'; const ms=p.milestones||[];
+  const PM=(typeof isEditor==='function'?isEditor():(ROLE==='pm'||ROLE==='dev')); const ms=p.milestones||[];
   const MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const GS=new Date('2025-11-01'); const GE=new Date('2027-05-01');
   const today=new Date();
@@ -8276,10 +8409,10 @@ function cycleMsStatus(pid,i){
 function renderQA(p){
   const qa=p.qa||[];
   const rows=qa.map((q,i)=>`<tr>
-    <td contenteditable="${ROLE==='pm'?'true':'false'}" data-qaitem="${i}">${esc(q.item)}</td>
-    <td contenteditable="${ROLE==='pm'?'true':'false'}" data-qastd="${i}">${esc(q.standard)}</td>
+    <td contenteditable="${(typeof isEditor==='function'?isEditor():(ROLE==='pm'||ROLE==='dev'))?'true':'false'}" data-qaitem="${i}">${esc(q.item)}</td>
+    <td contenteditable="${(typeof isEditor==='function'?isEditor():(ROLE==='pm'||ROLE==='dev'))?'true':'false'}" data-qastd="${i}">${esc(q.standard)}</td>
     <td><span class="rag ${impClass(q.status)}" data-qastatus="${i}" onclick="cycleQA('${p.id}',${i})">${{d:'Passed',p:'Under Review',n:'Not Tested',pass:'Passed',fail:'Failed',pending:'Pending'}[q.status]||q.status}</span></td>
-    <td contenteditable="${ROLE==='pm'?'true':'false'}" data-qanotes="${i}">${esc(q.notes)}</td>
+    <td contenteditable="${(typeof isEditor==='function'?isEditor():(ROLE==='pm'||ROLE==='dev'))?'true':'false'}" data-qanotes="${i}">${esc(q.notes)}</td>
     <td><button class="row-del-btn pm-only" onclick="delQA('${p.id}',${i})">✕</button></td>
   </tr>`).join('');
   return `<div class="sec-card collapsed">
@@ -8297,10 +8430,10 @@ function renderBudget(p){
   const bud=p.budget||[];
   const maxVal=Math.max(1,...bud.map(b=>Math.max(b.planned||0,b.actual||0)));
   const rows=bud.map((b,i)=>`<div class="budget-row">
-    <div class="budget-label" contenteditable="${ROLE==='pm'?'true':'false'}" data-budcat="${i}">${esc(b.category)}</div>
+    <div class="budget-label" contenteditable="${(typeof isEditor==='function'?isEditor():(ROLE==='pm'||ROLE==='dev'))?'true':'false'}" data-budcat="${i}">${esc(b.category)}</div>
     <div class="budget-bars">
-      <div class="bbar"><div class="bbar-track"><div class="bbar-fill planned" style="width:${Math.round((b.planned||0)/maxVal*100)}%"></div></div><div class="bbar-val" contenteditable="${ROLE==='pm'?'true':'false'}" data-budplan="${i}">${(b.planned||0).toLocaleString()}</div></div>
-      <div class="bbar"><div class="bbar-track"><div class="bbar-fill actual" style="width:${Math.round((b.actual||0)/maxVal*100)}%"></div></div><div class="bbar-val" contenteditable="${ROLE==='pm'?'true':'false'}" data-budact="${i}">${(b.actual||0).toLocaleString()}</div></div>
+      <div class="bbar"><div class="bbar-track"><div class="bbar-fill planned" style="width:${Math.round((b.planned||0)/maxVal*100)}%"></div></div><div class="bbar-val" contenteditable="${(typeof isEditor==='function'?isEditor():(ROLE==='pm'||ROLE==='dev'))?'true':'false'}" data-budplan="${i}">${(b.planned||0).toLocaleString()}</div></div>
+      <div class="bbar"><div class="bbar-track"><div class="bbar-fill actual" style="width:${Math.round((b.actual||0)/maxVal*100)}%"></div></div><div class="bbar-val" contenteditable="${(typeof isEditor==='function'?isEditor():(ROLE==='pm'||ROLE==='dev'))?'true':'false'}" data-budact="${i}">${(b.actual||0).toLocaleString()}</div></div>
     </div>
     <button class="row-del-btn pm-only" onclick="delBud('${p.id}',${i})">✕</button>
   </div>`).join('');
@@ -8320,12 +8453,12 @@ function delBud(pid,i){if(ROLE!=='pm')return;const p=projByID(pid);if(!p||!confi
 function renderRisks(p){
   const risks=p.risks||[];
   const rows=risks.map((r,i)=>`<tr>
-    <td contenteditable="${ROLE==='pm'?'true':'false'}" data-rrisk="${i}">${esc(r.risk)}</td>
+    <td contenteditable="${(typeof isEditor==='function'?isEditor():(ROLE==='pm'||ROLE==='dev'))?'true':'false'}" data-rrisk="${i}">${esc(r.risk)}</td>
     <td><span class="rag ${impClass(r.impact)}" data-rimp="${i}" onclick="cycleImp('${p.id}',${i},'impact')">${impLabel(r.impact)}</span></td>
     <td><span class="rag ${impClass(r.prob)}" data-rprob="${i}" onclick="cycleImp('${p.id}',${i},'prob')">${impLabel(r.prob)}</span></td>
     <td><span class="rag ${r.status==='open'?'rag-hi':'rag-lo'}" data-rstatus="${i}" onclick="cycleRisk('${p.id}',${i})">${r.status==='open'?'Open':'Closed'}</span></td>
-    <td contenteditable="${ROLE==='pm'?'true':'false'}" data-rowner="${i}">${esc(r.owner)}</td>
-    <td contenteditable="${ROLE==='pm'?'true':'false'}" data-rmit="${i}">${esc(r.mitigation)}</td>
+    <td contenteditable="${(typeof isEditor==='function'?isEditor():(ROLE==='pm'||ROLE==='dev'))?'true':'false'}" data-rowner="${i}">${esc(r.owner)}</td>
+    <td contenteditable="${(typeof isEditor==='function'?isEditor():(ROLE==='pm'||ROLE==='dev'))?'true':'false'}" data-rmit="${i}">${esc(r.mitigation)}</td>
     <td><button class="row-del-btn pm-only" onclick="delRisk('${p.id}',${i})">✕</button></td>
   </tr>`).join('');
   return `<div class="sec-card pv-full collapsed">
@@ -8347,15 +8480,15 @@ function renderTeam(p){
     const dPct=Math.round((m.tasks.done||0)/tot*100);
     const pPct=Math.round((m.tasks.prog||0)/tot*100);
     return `<tr>
-      <td contenteditable="${ROLE==='pm'?'true':'false'}" data-tmname="${i}" style="font-weight:600">${esc(m.name)}</td>
+      <td contenteditable="${(typeof isEditor==='function'?isEditor():(ROLE==='pm'||ROLE==='dev'))?'true':'false'}" data-tmname="${i}" style="font-weight:600">${esc(m.name)}</td>
       <td><div style="display:flex;height:14px;border-radius:99px;overflow:hidden;min-width:120px">
         <div style="width:${dPct}%;background:var(--good);flex:0 0 auto"></div>
         <div style="width:${pPct}%;background:var(--teal);flex:0 0 auto"></div>
         <div style="flex:1;background:var(--line)"></div>
       </div></td>
-      <td contenteditable="${ROLE==='pm'?'true':'false'}" data-tmdone="${i}" style="text-align:center;color:var(--good);font-weight:700">${m.tasks.done||0}</td>
-      <td contenteditable="${ROLE==='pm'?'true':'false'}" data-tmprog="${i}" style="text-align:center;color:var(--teal);font-weight:700">${m.tasks.prog||0}</td>
-      <td contenteditable="${ROLE==='pm'?'true':'false'}" data-tmpend="${i}" style="text-align:center;color:var(--muted-st);font-weight:700">${m.tasks.pend||0}</td>
+      <td contenteditable="${(typeof isEditor==='function'?isEditor():(ROLE==='pm'||ROLE==='dev'))?'true':'false'}" data-tmdone="${i}" style="text-align:center;color:var(--good);font-weight:700">${m.tasks.done||0}</td>
+      <td contenteditable="${(typeof isEditor==='function'?isEditor():(ROLE==='pm'||ROLE==='dev'))?'true':'false'}" data-tmprog="${i}" style="text-align:center;color:var(--teal);font-weight:700">${m.tasks.prog||0}</td>
+      <td contenteditable="${(typeof isEditor==='function'?isEditor():(ROLE==='pm'||ROLE==='dev'))?'true':'false'}" data-tmpend="${i}" style="text-align:center;color:var(--muted-st);font-weight:700">${m.tasks.pend||0}</td>
       <td style="text-align:center;font-family:var(--mono)">${dPct}%</td>
       <td><button class="row-del-btn pm-only" onclick="delTeam('${p.id}',${i})">✕</button></td>
     </tr>`;}).join('');
@@ -8626,7 +8759,7 @@ function openMsDtPick(pid,mi,kind,phi,anchor){
 function setMsFilter(pid,f){siteFilter=f;renderProjectView(pid);}
 
 function renderPhaseTracker(p){
-  var PM=(typeof ROLE!=='undefined'&&ROLE==='pm');
+  var PM=(typeof isEditor==='function'?isEditor():(typeof ROLE!=='undefined'&&(ROLE==='pm'||ROLE==='dev')));
   var ms=(p.milestones||[]).slice();
   var phases=(p.phases&&p.phases.length?p.phases:((ms[0]&&ms[0].phases)||[]));
   ms.forEach(function(m){ try{ ensureSubPhases(m); }catch(e){} });
@@ -8695,8 +8828,8 @@ function renderPhaseTracker(p){
       +'<div class="phase-matrix-toolbar">'
         +'<div class="phase-matrix-filters">'
           +'<button class="sf-btn '+(siteFilter==='all'?'active':'')+'" onclick="setMsFilter(\''+p.id+'\',\'all\')">All ('+counts.all+')</button>'
-          +'<button class="sf-btn '+(siteFilter==='d'?'active':'')+'" onclick="setMsFilter(\''+p.id+'\',\'d\')">Done ('+(counts.d||0)+')</button>'
-          +'<button class="sf-btn '+(siteFilter==='p'?'active':'')+'" onclick="setMsFilter(\''+p.id+'\',\'p\')">In Progress ('+(counts.p||0)+')</button>'
+          +'<button class="sf-btn '+(siteFilter==='d'?'active':'')+'" data-ui-key="milestones:'+p.id+':filter:d" onclick="setMsFilter(\''+p.id+'\',\'d\')">Done ('+(counts.d||0)+')</button>'
+          +'<button class="sf-btn '+(siteFilter==='p'?'active':'')+'" data-ui-key="milestones:'+p.id+':filter:p" onclick="setMsFilter(\''+p.id+'\',\'p\')">In Progress ('+(counts.p||0)+')</button>'
           +'<button class="sf-btn '+(siteFilter==='h'?'active':'')+'" onclick="setMsFilter(\''+p.id+'\',\'h\')">Hold ('+(counts.h||0)+')</button>'
           +'<button class="sf-btn '+(siteFilter==='n'?'active':'')+'" onclick="setMsFilter(\''+p.id+'\',\'n\')">Not Started ('+(counts.n||0)+')</button>'
         +'</div>'
@@ -8896,11 +9029,11 @@ function renderSiteTracker(p){
     +'<div class="sec-head"><div class="sec-head-l"><div class="sec-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div class="sec-title">Site Tracker <span class="tracker-badge">Progress Reference</span></div></div>'
     +'<div class="sec-actions"><span style="color:var(--muted);font-size:11.5px">'+doneAll+'/'+sites.length+' sites complete</span></div></div>'
     +'<div class="sec-body">'
-      +'<div class="site-filters">'
-        +'<button class="sf-btn '+(siteFilter==='all'?'active':'')+'" onclick="setSiteFilter(\''+p.id+'\',\'all\')">All ('+sites.length+')</button>'
-        +'<button class="sf-btn '+(siteFilter==='d'?'active':'')+'" onclick="setSiteFilter(\''+p.id+'\',\'d\')">Done ('+doneAll+')</button>'
-        +'<button class="sf-btn '+(siteFilter==='p'?'active':'')+'" onclick="setSiteFilter(\''+p.id+'\',\'p\')">In Progress</button>'
-        +'<button class="sf-btn '+(siteFilter==='n'?'active':'')+'" onclick="setSiteFilter(\''+p.id+'\',\'n\')">Pending</button>'
+      +'<div class="site-filters" data-ui-key="sitetracker:'+p.id+':filters">'
+        +'<button class="sf-btn '+(siteFilter==='all'?'active':'')+'" data-ui-key="sitetracker:'+p.id+':filter:all" onclick="setSiteFilter(\''+p.id+'\',\'all\')">All ('+sites.length+')</button>'
+        +'<button class="sf-btn '+(siteFilter==='d'?'active':'')+'" data-ui-key="sitetracker:'+p.id+':filter:d" onclick="setSiteFilter(\''+p.id+'\',\'d\')">Done ('+doneAll+')</button>'
+        +'<button class="sf-btn '+(siteFilter==='p'?'active':'')+'" data-ui-key="sitetracker:'+p.id+':filter:p" onclick="setSiteFilter(\''+p.id+'\',\'p\')">In Progress</button>'
+        +'<button class="sf-btn '+(siteFilter==='n'?'active':'')+'" data-ui-key="sitetracker:'+p.id+':filter:n" onclick="setSiteFilter(\''+p.id+'\',\'n\')">Pending</button>'
       +'</div>'
       +(PM?('<div class="site-col-toolbar" style="margin-bottom:12px">'
         +'<button class="site-col-btn" onclick="addSite(\''+p.id+'\')">+ Site</button>'
@@ -10255,7 +10388,7 @@ function pmoRecMove(id,dir){
 }
 function _pmoRecsPageHtml(){
   var recs=pmoRecsGet();
-  var PM=(typeof ROLE!=='undefined' && ROLE==='pm');
+  var PM=(typeof isEditor==='function'?isEditor():(typeof ROLE!=='undefined'&&(ROLE==='pm'||ROLE==='dev')));
   var priColor={high:'#B0202E',medium:'#C08A2E',low:'#2C7A8A'};
   var priLabel={high:'HIGH',medium:'MEDIUM',low:'LOW'};
   var cards=recs.map(function(r,i){
@@ -11371,14 +11504,14 @@ function _auditPageHtml(){
   }).join('');
   if(!rows) rows='<tr><td colspan="6" class="pbi-empty" style="border:none">No audit events yet — every material edit will be logged here.</td></tr>';
   var stats='<span class="pbi-tile-s">Last '+arr.length+' of '+((STORE&&STORE.audit&&STORE.audit.length)||0)+' events</span>';
-  var pm=(typeof ROLE!=='undefined'&&ROLE==='pm');
+  var pm=(typeof isEditor==='function'?isEditor():(typeof ROLE!=='undefined'&&(ROLE==='pm'||ROLE==='dev')));
   var actionBar=pm?('<div class="pbi-rec-bar"><button class="sec-btn" onclick="auditExportCsv()">Export CSV</button><button class="sec-btn" onclick="auditClear()" style="margin-inline-start:6px">Clear log</button><span style="margin-inline-start:12px;color:var(--muted);font-size:11px">Audit trail records every material change (baselines, milestones, risks, sites, imports).</span></div>'):('<div class="pbi-rec-bar" style="color:var(--muted);font-size:11.5px">Switch to PM mode to export or clear the audit log.</div>');
   return '<div class="pbi-page-t">Audit Log<span>Last 100 changes across the portfolio &middot; newest first</span></div>'
     +actionBar
     +'<div class="pbi-tile"><div class="pbi-tile-h"><span class="pbi-tile-t">Change history</span>'+stats+'</div><div class="pbi-tile-b" style="padding:0"><table class="pbi-tbl pbi-audit-tbl"><thead><tr><th>When (UTC)</th><th>Area</th><th>Action</th><th>Project</th><th>Detail</th><th>By</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
 }
 function auditClear(){
-  if(!(typeof ROLE!=='undefined'&&ROLE==='pm')){ try{toast('Switch to PM mode',false);}catch(e){} return; }
+  if(!(typeof isEditor==='function'?isEditor():(typeof ROLE!=='undefined'&&(ROLE==='pm'||ROLE==='dev')))){ try{toast('Editor role required',false);}catch(e){} return; }
   if(!confirm('Clear the audit log? This deletes the last '+((STORE&&STORE.audit&&STORE.audit.length)||0)+' entries.')) return;
   if(STORE) STORE.audit=[]; try{persist();}catch(e){}
   if(typeof buildPMO==='function') buildPMO();
@@ -13302,7 +13435,7 @@ function trDisconnect(){ if(__trT)clearInterval(__trT); __trT=null; __trH=null;
 function renderTraining(p){
   if(!Array.isArray(p.training)||!p.training.length){ p.training=[]; }
   trRecompute(p);
-  var PM=ROLE==='pm', t=p.training, n=t.length;
+  var PM=(typeof isEditor==='function'?isEditor():(ROLE==='pm'||ROLE==='dev')), t=p.training, n=t.length;
   var overall=trOverall(p);
   var done=t.filter(function(r){return trRowStatus(r)==='d';}).length;
   var prog=t.filter(function(r){return trRowStatus(r)==='p';}).length;
@@ -13372,7 +13505,7 @@ function renderTraining(p){
     '<div class="sec-title">Training Tracker <span class="tr-pill">'+overall+'% \u00b7 '+done+'/'+n+' complete</span></div></div>'+
     '<div class="sec-actions">'+(PM?'<button class="sec-btn" onclick="event.stopPropagation();trAdd()">+ Track</button>':'')+'</div></div>'+
     '<div class="sec-body">'+bar+kpi+rail+
-    '<div class="so-legend"><span><i class="lg d"></i>Done</span><span><i class="lg p"></i>In Progress</span><span><i class="lg n"></i>Pending</span><span><i class="lg h"></i>On Hold</span>'+
+    '<div class="so-legend" data-ui-key="legend:training"><span data-ui-key="legend:training:d"><i class="lg d"></i>Done</span><span data-ui-key="legend:training:p"><i class="lg p"></i>In Progress</span><span data-ui-key="legend:training:n"><i class="lg n"></i>Pending</span><span data-ui-key="legend:training:h"><i class="lg h"></i>On Hold</span>'+
     '<span class="so-hint">'+(PM?'Tap any step to cycle its status \u00b7 click a name or note to edit \u00b7 upload Excel to replace everything':'Read-only view \u2014 switch to Project Manager to edit')+'</span></div>'+
     '<div class="tr-wrap"><table class="data-table tr-table"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>'+
     '</div></div>';
@@ -13526,5 +13659,955 @@ function devEditCell(listKey, rowIdx, colKey, val){
   try{persist();}catch(e){}
   try{if(typeof auditLog==='function')auditLog(p.id,'row','dev-edit',listKey+'['+rowIdx+'].'+colKey);}catch(e){}
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   v501 — PERSISTENT REMOVAL OF UI CHROME
+   ───────────────────────────────────────────────────────────────────────────
+   THE BUG
+   The Site Tracker filter buttons ("All / Done / In Progress / Pending") are
+   not data. They are a hardcoded HTML string inside renderSiteTracker(), and
+   the same is true of the milestone filter strip and the status legends. God
+   Mode deleted the DOM node, so the button vanished; the very next render
+   rebuilt the whole card from that literal string and the button came back.
+   Nothing was ever recorded, so a refresh restored it too.
+
+   THE FIX
+   A stable key is stamped on every removable piece of chrome. Removals are
+   recorded in STORE.uiHidden and committed with persist(), so they reach the
+   Firebase Realtime Database exactly like every other change. A post-render
+   pass then re-applies the hidden set, and God Mode records removals here
+   instead of only mutating the DOM.
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function(){
+if(window.__uiHiddenV501) return; window.__uiHiddenV501=true;
+
+function uhStore(){
+  if(!window.STORE) window.STORE={};
+  if(!Array.isArray(STORE.uiHidden)) STORE.uiHidden=[];
+  return STORE.uiHidden;
+}
+function uhIsHidden(key){ return uhStore().indexOf(key)>=0; }
+function uhHide(key,label){
+  if(!key) return false;
+  var a=uhStore();
+  if(a.indexOf(key)<0){
+    a.push(key);
+    try{ if(typeof persist==='function') persist(); }catch(e){ console.error('uiHidden persist failed',e); }
+    try{ if(typeof auditLog==='function') auditLog('','ui','hide',key+(label?(' :: '+label):'')); }catch(e){}
+  }
+  return true;
+}
+function uhShow(key){
+  var a=uhStore(), i=a.indexOf(key);
+  if(i>=0){ a.splice(i,1); try{ if(typeof persist==='function') persist(); }catch(e){} return true; }
+  return false;
+}
+function uhReset(){
+  if(!confirm('Restore every hidden interface element across all projects?')) return;
+  STORE.uiHidden=[];
+  try{ if(typeof persist==='function') persist(); }catch(e){}
+  try{ if(typeof renderProjectView==='function' && window.CUR_PROJ) renderProjectView(CUR_PROJ); }catch(e){}
+  try{ if(typeof renderHub==='function') renderHub(); }catch(e){}
+  try{ if(typeof toast==='function') toast('All hidden interface elements restored',true); }catch(e){}
+}
+window.uhIsHidden=uhIsHidden; window.uhHide=uhHide; window.uhShow=uhShow; window.uhReset=uhReset;
+
+/* ── Apply the hidden set after every render ───────────────────────────── */
+function uhApply(){
+  var hidden=uhStore();
+  if(!hidden.length) return;
+  try{
+    document.querySelectorAll('[data-ui-key]').forEach(function(el){
+      var k=el.getAttribute('data-ui-key');
+      if(hidden.indexOf(k)>=0) el.style.display='none';
+      else if(el.style.display==='none') el.style.removeProperty('display');
+    });
+  }catch(e){}
+}
+window.uhApply=uhApply;
+
+/* ── God Mode integration ──────────────────────────────────────────────────
+   When the × handle targets an element carrying a data-ui-key (or sitting
+   inside one), record it in STORE.uiHidden instead of only removing the node.
+   This is what makes a God Mode removal outlive the next render. */
+function uhKeyFor(el){
+  var n=el;
+  while(n && n.nodeType===1){
+    var k=n.getAttribute && n.getAttribute('data-ui-key');
+    if(k) return {key:k,node:n};
+    n=n.parentElement;
+  }
+  return null;
+}
+window.uhKeyFor=uhKeyFor;
+
+/* ── Post-render hook ──────────────────────────────────────────────────── */
+var uhT=null;
+function uhSchedule(){ clearTimeout(uhT); uhT=setTimeout(uhApply,60); }
+window.uhSchedule=uhSchedule;
+
+function uhWrap(name){
+  var o=window[name];
+  if(typeof o!=='function'||o.__uhWrapped) return;
+  var w=function(){ var r=o.apply(this,arguments); uhSchedule(); return r; };
+  w.__uhWrapped=true; window[name]=w;
+}
+document.addEventListener('DOMContentLoaded',function(){
+  setTimeout(function(){
+    ['renderProjectView','renderHub','renderCompany','refreshProjectGrids','openProject'].forEach(uhWrap);
+    uhApply();
+  },850);
+});
+setTimeout(function(){
+  ['renderProjectView','renderHub','renderCompany','refreshProjectGrids','openProject'].forEach(uhWrap);
+  uhApply();
+},2500);
+
+/* A MutationObserver catches renders that bypass the wrapped entry points. */
+try{
+  var mo=new MutationObserver(function(muts){
+    for(var i=0;i<muts.length;i++){
+      if(muts[i].addedNodes && muts[i].addedNodes.length){ uhSchedule(); return; }
+    }
+  });
+  document.addEventListener('DOMContentLoaded',function(){
+    mo.observe(document.body,{childList:true,subtree:true});
+  });
+}catch(e){}
+
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   v500 — PROFESSIONAL TRANSLATION LAYER
+   ───────────────────────────────────────────────────────────────────────────
+   ARCHITECTURE NOTE
+   This application has no bespoke REST backend. Its remote datastore is the
+   Firebase Realtime Database at portals/{room} (see SYNC / pushNow). persist()
+   writes to localStorage AND schedules a Firebase push, so Firebase is the
+   single source of truth across sessions, devices and users; localStorage is
+   only the offline cache.
+
+   Translations are therefore written into STORE.i18n and committed through
+   persist() -> Firebase. They are NOT frontend-only state: they survive
+   refresh, re-login and a brand new browser session on another machine.
+
+   The ONE exception, deliberate and architectural: third-party translation
+   API KEYS are held in localStorage only and are never written to STORE.
+   STORE is broadcast wholesale to a shared Firebase room readable by every
+   member of the portal; putting a secret key in it would leak that key to all
+   of them. Keys are per-operator credentials, not portal data.
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function(){
+if(window.__trInitV500) return; window.__trInitV500=true;
+
+/* ── 1. LANGUAGE DETECTION ────────────────────────────────────────────────
+   Script-based detection. Unicode ranges are exact, so for the Arabic/Latin
+   pair this is far more reliable than statistical n-gram guessing and needs
+   no network round-trip. */
+var RE_ARABIC=/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g;
+var RE_LATIN =/[A-Za-z]/g;
+
+function trDetect(s){
+  if(s==null) return null;
+  var t=String(s).trim();
+  if(!t) return null;
+  var ar=(t.match(RE_ARABIC)||[]).length;
+  var la=(t.match(RE_LATIN)||[]).length;
+  if(ar===0) return 'en';
+  /* Mixed strings such as "الاستضافة على Production" are Arabic content with
+     embedded English technical terms — still needs translating. */
+  if(ar>=2) return 'ar';
+  return la>0?'en':'ar';
+}
+function trNeeds(s){ return trDetect(s)==='ar'; }
+
+/* Stable content hash — drives change detection. If the original text is
+   edited the hash changes, so the stored translation no longer matches and is
+   automatically reported as outdated. */
+function trHash(s){
+  var t=String(s==null?'':s), h=5381;
+  for(var i=0;i<t.length;i++){ h=(((h<<5)+h)+t.charCodeAt(i))|0; }
+  return (h>>>0).toString(36);
+}
+function trNorm(s){ return String(s==null?'':s).replace(/\s+/g,' ').trim(); }
+function trKey(s){ return trHash(trNorm(s)); }
+
+/* ── 2. PERSISTENT STORE ──────────────────────────────────────────────────
+   STORE.i18n.entries[key] = {
+     src              original text, verbatim, never mutated
+     lang             detected source language
+     en               professional English translation
+     status           'translated' | 'outdated' | 'failed' | 'pending'
+     ts               ISO timestamp of the translation
+     provider         which engine produced it
+     srcHash          hash of src at translation time (outdated detection)
+   }
+   Keyed by content signature rather than field path, so one translation is
+   reused everywhere the same string appears, and it survives row reordering,
+   column changes and record deletion. */
+function trStore(){
+  if(!window.STORE) window.STORE={};
+  if(!STORE.i18n) STORE.i18n={ v:1, entries:{}, updatedAt:null };
+  if(!STORE.i18n.entries) STORE.i18n.entries={};
+  return STORE.i18n;
+}
+function trGet(src){
+  var g=trStore(), k=trKey(src);
+  var e=g.entries[k];
+  if(!e) return null;
+  /* Re-verify the hash: if the source text drifted, flag the entry stale. */
+  if(e.srcHash && e.srcHash!==trHash(trNorm(src))){
+    e.status='outdated';
+  }
+  return e;
+}
+function trPut(src,en,provider,status){
+  var g=trStore(), k=trKey(src);
+  var norm=trNorm(src);
+  g.entries[k]={
+    src:String(src),
+    lang:trDetect(src)||'ar',
+    en:String(en==null?'':en),
+    status:status||'translated',
+    ts:new Date().toISOString(),
+    provider:provider||'glossary',
+    srcHash:trHash(norm)
+  };
+  g.updatedAt=new Date().toISOString();
+  /* COMMIT: localStorage cache + Firebase push. This is the database write. */
+  try{ if(typeof persist==='function') persist(); }catch(e){ console.error('translation persist failed',e); }
+  try{ if(typeof auditLog==='function') auditLog('','i18n','translate',norm.slice(0,60)+' -> '+String(en).slice(0,60)); }catch(e){}
+  return g.entries[k];
+}
+function trForget(src){
+  var g=trStore(); delete g.entries[trKey(src)];
+  try{ if(typeof persist==='function') persist(); }catch(e){}
+}
+window.trStore=trStore; window.trGet=trGet; window.trPut=trPut;
+window.trDetect=trDetect; window.trNeeds=trNeeds;
+
+/* ── 3. DOMAIN GLOSSARY ───────────────────────────────────────────────────
+   Curated Arabic -> professional English for the terminology actually used in
+   this portal: Baghdad municipality bodies, PMO workflow stages, IT and
+   government vocabulary. Runs offline and instantly, and — unlike a generic
+   MT engine — renders proper names and official titles correctly. Matched
+   longest-phrase-first so compound terms beat their constituent words. */
+var TR_PHRASES={
+  /* ── Municipal bodies & official entities ── */
+  'دائرة بلدية المنصور':'Al-Mansour Municipality Department',
+  'دائرة بلدية الكرادة':'Al-Karrada Municipality Department',
+  'دائرة بلدية الغدير':'Al-Ghadeer Municipality Department',
+  'دائرة بلدية مركز الرصافة':'Rusafa Center Municipality Department',
+  'دائرة بلدية مركز الكرخ':'Karkh Center Municipality Department',
+  'دائرة بلدية الرشيد':'Al-Rasheed Municipality Department',
+  'دائرة بلدية الشعلة':'Al-Shu\u2018la Municipality Department',
+  'دائرة بلدية الصدر الاولى':'Sadr First Municipality Department',
+  'دائرة بلدية الصدر الأولى':'Sadr First Municipality Department',
+  'دائرة بلدية الصدر الثانية':'Sadr Second Municipality Department',
+  'دائرة بلدية الاعظمية':'Al-Adhamiyah Municipality Department',
+  'دائرة بلدية الأعظمية':'Al-Adhamiyah Municipality Department',
+  'دائرة بلدية الشعب':'Al-Sha\u2018ab Municipality Department',
+  'دائرة بلدية بغداد الجديدة':'New Baghdad Municipality Department',
+  'دائرة بلدية الكاظمية':'Al-Kadhimiya Municipality Department',
+  'دائرة بلدية الدورة':'Al-Dora Municipality Department',
+  'دائرة بلدية المنطقة الخضراء والمطار':'Green Zone & Airport Municipality Department',
+  'قسم بوب الشام والثعالبة البلدي':'Bab Al-Sham & Al-Tha\u2018aliba Municipal Section',
+  'قسم باب الشام والثعالبة البلدي':'Bab Al-Sham & Al-Tha\u2018aliba Municipal Section',
+  'قسم المعامل البلدي':'Al-Ma\u2018amil Municipal Section',
+  'امانة بغداد':'Amanat Baghdad (Baghdad Municipality)',
+  'أمانة بغداد':'Amanat Baghdad (Baghdad Municipality)',
+  'المركز الوطني للأمن السيبراني':'National Cybersecurity Center',
+  'المكتب الاستشاري':'Consultant Office',
+  'الجهة المستفيدة':'Beneficiary Entity',
+
+  /* ── Portfolio / project names ── */
+  'الأنظمة والتطبيقات':'Systems & Applications',
+  'الانظمة والتطبيقات':'Systems & Applications',
+  'مركز البيانات الرقمي':'Digital Data Center',
+  'المركز المؤقت للبيانات':'Temporary Data Center',
+  'مركز البيانات الدائم':'Permanent Data Center',
+  'الأجهزة والمعدات التقنية':'Technical Devices & Equipment',
+  'المنشآت التحتية':'Infrastructure Facilities',
+  'الشبكات والبنى التحتية':'Network & Infrastructure',
+
+  /* ── Service-office workflow stages ── */
+  'مفاتحة الدائرة':'Department Correspondence',
+  'مفاتحة الدوائر':'Departments Correspondence',
+  'رد الدائرة':'Department Response',
+  'رد الدوائر وتأكيد المساحة':'Department Response & Space Confirmation',
+  'الزيارة الأولى':'First Visit',
+  'الزيارة الثانية':'Second Visit',
+  'الزيارات الموقعية والتقييم':'Site Visits & Assessment',
+  'تخصيص الأرض':'Land Allocation',
+  'تخصيص الأراضي':'Land Allocation',
+  'إعداد التصاميم':'Design Preparation',
+  'اعداد التصاميم':'Design Preparation',
+  'مصادقة المكتب':'Office Approval',
+  'مصادقة الجهة':'Beneficiary Approval',
+  'مصادقة التصاميم':'Design Approvals',
+  'تسقيط الأرض':'Land Demarcation',
+  'تسقيط الأراضي':'Land Demarcation',
+  'بدء العمل':'Work Commencement',
+  'بدء الأعمال':'Works Commencement',
+  'إنجاز العمل':'Work Completion',
+  'إنجاز الأعمال والتسليم':'Works Completion & Handover',
+
+  /* ── Software delivery lifecycle ── */
+  'جمع البيانات والتحليل':'Data Collection & Analysis',
+  'التصميم المعماري والبرمجة':'Architectural Design & Development',
+  'العرض التقديمي':'Demo Presentation',
+  'فحص الجودة للنظام':'System Quality Assurance (QA)',
+  'معالجة الملاحظات والاستضافة على':'Remarks Closure & Hosting on',
+  'فحص الأمن للنظام':'System Security Check',
+  'فحص أمن النظام':'System Security Check',
+  'الاستضافة على':'Hosting on',
+  'مراجعة المركز الوطني للأمن السيبراني':'National Cybersecurity Center Review',
+  'الفحص والتهيئة قبل الإطلاق':'Pre-Launch Testing & Preparation',
+
+  /* ── Data-center scope ── */
+  'تهيئة البيئة التحتية':'Infrastructure Environment Preparation',
+  'الخوادم والتخزين':'Servers & Storage',
+  'أنظمة الطاقة':'Power Systems',
+  'الحاويات والراكات':'Cabinets & Racks',
+  'الراكات والحاويات':'Racks & Cabinets',
+  'الشبكة والمراقبة':'Network & Surveillance',
+  'الأمن والتحكم بالوصول':'Security & Access Control',
+  'التحكم بالوصول والأمن':'Access Control & Security',
+  'جاهزية الموقع الاحتياطي':'Backup Site Readiness',
+  'أجهزة الموقع الاحتياطي':'Backup Site Hardware',
+  'منظومة الكهرباء':'Power System',
+  'منظومة الحريق':'Fire Suppression System',
+  'منظومة التبريد':'Cooling System',
+  'الأعمال المدنية':'Civil Works',
+  'مبدلات الشبكة':'Network Switches',
+  'أنظمة المراقبة':'Surveillance Systems',
+  'اختيار الموقع ودراسة الجدوى':'Site Selection & Feasibility Study',
+  'التصميم المفاهيمي والتفصيلي':'Concept & Detailed Design',
+  'التصميم والهندسة':'Design & Engineering',
+  'التجهيز والمناقصات':'Procurement & Tendering',
+  'الإنشاء والتجهيز':'Construction & Fit-out',
+  'الترحيل والتشغيل':'Migration & Commissioning',
+  'الترحيل من المركز المؤقت والتشغيل':'Migration from Temporary Center & Commissioning',
+
+  /* ── Smart meter scope ── */
+  'جمع عروض الأسعار من الموردين':'Collect Supplier Quotations',
+  'اختيار العروض المرشحة':'Select Candidate Proposals',
+  'استلام عينة العداد':'Receive Meter Sample',
+  'الاختبار الفني':'Technical Testing',
+  'تنفيذ اتفاقية التوريد':'Supply Agreement Execution',
+  'خطة تنصيب العدادات':'Meter Installation Plan',
+
+  /* ── Status / response vocabulary ── */
+  'متوفر مساحة':'Space available',
+  'متوفر خارج الحدود':'Available outside municipal boundaries',
+  'غير متوفر':'Not available',
+  'قيد التنفيذ':'In progress',
+  'منجز':'Completed',
+  'لم يبدأ':'Not started',
+  'متوقف':'On hold',
+  'مؤجل':'Postponed',
+
+  /* ── Recurring site-note phrases ── */
+  'تم تأجيل العمل لمدة شهر او اكثر':'Work has been postponed for a month or more',
+  'لغاية موعد افتتاح البناية الجديدة':'until the opening date of the new building',
+  'الموقع هو جزء من الكراج الجديد':'The site forms part of the new garage',
+  'على الشارع العام':'on the main street',
+  'على الشارع الفرعي':'on the side street',
+  'خلف المبنى':'Behind the building',
+  'تم رفع الاحداثيات واعطائها الى مكتب التصاميم':'Coordinates have been surveyed and issued to the design office',
+  'لأكمال التصميم حسب المساحة المخصصة':'to complete the design according to the allocated area',
+  'على الشارع المؤدي للاورزدي':'on the street leading to Orosdi',
+  'مكان المولدات ومكتب الحرس':'Generator area and guard office',
+  'كراج السيارات':'Car park',
+  'لكن الافضل قطعة تبعد':'however the preferable plot is located',
+  'متر عن البناية':'metres from the building',
+  'مجاور ملعب الكرة':'adjacent to the football pitch',
+  'عائديتها للأمانة':'owned by the Municipality (Amanat)',
+  'سيتم بناء بناية جديده للبلدية':'A new municipality building will be constructed',
+  'ومكان المكتب سيكون بداية كرج السيارات':'and the office will be located at the entrance to the car park',
+  'جزء من مكتب الاجازات الحالي':'part of the existing permits office',
+  'مكان مكتب الاستعلامات الحالي':'The location of the existing information office',
+  'لغاية باب دخول الكراج':'up to the car park entrance door',
+  'لغاية باب دخول الكراد':'up to the car park entrance door',
+  'المساحة ليست كبيرة':'The area is not large',
+  'لكن البلدية ستنتقل الى بناية جديدة':'however the municipality will relocate to a new building',
+  'فممكن بناء مركز الخدمة بالبناء الجديد':'so the service center could be built at the new premises',
+  'المكان فيه تعارض محولة الكهرباء الرئيسية':'The location conflicts with the main electrical transformer',
+  'لكن ستكون هناك مساحة لو انتقلت بلدية الصدر الاولى':'however space will become available once Sadr First Municipality relocates',
+  'لان عائدية المبنى لهم':'as the building belongs to them',
+  'الحديقة بداخل المبنى على الجهة اليمنى':'The garden inside the building on the right-hand side',
+  'مجاور الاستعلامات':'adjacent to the information desk',
+  'المساحة ممتازة وكبيرة جدا':'The area is excellent and very large',
+  'ولايوجد اي تعارض':'and there are no conflicts',
+  'جزء من كراج السيارات':'part of the car park',
+
+  /* ── General PM / IT / government terminology ── */
+  'إدارة المشاريع':'Project Management',
+  'ادارة المشاريع':'Project Management',
+  'الموارد البشرية':'Human Resources',
+  'المشتريات':'Procurement',
+  'المخازن':'Warehouses',
+  'إدارة الأصول':'Asset Management',
+  'إدارة العقود':'Contract Management',
+  'المالية':'Finance',
+  'الجودة':'Quality',
+  'المخاطر':'Risks',
+  'الميزانية':'Budget',
+  'التقرير':'Report',
+  'الملاحظات':'Notes',
+  'المساحة':'Area',
+  'الموقع':'Site',
+  'التاريخ':'Date',
+  'الحالة':'Status',
+  'المسؤول':'Owner',
+  'الفريق':'Team',
+  'المرحلة':'Phase',
+  'الإنجاز':'Progress',
+  'المخطط':'Planned',
+  'الفعلي':'Actual',
+  'العدادات الذكية':'Smart Meters',
+  'الفحص':'Testing',
+  'التصميم':'Design',
+  'البلدية':'Municipality',
+  'الدائرة':'Department',
+  'المبنى':'Building',
+  'البناية':'Building',
+  'الطابق':'Floor',
+  'الشبكة':'Network',
+  'الخادم':'Server',
+  'قاعدة البيانات':'Database',
+  'النظام':'System',
+  'التطبيق':'Application',
+  'المستخدم':'User',
+  'الأمن':'Security',
+  'الصيانة':'Maintenance',
+  'التدريب':'Training',
+  'المورد':'Supplier',
+  'العقد':'Contract',
+  'المناقصة':'Tender',
+  'الموافقة':'Approval',
+  'التسليم':'Handover'
+};
+
+/* Longest-first ordering so "دائرة بلدية المنصور" wins over "البلدية". */
+var TR_KEYS=Object.keys(TR_PHRASES).sort(function(a,b){ return b.length-a.length; });
+
+function trGlossary(src){
+  var t=String(src==null?'':src);
+  var norm=trNorm(t);
+  /* Whole-string exact match — the highest-confidence path. */
+  if(TR_PHRASES[norm]) return { en:TR_PHRASES[norm], full:true, cov:1 };
+
+  /* Phrase substitution. Track how much of the Arabic we actually resolved so
+     we can refuse to return a half-translated mess. */
+  var out=norm, arBefore=(norm.match(RE_ARABIC)||[]).length, hits=0;
+  for(var i=0;i<TR_KEYS.length;i++){
+    var k=TR_KEYS[i];
+    if(out.indexOf(k)>=0){
+      out=out.split(k).join(' \u0000'+TR_PHRASES[k]+'\u0000 ');
+      hits++;
+    }
+  }
+  out=out.replace(/\u0000/g,'');
+  /* Tidy Arabic connectives and punctuation left between substituted chunks. */
+  out=out.replace(/\s*،\s*/g,', ').replace(/\s*,\s*/g,', ')
+         .replace(/\s+\.\s*/g,'. ').replace(/\s{2,}/g,' ').trim();
+  out=out.replace(/^\s*[و]\s*/,'').replace(/\s+و\s+/g,' and ');
+  var arAfter=(out.match(RE_ARABIC)||[]).length;
+  var cov=arBefore?((arBefore-arAfter)/arBefore):1;
+  if(cov>0.999){
+    /* Fully resolved — capitalise and clean. */
+    out=out.charAt(0).toUpperCase()+out.slice(1);
+    out=out.replace(/\s+([.,;:])/g,'$1').replace(/\s{2,}/g,' ').trim();
+    return { en:out, full:true, cov:1 };
+  }
+  return { en:out, full:false, cov:cov, hits:hits };
+}
+window.trGlossary=trGlossary;
+
+/* ── 4. PROVIDER LAYER ────────────────────────────────────────────────────
+   Pluggable engines. Glossary runs first and, when it fully resolves the
+   string, we stop — it is more accurate on this domain's proper nouns than
+   any general MT engine. Otherwise we fall through to the configured online
+   provider, then blend: glossary terminology is re-applied over the MT output
+   so official names stay correct. */
+function trCfg(){
+  var d={ provider:'auto', key:'', endpoint:'', model:'' };
+  try{ var raw=localStorage.getItem('kp_tr_cfg'); if(raw) d=Object.assign(d,JSON.parse(raw)); }catch(e){}
+  return d;
+}
+function trCfgSave(c){
+  try{ localStorage.setItem('kp_tr_cfg',JSON.stringify(c)); }catch(e){}
+}
+window.trCfg=trCfg; window.trCfgSave=trCfgSave;
+
+function trTimeout(ms){ return new Promise(function(_,rej){ setTimeout(function(){ rej(new Error('Translation service timed out')); }, ms); }); }
+
+/* MyMemory — free, keyless, CORS-enabled. Default online fallback so the
+   feature works out of the box with no configuration. */
+function trViaMyMemory(text,lang){
+  var url='https://api.mymemory.translated.net/get?q='+encodeURIComponent(text)+'&langpair='+encodeURIComponent(lang)+'|en';
+  return fetch(url).then(function(r){
+    if(!r.ok) throw new Error('MyMemory HTTP '+r.status);
+    return r.json();
+  }).then(function(j){
+    var t=j&&j.responseData&&j.responseData.translatedText;
+    if(!t) throw new Error('MyMemory returned no translation');
+    if(/MYMEMORY WARNING|QUERY LENGTH LIMIT/i.test(t)) throw new Error('MyMemory quota or length limit reached');
+    return t;
+  });
+}
+function trViaLibre(text,lang,cfg){
+  var ep=cfg.endpoint||'https://libretranslate.com/translate';
+  return fetch(ep,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({q:text,source:lang,target:'en',format:'text',api_key:cfg.key||undefined})
+  }).then(function(r){ if(!r.ok) throw new Error('LibreTranslate HTTP '+r.status); return r.json(); })
+    .then(function(j){ if(!j||!j.translatedText) throw new Error('LibreTranslate returned no translation'); return j.translatedText; });
+}
+function trViaDeepL(text,lang,cfg){
+  if(!cfg.key) throw new Error('DeepL API key not configured');
+  var ep=cfg.endpoint||'https://api-free.deepl.com/v2/translate';
+  return fetch(ep,{method:'POST',
+    headers:{'Authorization':'DeepL-Auth-Key '+cfg.key,'Content-Type':'application/json'},
+    body:JSON.stringify({text:[text],target_lang:'EN',source_lang:lang.toUpperCase()})
+  }).then(function(r){ if(!r.ok) throw new Error('DeepL HTTP '+r.status); return r.json(); })
+    .then(function(j){ var t=j&&j.translations&&j.translations[0]&&j.translations[0].text; if(!t) throw new Error('DeepL returned no translation'); return t; });
+}
+function trViaGoogle(text,lang,cfg){
+  if(!cfg.key) throw new Error('Google Translate API key not configured');
+  var ep='https://translation.googleapis.com/language/translate/v2?key='+encodeURIComponent(cfg.key);
+  return fetch(ep,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({q:text,source:lang,target:'en',format:'text'})
+  }).then(function(r){ if(!r.ok) throw new Error('Google HTTP '+r.status); return r.json(); })
+    .then(function(j){ var t=j&&j.data&&j.data.translations&&j.data.translations[0]&&j.data.translations[0].translatedText;
+      if(!t) throw new Error('Google returned no translation'); 
+      return t.replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>'); });
+}
+function trViaAzure(text,lang,cfg){
+  if(!cfg.key) throw new Error('Azure Translator key not configured');
+  var ep=(cfg.endpoint||'https://api.cognitive.microsofttranslator.com')+'/translate?api-version=3.0&from='+lang+'&to=en';
+  var h={'Ocp-Apim-Subscription-Key':cfg.key,'Content-Type':'application/json'};
+  if(cfg.model) h['Ocp-Apim-Subscription-Region']=cfg.model; /* region reuses the model field */
+  return fetch(ep,{method:'POST',headers:h,body:JSON.stringify([{Text:text}])})
+    .then(function(r){ if(!r.ok) throw new Error('Azure HTTP '+r.status); return r.json(); })
+    .then(function(j){ var t=j&&j[0]&&j[0].translations&&j[0].translations[0]&&j[0].translations[0].text;
+      if(!t) throw new Error('Azure returned no translation'); return t; });
+}
+/* OpenAI-compatible chat endpoint — best quality for "professional, natural,
+   context-aware" output because we can instruct it on register and domain. */
+function trViaLLM(text,lang,cfg){
+  if(!cfg.key) throw new Error('API key not configured for the LLM provider');
+  var ep=cfg.endpoint||'https://api.openai.com/v1/chat/completions';
+  var sys='You are a professional translator for a government digital-transformation programme in Baghdad, Iraq. '
+    +'Translate the user text into natural, professional business English. '
+    +'Rules: convey meaning and intent rather than translating word for word; use standard project-management, IT and public-administration register; '
+    +'keep technical terms, system names, organisation names and proper nouns accurate and in their established English forms; '
+    +'transliterate Iraqi place and department names using conventional English spellings; '
+    +'preserve numbers, dates, measurements and codes exactly; do not add commentary, notes or quotation marks. '
+    +'Return only the translated English text.';
+  return fetch(ep,{method:'POST',
+    headers:{'Authorization':'Bearer '+cfg.key,'Content-Type':'application/json'},
+    body:JSON.stringify({model:cfg.model||'gpt-4o-mini',temperature:0.2,max_tokens:1200,
+      messages:[{role:'system',content:sys},{role:'user',content:text}]})
+  }).then(function(r){ if(!r.ok) return r.text().then(function(b){ throw new Error('LLM HTTP '+r.status+' '+b.slice(0,120)); }); return r.json(); })
+    .then(function(j){ var t=j&&j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content;
+      if(!t) throw new Error('LLM returned no translation'); return String(t).trim().replace(/^["']|["']$/g,''); });
+}
+function trViaCustom(text,lang,cfg){
+  if(!cfg.endpoint) throw new Error('Custom endpoint URL not configured');
+  var h={'Content-Type':'application/json'};
+  if(cfg.key) h['Authorization']='Bearer '+cfg.key;
+  return fetch(cfg.endpoint,{method:'POST',headers:h,body:JSON.stringify({text:text,source:lang,target:'en'})})
+    .then(function(r){ if(!r.ok) throw new Error('Custom endpoint HTTP '+r.status); return r.json(); })
+    .then(function(j){ var t=j&&(j.translation||j.translatedText||j.text||j.result);
+      if(!t) throw new Error('Custom endpoint returned no translation field'); return t; });
+}
+
+/* Re-apply glossary terminology over MT output so official names, department
+   titles and workflow-stage names stay in their approved English forms even
+   when a generic engine produced the sentence. */
+/* Proper nouns must keep their capital even mid-sentence; everything else that
+   only got a capital because it was the head of a glossary phrase is lowered
+   when it lands in the middle of a sentence. */
+var TR_PROPER=/^(Al-|Amanat|Baghdad|Sadr|Rusafa|Karkh|Bab|Orosdi|Green Zone|New Baghdad|National|Municipality|Department|Consultant|Tuyour|Hitachi|EATON|Brocade|Hikvision|Ultima|DeepL|QA|UPS|CCTV|IT|HR)/;
+function trPolish(en){
+  var out=String(en||'');
+  out=out.replace(/\s{2,}/g,' ').trim();
+  out=out.replace(/\s+([.,;:!?])/g,'$1');
+  /* Lower-case a phrase head that follows a comma or a connective. */
+  out=out.replace(/([,;]\s+|\s+and\s+|\s+however\s+|\s+so\s+|\s+as\s+)([A-Z][a-z]+)/g,function(m,sep,w){
+    return TR_PROPER.test(w)?m:sep+w.charAt(0).toLowerCase()+w.slice(1);
+  });
+  /* Bracket and quote spacing. */
+  out=out.replace(/\(\s+/g,'(').replace(/\s+\)/g,')');
+  out=out.replace(/\[\s+/g,'[').replace(/\s+\]/g,']');
+  out=out.replace(/\s+([.,;:!?])/g,'$1').replace(/([(])\s*/g,'$1');
+  out=out.replace(/([a-z0-9])\(/gi,'$1 (');
+  out=out.replace(/\s{2,}/g,' ').trim();
+  if(out) out=out.charAt(0).toUpperCase()+out.slice(1);
+  /* Close a completed sentence. */
+  if(out && !/[.!?]$/.test(out) && out.length>40) out+='.';
+  return out;
+}
+
+function trTranslate(text){
+  var src=String(text==null?'':text);
+  var lang=trDetect(src)||'ar';
+  var cfg=trCfg();
+
+  /* Step 1 — glossary. If it fully resolves, that IS the best answer. */
+  var g=trGlossary(src);
+  if(g.full){
+    return Promise.resolve({ en:trPolish(g.en), provider:'glossary' });
+  }
+
+  /* Step 2 — online provider. */
+  var p=cfg.provider||'auto';
+  var call;
+  try{
+    if(p==='libre')       call=trViaLibre(src,lang,cfg);
+    else if(p==='deepl')  call=trViaDeepL(src,lang,cfg);
+    else if(p==='google') call=trViaGoogle(src,lang,cfg);
+    else if(p==='azure')  call=trViaAzure(src,lang,cfg);
+    else if(p==='llm')    call=trViaLLM(src,lang,cfg);
+    else if(p==='custom') call=trViaCustom(src,lang,cfg);
+    else if(p==='glossary') call=Promise.reject(new Error('Glossary-only mode: no entry for this text'));
+    else                  call=trViaMyMemory(src,lang); /* auto */
+  }catch(e){ call=Promise.reject(e); }
+
+  return Promise.race([call,trTimeout(20000)])
+    .then(function(en){ return { en:trPolish(en), provider:(p==='auto'?'mymemory':p) }; })
+    .catch(function(err){
+      /* Step 3 — partial glossary is better than nothing, but be honest about it. */
+      if(g.cov>=0.6) return { en:trPolish(g.en), provider:'glossary-partial', warn:err.message };
+      throw err;
+    });
+}
+window.trTranslate=trTranslate;
+
+/* ── 5. UI ────────────────────────────────────────────────────────────────*/
+var TR_SHOW_EN=true;  /* global display mode: English when available */
+try{ var m=localStorage.getItem('kp_tr_show'); if(m!=null) TR_SHOW_EN=(m==='1'); }catch(e){}
+
+function trToast(msg,ok){
+  try{ if(typeof toast==='function'){ toast(msg,ok!==false); return; } }catch(e){}
+  var el=document.getElementById('trToast');
+  if(!el){ el=document.createElement('div'); el.id='trToast'; el.className='tr-toast'; document.body.appendChild(el); }
+  el.textContent=msg; el.className='tr-toast show'+(ok===false?' err':'');
+  clearTimeout(el._t); el._t=setTimeout(function(){ el.className='tr-toast'; },3200);
+}
+
+/* Elements we must never touch. */
+var TR_SKIP='script,style,link,meta,head,svg,path,input,textarea,select,option,.tr-btn,.tr-toolbar,.tr-toast,.god-toolbar,.god-del-handle,.tr-modal,.appbar,.chip';
+
+function trEligible(el){
+  if(!el||el.nodeType!==1) return false;
+  try{ if(el.closest(TR_SKIP)) return false; }catch(e){ return false; }
+  if(el.getAttribute('data-tr-bound')==='1') return false;
+  /* Leaf-ish only: the element's own text, not an aggregate of children. */
+  var own='';
+  for(var i=0;i<el.childNodes.length;i++){ if(el.childNodes[i].nodeType===3) own+=el.childNodes[i].nodeValue; }
+  if(el.children.length>0 && trNorm(own).length<2) return false;
+  var txt=trNorm(el.textContent);
+  if(txt.length<2 || txt.length>4000) return false;
+  return trNeeds(txt);
+}
+
+function trBtnHtml(state,label){
+  var ic={
+    idle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h10M9 4v4M11 20l4-9 4 9M12.5 17h5.5"/><path d="M12 8s-1.5 6-7 8"/></svg>',
+    busy:'<svg class="tr-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9" /></svg>',
+    ok:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+    err:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 8v5M12 16.5v.01"/><circle cx="12" cy="12" r="9"/></svg>',
+    stale:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 3 21 9 15 9"/></svg>'
+  };
+  return (ic[state]||ic.idle)+'<span>'+(label||'')+'</span>';
+}
+
+/* Attach a Translate control to one element. */
+function trBind(el){
+  if(!trEligible(el)) return;
+  el.setAttribute('data-tr-bound','1');
+
+  var original=trNorm(el.textContent);
+  el.setAttribute('data-tr-src',original);
+
+  var wrap=document.createElement('span');
+  wrap.className='tr-btn-wrap';
+  var btn=document.createElement('button');
+  btn.type='button';
+  btn.className='tr-btn';
+  wrap.appendChild(btn);
+
+  function render(){
+    var entry=trGet(original);
+    if(entry && entry.status==='translated'){
+      btn.className='tr-btn is-ok';
+      btn.innerHTML=trBtnHtml('ok','EN');
+      btn.title='Translated to English \u00b7 '+(entry.provider||'')+' \u00b7 '+new Date(entry.ts).toLocaleString()
+               +'\nOriginal: '+entry.src+'\nClick to re-translate';
+      applyDisplay(entry);
+    } else if(entry && entry.status==='outdated'){
+      btn.className='tr-btn is-stale';
+      btn.innerHTML=trBtnHtml('stale','Re-translate');
+      btn.title='The original text changed after this translation was saved. The English version is out of date \u2014 click to refresh it.';
+      restoreOriginal();
+    } else if(entry && entry.status==='failed'){
+      btn.className='tr-btn is-err';
+      btn.innerHTML=trBtnHtml('err','Retry');
+      btn.title='Last attempt failed: '+(entry.error||'unknown error')+'\nClick to try again';
+      restoreOriginal();
+    } else {
+      btn.className='tr-btn';
+      btn.innerHTML=trBtnHtml('idle','Translate');
+      btn.title='Detected '+(trDetect(original)==='ar'?'Arabic':'non-English')+' \u2014 translate to professional English and save';
+      restoreOriginal();
+    }
+  }
+
+  function applyDisplay(entry){
+    if(!TR_SHOW_EN || !entry || !entry.en) { restoreOriginal(); return; }
+    if(el.getAttribute('data-tr-showing')==='en') return;
+    /* Replace only this element's own text nodes; children stay intact. */
+    var replaced=false;
+    for(var i=0;i<el.childNodes.length;i++){
+      var n=el.childNodes[i];
+      if(n.nodeType===3 && trNorm(n.nodeValue)){
+        n.nodeValue=replaced?'':entry.en; replaced=true;
+      }
+    }
+    if(!replaced) el.insertBefore(document.createTextNode(entry.en), el.firstChild);
+    el.setAttribute('data-tr-showing','en');
+    el.setAttribute('dir','ltr');
+    el.classList.add('tr-translated');
+    if(!el.title) el.title='Original: '+original;
+  }
+  function restoreOriginal(){
+    if(el.getAttribute('data-tr-showing')!=='en') return;
+    var replaced=false;
+    for(var i=0;i<el.childNodes.length;i++){
+      var n=el.childNodes[i];
+      if(n.nodeType===3 && (trNorm(n.nodeValue)||!replaced)){ n.nodeValue=replaced?'':original; replaced=true; }
+    }
+    el.removeAttribute('data-tr-showing');
+    el.removeAttribute('dir');
+    el.classList.remove('tr-translated');
+  }
+
+  /* DATA INTEGRITY: if this cell is editable, put the ORIGINAL back before the
+     user types, so their edit is applied to the source text and the existing
+     onblur handlers never write the English rendering back over the Arabic. */
+  if(el.getAttribute('contenteditable')==='true'){
+    el.addEventListener('focus',function(){ restoreOriginal(); },true);
+    el.addEventListener('blur',function(){
+      setTimeout(function(){
+        var now=trNorm(el.textContent);
+        if(now!==original && now){
+          /* Original edited -> mark the saved translation outdated, keep it. */
+          var e0=trGet(original);
+          if(e0 && e0.status==='translated'){
+            e0.status='outdated';
+            try{ if(typeof persist==='function') persist(); }catch(_){}
+          }
+          original=now;
+          el.setAttribute('data-tr-src',original);
+        }
+        render();
+      },40);
+    },true);
+  }
+
+  btn.addEventListener('mousedown',function(ev){ ev.preventDefault(); ev.stopPropagation(); });
+  btn.addEventListener('click',function(ev){
+    ev.preventDefault(); ev.stopPropagation();
+    btn.className='tr-btn is-busy';
+    btn.innerHTML=trBtnHtml('busy','Translating\u2026');
+    btn.title='Contacting the translation service\u2026';
+    btn.disabled=true;
+
+    trTranslate(original).then(function(res){
+      trPut(original,res.en,res.provider,'translated');   /* -> persist -> Firebase */
+      btn.disabled=false;
+      render();
+      if(res.warn) trToast('Translated using the built-in glossary (online service unavailable: '+res.warn+')',true);
+      else trToast('Translation saved to the database',true);
+      /* Propagate to every other element showing the same source string. */
+      trRefreshAll();
+    }).catch(function(err){
+      var g=trStore(), k=trKey(original);
+      g.entries[k]={ src:original, lang:trDetect(original)||'ar', en:'', status:'failed',
+                     ts:new Date().toISOString(), provider:trCfg().provider||'auto',
+                     srcHash:trHash(original), error:String(err&&err.message||err) };
+      try{ if(typeof persist==='function') persist(); }catch(_){}
+      btn.disabled=false;
+      render();
+      trToast('Translation failed: '+(err&&err.message||err)+' \u2014 open Translation Settings to choose a provider',false);
+    });
+  });
+
+  /* Place the button after the element, or inside if it is a block cell. */
+  try{
+    if(el.tagName==='TD'||el.tagName==='TH'){ el.appendChild(wrap); }
+    else if(el.parentNode){ el.parentNode.insertBefore(wrap, el.nextSibling); }
+  }catch(e){}
+
+  el._trRender=render;
+  render();
+}
+
+function trScan(root){
+  root=root||document.body;
+  var n=0;
+  try{
+    var els=root.querySelectorAll('td,th,div,span,p,li,h1,h2,h3,h4,h5,h6,strong,b,em,label,dd,dt');
+    for(var i=0;i<els.length;i++){ if(trEligible(els[i])){ trBind(els[i]); n++; } }
+  }catch(e){}
+  return n;
+}
+function trRefreshAll(){
+  try{
+    document.querySelectorAll('[data-tr-bound="1"]').forEach(function(el){
+      if(typeof el._trRender==='function') el._trRender();
+    });
+  }catch(e){}
+}
+window.trScan=trScan; window.trRefreshAll=trRefreshAll;
+
+/* ── 6. TOOLBAR + SETTINGS ────────────────────────────────────────────────*/
+function trStats(){
+  var g=trStore(), n=0,ok=0,st=0,fa=0;
+  for(var k in g.entries){ n++; var e=g.entries[k];
+    if(e.status==='translated')ok++; else if(e.status==='outdated')st++; else if(e.status==='failed')fa++; }
+  return {n:n,ok:ok,stale:st,fail:fa};
+}
+function trToolbar(){
+  var bar=document.getElementById('trToolbar');
+  var pending=document.querySelectorAll('.tr-btn:not(.is-ok)').length;
+  var s=trStats();
+  if(!bar){
+    bar=document.createElement('div'); bar.id='trToolbar'; bar.className='tr-toolbar';
+    document.body.appendChild(bar);
+  }
+  bar.innerHTML=
+     '<span class="tr-tb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h10M9 4v4M11 20l4-9 4 9M12.5 17h5.5"/><path d="M12 8s-1.5 6-7 8"/></svg></span>'
+    +'<span class="tr-tb-t">Translation</span>'
+    +'<span class="tr-tb-badge" title="Saved translations in the database">'+s.ok+' saved'+(s.stale?(' \u00b7 '+s.stale+' outdated'):'')+'</span>'
+    +'<button id="trAll" title="Translate every untranslated non-English field on this page and save each one">Translate all'+(pending?(' ('+pending+')'):'')+'</button>'
+    +'<button id="trToggle" title="Switch between the English translation and the original text">'+(TR_SHOW_EN?'Show original':'Show English')+'</button>'
+    +'<button id="trCfgBtn" title="Choose the translation provider">Settings</button>'
+    +'<button id="trHide" class="tr-off" title="Hide this toolbar">\u2715</button>';
+
+  bar.querySelector('#trToggle').onclick=function(){
+    TR_SHOW_EN=!TR_SHOW_EN;
+    try{ localStorage.setItem('kp_tr_show',TR_SHOW_EN?'1':'0'); }catch(e){}
+    trRefreshAll(); trToolbar();
+  };
+  bar.querySelector('#trCfgBtn').onclick=trOpenCfg;
+  bar.querySelector('#trHide').onclick=function(){ bar.remove(); };
+  bar.querySelector('#trAll').onclick=function(){
+    var btns=[].slice.call(document.querySelectorAll('.tr-btn:not(.is-ok):not(.is-busy)'));
+    if(!btns.length){ trToast('Everything on this page is already translated',true); return; }
+    if(!confirm('Translate '+btns.length+' field(s) to English and save each one to the database?')) return;
+    var i=0;
+    (function next(){
+      if(i>=btns.length){ trToast('Batch complete \u2014 '+btns.length+' translation(s) saved',true); trToolbar(); return; }
+      btns[i++].click();
+      setTimeout(next,900); /* pace requests so free providers are not rate-limited */
+    })();
+  };
+}
+
+function trOpenCfg(){
+  var c=trCfg();
+  var old=document.getElementById('trModal'); if(old) old.remove();
+  var m=document.createElement('div'); m.id='trModal'; m.className='tr-modal';
+  m.innerHTML=
+   '<div class="tr-modal-in">'
+  +'  <div class="tr-modal-h"><div><div class="tr-modal-t">Translation Settings</div>'
+  +'  <div class="tr-modal-s">Choose the engine used for professional English translation</div></div>'
+  +'  <button class="tr-x" id="trClose">\u2715</button></div>'
+  +'  <div class="tr-modal-b">'
+  +'    <label class="tr-fld"><span>Provider</span><select id="trProv">'
+  +'      <option value="auto">Automatic \u2014 built-in glossary, then MyMemory (free, no key)</option>'
+  +'      <option value="glossary">Built-in glossary only (offline)</option>'
+  +'      <option value="llm">OpenAI-compatible LLM (best quality \u2014 key required)</option>'
+  +'      <option value="deepl">DeepL (key required)</option>'
+  +'      <option value="google">Google Cloud Translation (key required)</option>'
+  +'      <option value="azure">Azure Translator (key required)</option>'
+  +'      <option value="libre">LibreTranslate (self-hosted)</option>'
+  +'      <option value="custom">Custom endpoint</option>'
+  +'    </select></label>'
+  +'    <label class="tr-fld"><span>API key</span><input id="trKey" type="password" placeholder="Leave blank for keyless providers" autocomplete="off"></label>'
+  +'    <label class="tr-fld"><span>Endpoint URL</span><input id="trEp" type="text" placeholder="Optional \u2014 override the default endpoint"></label>'
+  +'    <label class="tr-fld"><span>Model / region</span><input id="trModel" type="text" placeholder="e.g. gpt-4o-mini, or the Azure region"></label>'
+  +'    <div class="tr-note"><b>Where things are stored.</b> Translations are written to <code>STORE.i18n</code> and committed through <code>persist()</code>, which saves to the local cache and pushes to the Firebase Realtime Database \u2014 so they survive refresh, re-login and a new browser on another machine. The API key above is the one exception: it stays in this browser only and is never written to STORE, because STORE is broadcast in full to every member of the shared Firebase room and a key placed there would leak to all of them.</div>'
+  +'    <div class="tr-note tr-note-2"><b>Glossary first.</b> Department names, workflow stages and official titles are resolved from a curated Arabic\u2013English glossary before any online engine is consulted, so proper nouns stay in their approved forms. Online engines are used only for free text the glossary cannot fully resolve.</div>'
+  +'  </div>'
+  +'  <div class="tr-modal-f">'
+  +'    <button class="tr-b2" id="trTest">Test connection</button>'
+  +'    <span class="tr-gap"></span>'
+  +'    <button class="tr-b2" id="trCancel">Cancel</button>'
+  +'    <button class="tr-b1" id="trSave">Save</button>'
+  +'  </div>'
+  +'</div>';
+  document.body.appendChild(m);
+  m.querySelector('#trProv').value=c.provider||'auto';
+  m.querySelector('#trKey').value=c.key||'';
+  m.querySelector('#trEp').value=c.endpoint||'';
+  m.querySelector('#trModel').value=c.model||'';
+  function close(){ m.remove(); }
+  m.addEventListener('click',function(e){ if(e.target===m) close(); });
+  m.querySelector('#trClose').onclick=close;
+  m.querySelector('#trCancel').onclick=close;
+  m.querySelector('#trSave').onclick=function(){
+    trCfgSave({ provider:m.querySelector('#trProv').value, key:m.querySelector('#trKey').value.trim(),
+                endpoint:m.querySelector('#trEp').value.trim(), model:m.querySelector('#trModel').value.trim() });
+    trToast('Translation settings saved',true); close();
+  };
+  m.querySelector('#trTest').onclick=function(){
+    var b=this; b.textContent='Testing\u2026'; b.disabled=true;
+    trCfgSave({ provider:m.querySelector('#trProv').value, key:m.querySelector('#trKey').value.trim(),
+                endpoint:m.querySelector('#trEp').value.trim(), model:m.querySelector('#trModel').value.trim() });
+    trTranslate('تم إنجاز العمل في الموقع').then(function(r){
+      b.disabled=false; b.textContent='Test connection';
+      trToast('Provider OK ('+r.provider+'): "'+r.en+'"',true);
+    }).catch(function(e){
+      b.disabled=false; b.textContent='Test connection';
+      trToast('Test failed: '+(e&&e.message||e),false);
+    });
+  };
+}
+window.trOpenCfg=trOpenCfg;
+
+/* ── 7. LIFECYCLE ─────────────────────────────────────────────────────────
+   Re-scan after renders. The app rebuilds HTML from data on every render, so
+   bindings must be re-applied; translations themselves live in STORE, so
+   nothing is lost between renders. */
+var trT=null;
+function trSchedule(){ clearTimeout(trT); trT=setTimeout(function(){ trScan(document.body); trToolbar(); },160); }
+window.trSchedule=trSchedule;
+
+function trWrapRender(name){
+  var o=window[name];
+  if(typeof o!=='function'||o.__trWrapped) return;
+  var w=function(){ var r=o.apply(this,arguments); trSchedule(); return r; };
+  w.__trWrapped=true; window[name]=w;
+}
+document.addEventListener('DOMContentLoaded',function(){
+  setTimeout(function(){
+    ['renderProjectView','renderHub','renderCompany','refreshProjectGrids','openProject'].forEach(trWrapRender);
+    trSchedule();
+  },900);
+});
+/* Late safety net for renders defined after DOMContentLoaded. */
+setTimeout(function(){
+  ['renderProjectView','renderHub','renderCompany','refreshProjectGrids','openProject','renderServiceOffices','renderTraining','renderSurvey'].forEach(trWrapRender);
+  trSchedule();
+},2600);
+
+})();
+
 
 </script>
