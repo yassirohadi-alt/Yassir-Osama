@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="mobile-web-app-capable" content="yes"><meta name="theme-color" content="#B12836"><meta name="format-detection" content="telephone=no">
 <title>Knowledge Papers — Projects Dashboard</title>
+<link rel="icon" type="image/png" href="/Logo%20PNG.png">
+<link rel="apple-touch-icon" href="/Logo%20PNG.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=Cairo:wght@400;600;700;800;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
 <style>
@@ -5638,7 +5640,7 @@ function applyProjectTheme(p){ var pv=document.getElementById('projView'); if(!p
     else { pv.style.removeProperty('--disp'); pv.style.fontFamily=''; }
   } else { vars.forEach(function(v){pv.style.removeProperty(v);}); pv.style.removeProperty('--disp'); pv.style.fontFamily=''; }
 }
-function openStylePanel(){ if(ROLE!=='pm'||!CUR_PROJ)return; var p=projByID(CUR_PROJ); var t=(p&&p.theme)||{};
+function openStylePanel(){ if(!isEditor()||!CUR_PROJ)return; var p=projByID(CUR_PROJ); var t=(p&&p.theme)||{};
   document.getElementById('spPrimary').value=t.primary||'#B12836';
   document.getElementById('spAccent').value=t.accent||'#CB2E28';
   document.getElementById('spFont').value=t.font||'';
@@ -8112,7 +8114,7 @@ function progRingDual(planPct,actualPct,mono){
   </svg>`;}
 
 function addPhase(pid){
-  if(ROLE!=='pm'){alert('يرجى الدخول بوضع Project Manager أولاً (اضغط الأيقونة في الأعلى).');return;}
+  if(!isEditor()){alert('Editor role required — switch to Project Manager or Developer mode.');return;}
   const p=projByID(pid);if(!p)return;
   const n=window.prompt('اسم المرحلة الجديدة / New phase name:','');
   if(!n||!n.trim())return;
@@ -8127,7 +8129,7 @@ function addPhase(pid){
   if(typeof toast==='function') toast('تمت إضافة المرحلة: '+n.trim(), true);
 }
 function delPhase(pid,i){
-  if(ROLE!=='pm'){alert('يرجى الدخول بوضع Project Manager أولاً.');return;}
+  if(!isEditor()){alert('Editor role required — switch to Project Manager or Developer mode.');return;}
   const p=projByID(pid);if(!p)return;
   const phName=(p.phases[i]&&(p.phases[i].name||p.phases[i].nameAr))||'Phase';
   if(!confirm('حذف المرحلة: '+phName+' ؟\nسيؤدي هذا إلى حذف بيانات المرحلة من كل الأنظمة/المواقع.'))return;
@@ -8143,7 +8145,7 @@ function delPhase(pid,i){
   if(typeof toast==='function') toast('Phase deleted', true);
 }
 function cyclePhase(pid,i){
-  if(ROLE!=='pm')return;const p=projByID(pid);if(!p)return;
+  if(!isEditor())return;const p=projByID(pid);if(!p)return;
   const cur=p.phases[i].actualPct!=null?p.phases[i].actualPct:(p.phases[i].pct||0);
   const nxt=cur===0?25:cur===25?50:cur===50?75:cur===75?100:0;
   p.phases[i].actualPct=nxt;p.phases[i].pct=nxt;p.progress=overallPct(p);
@@ -8151,7 +8153,7 @@ function cyclePhase(pid,i){
   persist();renderProjectView(pid);renderHub();
 }
 function cyclePhasePlan(pid,i){
-  if(ROLE!=='pm')return;const p=projByID(pid);if(!p)return;
+  if(!isEditor())return;const p=projByID(pid);if(!p)return;
   const cur=p.phases[i].planPct!=null?p.phases[i].planPct:100;
   const nxt=cur===0?25:cur===25?50:cur===50?75:cur===75?100:0;
   p.phases[i].planPct=nxt;persist();renderProjectView(pid);
@@ -8376,7 +8378,7 @@ function renderGantt(p){
 }
 
 function openGmDt(pid,si,field,anchor){
-  if(ROLE!=='pm')return;
+  if(!isEditor())return;
   if(__dpActive){__dpActive.remove();__dpActive=null;}
   const inp=document.createElement('input');inp.type='date';inp.className='dt-pop';
   const p=projByID(pid);if(!p||!p.milestones[si])return;
@@ -8389,13 +8391,13 @@ function openGmDt(pid,si,field,anchor){
   inp.addEventListener('blur',()=>setTimeout(()=>{if(__dpActive===inp){inp.remove();__dpActive=null;}},200));
 }
 
-function addMs(pid){if(ROLE!=='pm')return;const p=projByID(pid);if(!p)return;
+function addMs(pid){if(!isEditor())return;const p=projByID(pid);if(!p)return;
   const n=window.prompt('Milestone name:','New Milestone');if(!n)return;
   p.milestones.push({name:n.trim(),nameAr:n.trim(),sites:22,done:0,planPct:0,actualPct:0,planStart:'',planEnd:'',status:'n',notes:'',deps:[]});
   persist();renderProjectView(pid);toast('Milestone added');}
-function delMs(pid,i){if(ROLE!=='pm')return;const p=projByID(pid);if(!p||!confirm('Delete this milestone?'))return;p.milestones.splice(i,1);persist();renderProjectView(pid);toast('Milestone deleted');}
+function delMs(pid,i){if(!isEditor())return;const p=projByID(pid);if(!p||!confirm('Delete this milestone?'))return;p.milestones.splice(i,1);persist();renderProjectView(pid);toast('Milestone deleted');}
 function cycleMsStatus(pid,i){
-  if(ROLE!=='pm')return;const p=projByID(pid);if(!p)return;const m=p.milestones[i];
+  if(!isEditor())return;const p=projByID(pid);if(!p)return;const m=p.milestones[i];
   const cur=+(m.actualPct||0)>=100||m.status==='d'?'completed':m.status==='delayed'?'delayed':+(m.actualPct||0)>0||m.status==='p'?'in-progress':'not-started';
   const nx={completed:'in-progress','in-progress':'delayed',delayed:'not-started','not-started':'completed'}[cur];
   const sm={'completed':'d','in-progress':'p','delayed':'delayed','not-started':'n'};
@@ -8421,9 +8423,9 @@ function renderQA(p){
     <div class="sec-body"><table class="data-table"><thead><tr><th>Inspection Item</th><th>Standard</th><th>Status</th><th>Notes</th><th></th></tr></thead>
     <tbody id="qa_${p.id}">${rows||'<tr><td colspan="5" class="empty-msg">No items</td></tr>'}</tbody></table></div></div>`;
 }
-function addQA(pid){if(ROLE!=='pm')return;const p=projByID(pid);if(!p)return;p.qa.push({item:'New Item',standard:'',status:'n',notes:''});persist();renderProjectView(pid);}
-function delQA(pid,i){if(ROLE!=='pm')return;const p=projByID(pid);if(!p||!confirm('حذف هذا البند؟'))return;p.qa.splice(i,1);persist();renderProjectView(pid);}
-function cycleQA(pid,i){if(ROLE!=='pm')return;const p=projByID(pid);if(!p)return;const m={d:'p',p:'n',n:'d',pass:'fail',fail:'pending',pending:'pass'};p.qa[i].status=m[p.qa[i].status]||'n';persist();renderProjectView(pid);}
+function addQA(pid){if(!isEditor())return;const p=projByID(pid);if(!p)return;p.qa.push({item:'New Item',standard:'',status:'n',notes:''});persist();renderProjectView(pid);}
+function delQA(pid,i){if(!isEditor())return;const p=projByID(pid);if(!p||!confirm('حذف هذا البند؟'))return;p.qa.splice(i,1);persist();renderProjectView(pid);}
+function cycleQA(pid,i){if(!isEditor())return;const p=projByID(pid);if(!p)return;const m={d:'p',p:'n',n:'d',pass:'fail',fail:'pending',pending:'pass'};p.qa[i].status=m[p.qa[i].status]||'n';persist();renderProjectView(pid);}
 
 /* ---- SECTION: BUDGET ---- */
 function renderBudget(p){
@@ -8446,8 +8448,8 @@ function renderBudget(p){
       <div id="bud_${p.id}">${rows||'<div class="empty-msg">No budget items</div>'}</div>
     </div></div>`;
 }
-function addBud(pid){if(ROLE!=='pm')return;const p=projByID(pid);if(!p)return;p.budget.push({category:'New Item',planned:0,actual:0});persist();renderProjectView(pid);}
-function delBud(pid,i){if(ROLE!=='pm')return;const p=projByID(pid);if(!p||!confirm('حذف هذا البند؟'))return;p.budget.splice(i,1);persist();renderProjectView(pid);}
+function addBud(pid){if(!isEditor())return;const p=projByID(pid);if(!p)return;p.budget.push({category:'New Item',planned:0,actual:0});persist();renderProjectView(pid);}
+function delBud(pid,i){if(!isEditor())return;const p=projByID(pid);if(!p||!confirm('حذف هذا البند؟'))return;p.budget.splice(i,1);persist();renderProjectView(pid);}
 
 /* ---- SECTION: RISKS ---- */
 function renderRisks(p){
@@ -8469,8 +8471,8 @@ function renderRisks(p){
 }
 function addRisk(pid){if(!isEditor())return;const p=projByID(pid);if(!p)return;const n=window.prompt('Risk description:','');if(!n)return;p.risks.push({risk:n.trim(),impact:'me',prob:'me',status:'open',owner:'',mitigation:''});logActivity('Risk Added',p,'Risk',n.trim(),'warn','risk');persist();renderProjectView(pid);}
 function delRisk(pid,i){if(!isEditor())return;const p=projByID(pid);if(!p||!confirm('Delete this risk?'))return;var rn=(p.risks[i]?p.risks[i].risk:'');p.risks.splice(i,1);logActivity('Risk Deleted',p,'Risk',rn,'risk','risk');persist();renderProjectView(pid);}
-function cycleRisk(pid,i){if(ROLE!=='pm')return;const p=projByID(pid);if(!p)return;p.risks[i].status=p.risks[i].status==='open'?'closed':'open';persist();renderProjectView(pid);}
-function cycleImp(pid,i,field){if(ROLE!=='pm')return;const p=projByID(pid);if(!p)return;const m={hi:'me',me:'lo',lo:'hi'};p.risks[i][field]=m[p.risks[i][field]]||'me';persist();renderProjectView(pid);}
+function cycleRisk(pid,i){if(!isEditor())return;const p=projByID(pid);if(!p)return;p.risks[i].status=p.risks[i].status==='open'?'closed':'open';persist();renderProjectView(pid);}
+function cycleImp(pid,i,field){if(!isEditor())return;const p=projByID(pid);if(!p)return;const m={hi:'me',me:'lo',lo:'hi'};p.risks[i][field]=m[p.risks[i][field]]||'me';persist();renderProjectView(pid);}
 
 /* ---- SECTION: TEAM PERFORMANCE ---- */
 function renderTeam(p){
@@ -8505,8 +8507,8 @@ function renderTeam(p){
       <tbody id="team_${p.id}">${rows||'<tr><td colspan="7" class="empty-msg">No team members</td></tr>'}</tbody></table>
     </div></div>`;
 }
-function addTeam(pid){if(ROLE!=='pm')return;const p=projByID(pid);if(!p)return;const n=window.prompt('Member name:','');if(!n)return;p.team.push({name:n.trim(),tasks:{done:0,prog:0,pend:0}});persist();renderProjectView(pid);}
-function delTeam(pid,i){if(ROLE!=='pm')return;const p=projByID(pid);if(!p||!confirm('حذف هذا العضو؟'))return;p.team.splice(i,1);persist();renderProjectView(pid);}
+function addTeam(pid){if(!isEditor())return;const p=projByID(pid);if(!p)return;const n=window.prompt('Member name:','');if(!n)return;p.team.push({name:n.trim(),tasks:{done:0,prog:0,pend:0}});persist();renderProjectView(pid);}
+function delTeam(pid,i){if(!isEditor())return;const p=projByID(pid);if(!p||!confirm('حذف هذا العضو؟'))return;p.team.splice(i,1);persist();renderProjectView(pid);}
 
 /* ---- SECTION: SITE TRACKER ---- */
 let siteFilter='all';
@@ -8523,8 +8525,8 @@ function isPhaseModel(p){
 function phNext(s){return {d:'p',p:'h',h:'n',n:'d'}[s]||'n';}
 /* ===== SUB-MILESTONES (PM 1.1 / 1.2 under each system; Site Tracker is the source, exported to Excel) ===== */
 function _subRef(pid,mi){const p=projByID(pid);if(!p||!Array.isArray(p.milestones))return null;const m=p.milestones[mi];if(!m)return null;if(!Array.isArray(m.subs))m.subs=[];return {p:p,m:m};}
-function addSub(pid,mi){ if(ROLE!=='pm')return; const r=_subRef(pid,mi); if(!r)return; const nm=window.prompt('Sub-milestone name (will show as '+r.m.idx+'.'+(r.m.subs.length+1)+', with the same 9-phase flow):',''); if(!nm)return; const phs=(r.m.phases||[]).map(function(ph){return {name:ph.name,status:'n',planStart:'',planEnd:''};}); r.m.subs.push({name:nm.trim(),status:'n',planStart:'',planEnd:'',phases:phs}); persist(); renderProjectView(pid); }
-function delSub(pid,mi,si){ if(ROLE!=='pm')return; const r=_subRef(pid,mi); if(!r||!r.m.subs[si])return; if(!confirm('Delete this sub-milestone?'))return; r.m.subs.splice(si,1); persist(); renderProjectView(pid); }
+function addSub(pid,mi){ if(!isEditor())return; const r=_subRef(pid,mi); if(!r)return; const nm=window.prompt('Sub-milestone name (will show as '+r.m.idx+'.'+(r.m.subs.length+1)+', with the same 9-phase flow):',''); if(!nm)return; const phs=(r.m.phases||[]).map(function(ph){return {name:ph.name,status:'n',planStart:'',planEnd:''};}); r.m.subs.push({name:nm.trim(),status:'n',planStart:'',planEnd:'',phases:phs}); persist(); renderProjectView(pid); }
+function delSub(pid,mi,si){ if(!isEditor())return; const r=_subRef(pid,mi); if(!r||!r.m.subs[si])return; if(!confirm('Delete this sub-milestone?'))return; r.m.subs.splice(si,1); persist(); renderProjectView(pid); }
 
 /* ============================================================
    UNIVERSAL SUB-ITEM SUPPORT (added in v5)
@@ -8540,32 +8542,32 @@ function siteSubRollup(sub){
 }
 /* --- Site-Tracker (site row) sub-items --- */
 function addSiteSub(pid,i){
-  if(ROLE!=='pm')return; var p=projByID(pid); if(!p||!p.sites||!p.sites[i])return;
+  if(!isEditor())return; var p=projByID(pid); if(!p||!p.sites||!p.sites[i])return;
   var nm=window.prompt('Sub-item name (will appear as '+(i+1)+'.'+((p.sites[i].subs||[]).length+1)+'):',''); if(!nm)return;
   ensureRowSubs(p.sites[i]).push({name:String(nm).trim(),survey:'n',surveyDate:'',design:'n',designDate:'',submit:'n',submitDate:'',ks:0,ksDone:0,notes:'',status:'n',planStart:'',planEnd:''});
   persist(); renderProjectView(pid);
   try{toast('Sub-item added',true);}catch(e){}
 }
 function delSiteSub(pid,i,si){
-  if(ROLE!=='pm')return; var p=projByID(pid); if(!p||!p.sites||!p.sites[i])return;
+  if(!isEditor())return; var p=projByID(pid); if(!p||!p.sites||!p.sites[i])return;
   var subs=p.sites[i].subs||[]; if(!subs[si])return;
   if(!confirm('Delete this sub-item?'))return;
   subs.splice(si,1); persist(); renderProjectView(pid);
 }
 function cycleSiteSubField(pid,i,si,field){
-  if(ROLE!=='pm')return; var p=projByID(pid); if(!p||!p.sites||!p.sites[i])return;
+  if(!isEditor())return; var p=projByID(pid); if(!p||!p.sites||!p.sites[i])return;
   var s=(p.sites[i].subs||[])[si]; if(!s)return;
   s[field]=stNext(s[field]||'n'); persist(); renderProjectView(pid);
 }
 function siteSubFieldBlur(pid,i,si,field,el,type){
-  if(ROLE!=='pm')return; var p=projByID(pid); if(!p||!p.sites||!p.sites[i])return;
+  if(!isEditor())return; var p=projByID(pid); if(!p||!p.sites||!p.sites[i])return;
   var s=(p.sites[i].subs||[])[si]; if(!s)return;
   var v=(el&&el.textContent!=null)?String(el.textContent).trim():'';
   if(type==='number'){ s[field]=+v||0; } else { s[field]=v; }
   persist();
 }
 function openSiteSubDatePick(pid,i,si,field,anchor){
-  if(ROLE!=='pm')return; var p=projByID(pid); if(!p||!p.sites||!p.sites[i])return;
+  if(!isEditor())return; var p=projByID(pid); if(!p||!p.sites||!p.sites[i])return;
   if(typeof __dpActive!=='undefined' && __dpActive){ __dpActive.remove(); __dpActive=null; }
   var s=(p.sites[i].subs||[])[si]; if(!s)return;
   var inp=document.createElement('input'); inp.type='date'; inp.className='dt-pop';
@@ -8608,9 +8610,9 @@ function renderSiteSubRow(p,parent,pi,sub,si,cols,PM){
     +'</tr>';
 }
 
-function cycleSub(pid,mi,si){ if(ROLE!=='pm')return; const r=_subRef(pid,mi); if(!r||!r.m.subs[si])return; r.m.subs[si].status=phNext(r.m.subs[si].status||'n'); persist(); renderProjectView(pid); }
+function cycleSub(pid,mi,si){ if(!isEditor())return; const r=_subRef(pid,mi); if(!r||!r.m.subs[si])return; r.m.subs[si].status=phNext(r.m.subs[si].status||'n'); persist(); renderProjectView(pid); }
 function openSubDt(pid,mi,si,field,anchor){
-  if(ROLE!=='pm')return;
+  if(!isEditor())return;
   if(__dpActive){__dpActive.remove();__dpActive=null;}
   const r=_subRef(pid,mi); if(!r||!r.m.subs[si])return;
   const inp=document.createElement('input');inp.type='date';inp.className='dt-pop';
@@ -8642,9 +8644,9 @@ function subRollup(sub){
   var st=phs.length?(typeof sysStatus==='function'?sysStatus(phs):(sub.status||'n')):(sub.status||'n');
   return {status:st,start:starts[0]||sub.planStart||'',end:ends[ends.length-1]||sub.planEnd||''};
 }
-function cycleSubPhase(pid,mi,si,phi){ if(ROLE!=='pm')return; const r=_subRef(pid,mi); if(!r||!r.m.subs[si])return; const sub=r.m.subs[si]; if(!Array.isArray(sub.phases))sub.phases=[]; if(!sub.phases[phi]){ const pn=(r.m.phases&&r.m.phases[phi]&&r.m.phases[phi].name)||''; sub.phases[phi]={name:pn,status:'n',planStart:'',planEnd:''}; } sub.phases[phi].status=phNext(sub.phases[phi].status||'n'); persist(); renderProjectView(pid); }
+function cycleSubPhase(pid,mi,si,phi){ if(!isEditor())return; const r=_subRef(pid,mi); if(!r||!r.m.subs[si])return; const sub=r.m.subs[si]; if(!Array.isArray(sub.phases))sub.phases=[]; if(!sub.phases[phi]){ const pn=(r.m.phases&&r.m.phases[phi]&&r.m.phases[phi].name)||''; sub.phases[phi]={name:pn,status:'n',planStart:'',planEnd:''}; } sub.phases[phi].status=phNext(sub.phases[phi].status||'n'); persist(); renderProjectView(pid); }
 function openSubPhaseDt(pid,mi,si,field,phi,anchor){
-  if(ROLE!=='pm')return;
+  if(!isEditor())return;
   if(__dpActive){__dpActive.remove();__dpActive=null;}
   const r=_subRef(pid,mi); if(!r||!r.m.subs[si])return;
   const sub=r.m.subs[si]; if(!Array.isArray(sub.phases))sub.phases=[];
@@ -8722,13 +8724,13 @@ function delMilestone(pid,i){
   persist();renderProjectView(pid);renderHub();
 }
 function cycleMsPhase(pid,mi,phi){
-  if(ROLE!=='pm')return;const p=projByID(pid);if(!p)return;
+  if(!isEditor())return;const p=projByID(pid);if(!p)return;
   const ph=p.milestones[mi].phases[phi]; ph.status=phNext(ph.status);
   recalcP1Milestone(p,mi); p.progress=overallPct(p);
   persist();renderProjectView(pid);renderHub();
 }
 function openMsDtPick(pid,mi,kind,phi,anchor){
-  if(ROLE!=='pm')return;
+  if(!isEditor())return;
   if(__dpActive){__dpActive.remove();__dpActive=null;}
   const p=projByID(pid);if(!p)return;const m=p.milestones[mi];if(!m)return;
   let cur='';
@@ -9040,6 +9042,8 @@ function renderSiteTracker(p){
         +'<button class="site-col-btn" onclick="addSiteColumn(\''+p.id+'\')">+ Column</button>'
         +'<button class="site-col-btn" onclick="restoreSiteCols(\''+p.id+'\')">Restore Columns'+(hiddenCount?(' ('+hiddenCount+')'):'')+'</button>'
         +'<button class="site-col-btn" onclick="applySiteColsToAll(\''+p.id+'\')">Apply layout to all projects</button>'
+        +'<button class="site-col-btn" onclick="exportAllSiteTrackers()" title="Export the site tracker of every project into one workbook, one sheet per project">↓ Export all trackers</button>'
+        +'<button class="site-col-btn" onclick="pickAllSiteTrackerFile()" title="Import a multi-project workbook and apply each sheet back to its project">↑ Import all trackers</button>'
         +'<span class="site-col-hint">Rename headers inline · ←→ reorder columns · ↑↓ reorder rows · × to delete</span>'
       +'</div>'):'')
       +'<div class="site-table-wrap"><table class="site-table"><thead>'+header+'</thead><tbody id="sites_'+p.id+'">'+(rows||('<tr><td colspan="'+(cols.length+2)+'" class="empty-msg">No sites — click + Site</td></tr>'))+'</tbody></table></div>'
@@ -9142,7 +9146,7 @@ function cycleSiteField(pid,i,field){ if(!isEditor())return; var p=projByID(pid)
   logActivity('Status Changed',p,field+(p.sites[i].name?' ('+p.sites[i].name+')':''),oldVal+' \u2192 '+newVal,'info','ms');
   persist(); renderProjectView(pid); renderHub(); }
 function openSiteDatePick(pid,si,field,anchor){
-  if(ROLE!=='pm')return;
+  if(!isEditor())return;
   if(__dpActive){__dpActive.remove();__dpActive=null;}
   var inp=document.createElement('input'); inp.type='date'; inp.className='dt-pop';
   var p=projByID(pid); if(!p||!p.sites[si])return;
@@ -9156,7 +9160,7 @@ function openSiteDatePick(pid,si,field,anchor){
 }
 function openDtPick(pid,si,field,anchor){ return openSiteDatePick(pid,si,field,anchor); }
 function siteFieldBlur(pid,row,key,el,type){
-  if(ROLE!=='pm')return;
+  if(!isEditor())return;
   var p=projByID(pid); if(!p||!p.sites[row])return;
   var t=siteTrackerNormalizeType(type); var val=el.textContent;
   if(t==='number'){ var n=parseFloat(String(val||'').replace(/[^0-9.\-]/g,'')); val=isNaN(n)?0:n; }
@@ -9176,7 +9180,7 @@ function wireProjectEvents(p){
   const pv=document.getElementById('pvGrid');
   if(!pv)return;
   pv.addEventListener('input',e=>{
-    if(ROLE!=='pm')return;
+    if(!isEditor())return;
     const el=e.target; const d=el.dataset;
     if(d.phasename!==undefined){const pi=+d.phasename;const nm=el.textContent.trim();(p.milestones||[]).forEach(mm=>{if(mm.phases&&mm.phases[pi])mm.phases[pi].name=nm;});if(p.phases&&p.phases[pi])p.phases[pi].name=nm;sched(p);}
     else if(d.phname!==undefined){p.phases[+d.phname].name=el.textContent;sched(p);}
@@ -9709,24 +9713,43 @@ function handleExcelUpload(file){
         var cNotes=_fc('notes','ملاحظ','note'); if(cNotes<0) cNotes=12;
         var cProg=_fc('progress','تقدم','نسبة'); if(cProg<0) cProg=11;
 
-        const data=stR.slice(1).filter(r=>r&&sv(r[cName]));
-        const newSites=data.map((r,i)=>{
-          const nm=sv(r[cName]);
-          const ex=(p.sites||[]).find(s=>s.name===nm)||{};
-          return {
-            name:nm,
-            survey:normStatus(r[cSurv]),
-            surveyDate:dOnly(r[cSurvD]),
-            design:normStatus(r[cDesign]),
-            designDate:dOnly(r[cDesignD]),
-            submit:normStatus(r[cSubmit]),
-            submitDate:dOnly(r[cSubmitD]),
-            ks:num(r[cKS])||0,
-            ksDone:num(r[cKSD])||0,
-            notes:sv(r[cNotes])||ex.notes||''
-          };
-        });
-        if(newSites.length){ p.sites=newSites; updated.push('Site Tracker ('+newSites.length+')'); }
+        /* v502 — column-aware, sub-aware parse. The old fixed-field reader
+           dropped custom columns, dropped install/progress, and turned every
+           '\u21b3' sub row into a bogus top-level site, so an export->import
+           round-trip silently lost the newest edits. stImportRows() maps each
+           Excel header back to the project's own column definition and coerces
+           by declared type, so whatever the exporter wrote is read back intact. */
+        var _stDone=false;
+        if(typeof stImportRows==='function'){
+          var _r=stImportRows(p,stR);
+          if(_r&&_r.ok){
+            updated.push('Site Tracker ('+_r.sites+' site'+(_r.sites===1?'':'s')
+              +(_r.subs?(' + '+_r.subs+' sub-item'+(_r.subs===1?'':'s')):'')
+              +(_r.cols&&_r.cols.length?(' + '+_r.cols.length+' new column'+(_r.cols.length===1?'':'s')):'')+')');
+            _stDone=true;
+          }
+        }
+        if(!_stDone){
+          /* Legacy fallback for sheets that predate the column-aware exporter. */
+          const data=stR.slice(1).filter(r=>r&&sv(r[cName]));
+          const newSites=data.map((r,i)=>{
+            const nm=sv(r[cName]).replace(/^\u21b3\s*/,'');
+            const ex=(p.sites||[]).find(s=>s.name===nm)||{};
+            return Object.assign({},ex,{
+              name:nm,
+              survey:normStatus(r[cSurv]),
+              surveyDate:dOnly(r[cSurvD]),
+              design:normStatus(r[cDesign]),
+              designDate:dOnly(r[cDesignD]),
+              submit:normStatus(r[cSubmit]),
+              submitDate:dOnly(r[cSubmitD]),
+              ks:num(r[cKS])||0,
+              ksDone:num(r[cKSD])||0,
+              notes:sv(r[cNotes])||ex.notes||''
+            });
+          });
+          if(newSites.length){ p.sites=newSites; updated.push('Site Tracker ('+newSites.length+')'); }
+        }
 
         /* ===== v19 — Header-driven column sync (bidirectional) =====
            Any header in the Excel sheet becomes / renames / removes a column
@@ -10348,39 +10371,39 @@ function pmoRecsGet(){
 }
 function pmoRecsSave(){ try{ persist(); }catch(e){} }
 function pmoRecEdit(id,field,el){
-  if(typeof ROLE!=='undefined' && ROLE!=='pm'){ return; }
+  if(!(typeof isEditor==='function'&&isEditor())){ return; }
   var recs=pmoRecsGet();
   var r=recs.find(function(x){return x.id===id;}); if(!r) return;
   var v=(el&&el.textContent!=null)?String(el.textContent).trim():'';
   r[field]=v; pmoRecsSave();
 }
 function pmoRecPriority(id,p){
-  if(typeof ROLE!=='undefined' && ROLE!=='pm'){ return; }
+  if(!(typeof isEditor==='function'&&isEditor())){ return; }
   var recs=pmoRecsGet(); var r=recs.find(function(x){return x.id===id;}); if(!r) return;
   r.priority=p; pmoRecsSave();
   if(typeof buildPMO==='function') buildPMO();
 }
 function pmoRecAdd(){
-  if(typeof ROLE!=='undefined' && ROLE!=='pm'){ try{toast('Switch to PM mode to add recommendations',false);}catch(e){} return; }
+  if(!(typeof isEditor==='function'&&isEditor())){ try{toast('Editor role required',false);}catch(e){} return; }
   var recs=pmoRecsGet();
   recs.push({id:'r'+Date.now(),priority:'medium',title:'New recommendation',body:'Describe the recommendation here — click any text to edit.'});
   pmoRecsSave(); if(typeof buildPMO==='function') buildPMO();
   setTimeout(function(){ var el=document.querySelector('#pmoSlides .pbi-page[data-page=\"recs\"]'); if(el) el.scrollIntoView({behavior:'smooth',block:'end'}); },50);
 }
 function pmoRecDel(id){
-  if(typeof ROLE!=='undefined' && ROLE!=='pm'){ return; }
+  if(!(typeof isEditor==='function'&&isEditor())){ return; }
   if(!confirm('Delete this recommendation?')) return;
   var recs=pmoRecsGet(); var i=recs.findIndex(function(x){return x.id===id;});
   if(i>=0){ recs.splice(i,1); pmoRecsSave(); if(typeof buildPMO==='function') buildPMO(); }
 }
 function pmoRecReset(){
-  if(typeof ROLE!=='undefined' && ROLE!=='pm'){ try{toast('Switch to PM mode to reset',false);}catch(e){} return; }
+  if(!(typeof isEditor==='function'&&isEditor())){ try{toast('Editor role required',false);}catch(e){} return; }
   if(!confirm('Reset to the default 10 data-driven recommendations? Your custom edits will be lost.')) return;
   if(STORE){ STORE.pmoRecs=_pmoRecsDefault(); pmoRecsSave(); }
   if(typeof buildPMO==='function') buildPMO();
 }
 function pmoRecMove(id,dir){
-  if(typeof ROLE!=='undefined' && ROLE!=='pm'){ return; }
+  if(!(typeof isEditor==='function'&&isEditor())){ return; }
   var recs=pmoRecsGet(); var i=recs.findIndex(function(x){return x.id===id;}); if(i<0) return;
   var j=i+dir; if(j<0||j>=recs.length) return;
   var tmp=recs[i]; recs[i]=recs[j]; recs[j]=tmp; pmoRecsSave();
@@ -13297,7 +13320,7 @@ function trSave(rerender){
 }
 
 /* ── editing ── */
-function trCycle(i,key){ if(ROLE!=='pm')return; var p=trProj(); if(!p||!p.training[i])return;
+function trCycle(i,key){ if(!isEditor())return; var p=trProj(); if(!p||!p.training[i])return;
   var order=['n','p','d','h']; var cur=p.training[i][key]||'n';
   p.training[i][key]=order[(order.indexOf(cur)+1)%order.length]; trSave(); }
 function trSet(i,key,val){ var p=trProj(); if(!p||!p.training[i])return; p.training[i][key]=val; trSave(); }
@@ -13305,18 +13328,18 @@ function trEdit(i,field,val){ var p=trProj(); if(!p||!p.training[i])return;
   val=String(val==null?'':val).trim();
   if(field==='name')p.training[i].name=val||p.training[i].name; else p.training[i][field]=val;
   trSave(false); }
-function trAdd(){ if(ROLE!=='pm')return; var p=trProj(); if(!p)return;
+function trAdd(){ if(!isEditor())return; var p=trProj(); if(!p)return;
   var nm=window.prompt('Training track / system name:',''); if(nm===null)return;
   var row={name:(nm||'').trim()||'New Track',notes:'',start:'',end:''};
   TR_STEPS.forEach(function(s){row[s[0]]='n';});
   (p.training=p.training||[]).push(row); trSave(); toast('Track added',true); }
-function trDel(i){ if(ROLE!=='pm')return; var p=trProj(); if(!p)return;
+function trDel(i){ if(!isEditor())return; var p=trProj(); if(!p)return;
   if(!window.confirm('Remove "'+((p.training[i]||{}).name||'')+'" from the training tracker?'))return;
   p.training.splice(i,1); trSave(); toast('Track removed',true); }
-function trMove(i,dir){ if(ROLE!=='pm')return; var p=trProj(); if(!p)return;
+function trMove(i,dir){ if(!isEditor())return; var p=trProj(); if(!p)return;
   var j=i+dir; if(j<0||j>=p.training.length)return;
   var t=p.training[i]; p.training[i]=p.training[j]; p.training[j]=t; trSave(); }
-function trSetRow(i,st){ if(ROLE!=='pm')return; var p=trProj(); if(!p||!p.training[i])return;
+function trSetRow(i,st){ if(!isEditor())return; var p=trProj(); if(!p||!p.training[i])return;
   TR_STEPS.forEach(function(s){p.training[i][s[0]]=st;}); trSave(); }
 
 /* ── Excel: export ── */
@@ -14606,6 +14629,373 @@ setTimeout(function(){
   ['renderProjectView','renderHub','renderCompany','refreshProjectGrids','openProject','renderServiceOffices','renderTraining','renderSurvey'].forEach(trWrapRender);
   trSchedule();
 },2600);
+
+})();
+
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   v502 — SCROLL PRESERVATION + FAITHFUL SITE TRACKER ROUND-TRIP
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function(){
+if(window.__v502) return; window.__v502=true;
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PART 1 — SCROLL JUMP ON STATUS CHANGE
+   ──────────────────────────────────────────────────────────────────────────
+   cycleMsPhase / cycleSubPhase / cycleSiteField and friends all finish with
+   renderProjectView(pid), which rewrites #pvGrid.innerHTML wholesale. The
+   scroll container (.pv-body) briefly has zero-height content, so the browser
+   clamps scrollTop to 0 and the dashboard snaps to the top. The user loses
+   their place on every single click.
+
+   Fix: capture the scroll offsets of every scrollable region immediately
+   before the re-render and restore them straight after, before paint. Also
+   restore any horizontal scroll inside the matrix/table wrappers, which is
+   what actually matters on the wide Delivery Matrix.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+var SCROLLERS='.pv-body,.site-table-wrap,.phase-matrix-wrap,.gantt-wrap,.st-list,.tbl-wrap,.pm-matrix-wrap';
+
+function captureScroll(){
+  var snap={ win:(window.pageYOffset||document.documentElement.scrollTop||0), els:[] };
+  try{
+    document.querySelectorAll(SCROLLERS).forEach(function(el,i){
+      if(el.scrollTop||el.scrollLeft){
+        snap.els.push({ sel:el.className, idx:i, top:el.scrollTop, left:el.scrollLeft });
+      }
+    });
+  }catch(e){}
+  return snap;
+}
+function restoreScroll(snap){
+  if(!snap) return;
+  try{
+    var all=document.querySelectorAll(SCROLLERS);
+    snap.els.forEach(function(s){
+      var el=all[s.idx];
+      /* Match on index first, then verify the class still lines up, so a
+         re-render that produced the same structure lands on the same node. */
+      if(el && el.className===s.sel){ el.scrollTop=s.top; el.scrollLeft=s.left; }
+    });
+    if(snap.win) window.scrollTo(0,snap.win);
+  }catch(e){}
+}
+
+/* Also remember where the caret / active element was, so an inline edit does
+   not lose focus when a neighbouring click triggers a re-render. */
+function captureFocus(){
+  var a=document.activeElement;
+  if(!a||a===document.body) return null;
+  var key=a.getAttribute&&(a.getAttribute('data-msnamear')||a.getAttribute('data-phasename')||a.getAttribute('data-subname'));
+  return key?{attr:(a.hasAttribute('data-msnamear')?'data-msnamear':a.hasAttribute('data-phasename')?'data-phasename':'data-subname'),val:key}:null;
+}
+function restoreFocus(f){
+  if(!f) return;
+  try{
+    var el=document.querySelector('['+f.attr+'="'+f.val+'"]');
+    if(el&&el.focus) el.focus();
+  }catch(e){}
+}
+
+function wrapPreserveScroll(name){
+  var orig=window[name];
+  if(typeof orig!=='function'||orig.__scrollWrapped) return;
+  var w=function(){
+    var snap=captureScroll(), foc=captureFocus();
+    var r=orig.apply(this,arguments);
+    /* Synchronous restore first (covers the common case with no async work),
+       then once more on the next frame in case the render defers layout. */
+    restoreScroll(snap);
+    requestAnimationFrame(function(){ restoreScroll(snap); restoreFocus(foc); });
+    return r;
+  };
+  w.__scrollWrapped=true;
+  window[name]=w;
+}
+window.__wrapPreserveScroll=wrapPreserveScroll;
+
+function installScrollGuards(){
+  ['renderProjectView','renderSites','renderPhaseTracker','renderServiceOffices',
+   'renderTraining','renderSurvey','renderPayments','renderResources'].forEach(wrapPreserveScroll);
+}
+document.addEventListener('DOMContentLoaded',function(){ setTimeout(installScrollGuards,700); });
+setTimeout(installScrollGuards,2300);
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PART 2 — SITE TRACKER EXPORT / IMPORT FIDELITY
+   ──────────────────────────────────────────────────────────────────────────
+   siteTrackerExportRows() writes every VISIBLE column, including columns the
+   user added, plus one '↳' row per sub-item. The importer read a hardcoded
+   set instead — name / survey / design / submit / ks / ksDone / notes — so a
+   plain export→import round-trip silently:
+     • dropped every custom column,
+     • dropped install / progress and any non-default typed column,
+     • turned each '↳' sub-row into a bogus top-level site,
+     • discarded sub-items entirely.
+   That is why re-importing did not reflect the latest state.
+
+   stImportRows() below is column-aware and sub-aware: it maps each Excel
+   header back to its real column key via the project's own column definitions
+   and coerces by declared type, so anything the exporter wrote is read back
+   unchanged — including columns added after this code was written.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+function stSv(v){ if(v==null) return ''; if(v instanceof Date) return v.toISOString().split('T')[0]; return String(v).trim(); }
+function stDate(v){ var t=stSv(v); var m=t.match(/(\d{4}-\d{2}-\d{2})/); return m?m[1]:t; }
+function stNum(v){ var n=parseFloat(stSv(v).replace('%','')); return isNaN(n)?0:n; }
+function stStatus(v){
+  var t=stSv(v).toLowerCase();
+  if(t===''||t==='—'||t==='-') return 'n';
+  if(/not\s*done|not\s*start|غير\s*منجز|لم\s*ي/.test(t)) return 'n';   /* before 'done' */
+  if(/hold|معلق|متوقف/.test(t)) return 'h';
+  if(/progress|prog|قيد|جاري/.test(t)) return 'p';
+  if(/done|complet|منجز|مكتمل|أنجز|انجز/.test(t)) return 'd';
+  if(t==='d'||t==='p'||t==='n'||t==='h') return t;
+  return 'n';
+}
+function stNormLabel(s){ return String(s==null?'':s).replace(/\s+/g,' ').trim().toLowerCase(); }
+
+/* Resolve each Excel header to a real column definition on the project. */
+function stMapHeaders(p,header){
+  var cols=(typeof siteTrackerVisibleColumns==='function')?siteTrackerVisibleColumns(p)
+          :(typeof ensureSiteTrackerColumns==='function'?ensureSiteTrackerColumns(p).filter(function(c){return !c.hidden;}):[]);
+  var byLabel={}, byKey={};
+  cols.forEach(function(c){ byLabel[stNormLabel(c.label||c.key)]=c; byKey[stNormLabel(c.key)]=c; });
+  var map=[];
+  (header||[]).forEach(function(h,i){
+    var t=stNormLabel(h);
+    if(i===0 && (t==='#'||t===''||t==='no'||t==='رقم')){ map.push(null); return; }   /* row-number col */
+    var col=byLabel[t]||byKey[t]||null;
+    if(!col){
+      /* Unknown header: keep the data rather than dropping it. Attach it as a
+         custom column so the next export round-trips it too. */
+      var key=t.replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'')||('col'+i);
+      col={key:key,label:stSv(h)||key,type:'text',builtin:false,_isNew:true};
+    }
+    map.push(col);
+  });
+  return map;
+}
+
+function stCoerce(col,raw){
+  if(!col) return null;
+  switch(col.type){
+    case 'status': return stStatus(raw);
+    case 'date':   return stDate(raw);
+    case 'num':
+    case 'number': return stNum(raw);
+    case 'pct':
+    case 'percent':return Math.max(0,Math.min(100,stNum(raw)));
+    default:       return stSv(raw);
+  }
+}
+
+/* Parse an exported Site Tracker sheet back onto a project.
+   Returns {ok, sites, subs, cols} or {ok:false, reason}. */
+function stImportRows(p,rows){
+  if(!p||!Array.isArray(rows)||rows.length<2) return {ok:false,reason:'sheet is empty'};
+  var header=rows[0]||[];
+  var map=stMapHeaders(p,header);
+  var nameIdx=-1;
+  for(var i=0;i<map.length;i++){ if(map[i]&&map[i].key==='name'){ nameIdx=i; break; } }
+  if(nameIdx<0){
+    /* No column literally called "name" — fall back to the first text column. */
+    for(var j=0;j<map.length;j++){ if(map[j]&&(map[j].type==='text'||!map[j].type)){ nameIdx=j; break; } }
+  }
+  if(nameIdx<0) return {ok:false,reason:'no name column found in the sheet'};
+
+  /* Register any genuinely new columns on the project first. */
+  var added=[];
+  if(typeof ensureSiteTrackerColumns==='function'){
+    var live=ensureSiteTrackerColumns(p);
+    map.forEach(function(col){
+      if(col&&col._isNew){
+        if(!live.some(function(x){return x.key===col.key;})){
+          live.push({key:col.key,label:col.label,type:'text',builtin:false});
+          added.push(col.label);
+        }
+        delete col._isNew;
+      }
+    });
+  }
+
+  var sites=[], nSub=0, cur=null;
+  for(var r=1;r<rows.length;r++){
+    var row=rows[r]||[];
+    var nm=stSv(row[nameIdx]);
+    if(!nm) continue;
+    var rowNo=stSv(row[0]);
+    /* '↳ ' prefix or an 'N.M' row number marks a sub-item of the row above. */
+    var isSub=/^\u21b3/.test(nm) || /^\d+\.\d+$/.test(rowNo);
+    var clean=nm.replace(/^\u21b3\s*/,'').trim();
+
+    var rec={};
+    map.forEach(function(col,ci){
+      if(!col) return;
+      var v=stCoerce(col,row[ci]);
+      if(v!==null && v!==undefined) rec[col.key]=v;
+    });
+    rec.name=clean;
+
+    if(isSub && cur){
+      if(!Array.isArray(cur.subs)) cur.subs=[];
+      cur.subs.push(rec); nSub++;
+    } else {
+      /* Carry over anything the sheet does not represent (e.g. hidden columns)
+         from the matching existing row, so a partial sheet never wipes data. */
+      var ex=(p.sites||[]).find(function(s){ return s&&s.name===clean; });
+      if(ex){
+        Object.keys(ex).forEach(function(k){
+          if(k==='subs') return;
+          if(!(k in rec)) rec[k]=ex[k];
+        });
+      }
+      rec.subs=[];
+      sites.push(rec); cur=rec;
+    }
+  }
+  if(!sites.length) return {ok:false,reason:'no data rows found'};
+  /* Drop the empty subs array where there are none, matching the original shape. */
+  sites.forEach(function(s){ if(!s.subs||!s.subs.length) delete s.subs; });
+  p.sites=sites;
+  p.siteHeaders=header.map(function(h){ return stSv(h); });
+  return {ok:true,sites:sites.length,subs:nSub,cols:added};
+}
+window.stImportRows=stImportRows;
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PART 3 — ALL-PROJECTS SITE TRACKER WORKBOOK
+   One sheet per project that has a site tracker, so the whole portfolio can be
+   edited in Excel in one pass and imported back in one pass. Sheets are keyed
+   by project id in a header cell, so renaming a sheet or a project does not
+   break the mapping.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+function stProjectsWithTracker(){
+  var out=[];
+  try{
+    (STORE.projects||[]).forEach(function(p){
+      if(!p) return;
+      if(Array.isArray(p.sites)&&p.sites.length) out.push(p);
+      (p.subProjects||[]).forEach(function(sp){
+        if(sp&&Array.isArray(sp.sites)&&sp.sites.length) out.push(sp);
+      });
+    });
+  }catch(e){}
+  return out;
+}
+function stSheetName(p,used){
+  var base=String(p.nameEn||p.name||p.id).replace(/[\\\/\?\*\[\]:]/g,' ').trim().slice(0,26)||p.id;
+  var n=base, i=2;
+  while(used[n]){ n=base.slice(0,24)+' '+(i++); }
+  used[n]=1; return n;
+}
+
+function exportAllSiteTrackers(){
+  if(typeof loadXLSX!=='function'){ try{toast('Excel library unavailable',false);}catch(e){} return; }
+  loadXLSX(function(){
+    var projs=stProjectsWithTracker();
+    if(!projs.length){ try{toast('No project has a site tracker to export',false);}catch(e){} return; }
+    var wb=XLSX.utils.book_new(), used={}, index=[['Project ID','Project','Sheet','Rows']];
+    projs.forEach(function(p){
+      var rows=(typeof siteTrackerExportRows==='function')?siteTrackerExportRows(p):null;
+      if(!rows||rows.length<2) return;
+      /* Stamp the project id in a trailing header cell so import can map back
+         even if the sheet is renamed. */
+      var stamped=rows.map(function(r,i){ return i===0?r.concat(['__pid:'+p.id]):r.concat(['']); });
+      var name=stSheetName(p,used);
+      var ws=XLSX.utils.aoa_to_sheet(stamped);
+      ws['!cols']=(stamped[0]||[]).map(function(h){ return {wch:Math.min(42,Math.max(10,String(h||'').length+4))}; });
+      XLSX.utils.book_append_sheet(wb,ws,name);
+      index.push([p.id,p.nameEn||p.name||'',name,rows.length-1]);
+    });
+    if(index.length<2){ try{toast('Nothing to export',false);}catch(e){} return; }
+    var iws=XLSX.utils.aoa_to_sheet(index);
+    iws['!cols']=[{wch:12},{wch:38},{wch:30},{wch:8}];
+    XLSX.utils.book_append_sheet(wb,iws,'_Index');
+    XLSX.writeFile(wb,'All_Projects_Site_Tracker_'+new Date().toISOString().split('T')[0]+'.xlsx');
+    try{toast('Exported site trackers for '+(index.length-1)+' project(s) — edit any sheet and re-import',true);}catch(e){}
+  });
+}
+window.exportAllSiteTrackers=exportAllSiteTrackers;
+
+function importAllSiteTrackers(file){
+  if(!file) return;
+  if(!(typeof isEditor==='function'&&isEditor())){ try{toast('Editor role required',false);}catch(e){} return; }
+  loadXLSX(function(){
+    var rd=new FileReader();
+    rd.onload=function(ev){
+      try{
+        var wb=XLSX.read(ev.target.result,{type:'array',raw:false,cellDates:false});
+        var applied=[], skipped=[];
+        wb.SheetNames.forEach(function(sn){
+          if(sn==='_Index') return;
+          var rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,blankrows:false,raw:false,defval:''});
+          if(!rows||rows.length<2){ skipped.push(sn+' (empty)'); return; }
+
+          /* Locate the project: explicit __pid stamp first, then sheet name. */
+          var pid=null, hdr=rows[0]||[];
+          for(var i=0;i<hdr.length;i++){
+            var m=String(hdr[i]||'').match(/^__pid:(.+)$/);
+            if(m){ pid=m[1].trim(); hdr.splice(i,1); rows=rows.map(function(r,ri){ var cp=r.slice(); cp.splice(i,1); return cp; }); break; }
+          }
+          var p=null;
+          if(pid && typeof projByID==='function') p=projByID(pid);
+          if(!p){
+            var t=stNormLabel(sn);
+            (STORE.projects||[]).forEach(function(x){
+              if(!x) return;
+              if(stNormLabel(x.nameEn||'')===t||stNormLabel(x.name||'')===t) p=x;
+              (x.subProjects||[]).forEach(function(sp){
+                if(sp&&(stNormLabel(sp.nameEn||'')===t||stNormLabel(sp.name||'')===t)) p=sp;
+              });
+            });
+          }
+          if(!p){ skipped.push(sn+' (no matching project)'); return; }
+
+          var res=stImportRows(p,rows);
+          if(res.ok){
+            applied.push((p.nameEn||p.name||p.id)+': '+res.sites+' site(s)'+(res.subs?(' + '+res.subs+' sub'):''));
+            try{ if(typeof recomputeOfficePhases==='function'&&typeof hasServiceOffices==='function'&&hasServiceOffices(p)) recomputeOfficePhases(p); }catch(e){}
+          } else skipped.push(sn+' ('+res.reason+')');
+        });
+
+        if(applied.length){
+          try{ if(typeof syncProjectArrays==='function') syncProjectArrays(); }catch(e){}
+          persist();                                     /* -> localStorage + Firebase */
+          try{ if(typeof renderHub==='function') renderHub(); }catch(e){}
+          try{ if(window.CUR_PROJ&&typeof renderProjectView==='function') renderProjectView(CUR_PROJ); }catch(e){}
+          try{ if(typeof auditLog==='function') auditLog('','excel','import-all',applied.join('; ').slice(0,200)); }catch(e){}
+          try{toast('Site trackers updated: '+applied.join(' \u00b7 '),true);}catch(e){}
+          if(skipped.length) console.warn('Sheets skipped during import:',skipped.join(', '));
+        } else {
+          try{toast('Nothing imported \u2014 '+(skipped[0]||'no usable sheets found'),false);}catch(e){}
+        }
+      }catch(err){
+        console.error('All-projects import failed',err);
+        try{toast('Import failed: '+(err&&err.message||err),false);}catch(e){}
+      }
+    };
+    rd.readAsArrayBuffer(file);
+  });
+}
+window.importAllSiteTrackers=importAllSiteTrackers;
+
+/* Hidden file input for the all-projects import. */
+document.addEventListener('DOMContentLoaded',function(){
+  if(document.getElementById('allStXlsInput')) return;
+  var inp=document.createElement('input');
+  inp.type='file'; inp.id='allStXlsInput'; inp.accept='.xlsx,.xls'; inp.style.display='none';
+  inp.onchange=function(){ importAllSiteTrackers(this.files[0]); this.value=''; };
+  document.body.appendChild(inp);
+});
+window.pickAllSiteTrackerFile=function(){
+  var el=document.getElementById('allStXlsInput');
+  if(el) el.click();
+};
 
 })();
 
