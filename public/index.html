@@ -2438,6 +2438,29 @@ body{background-color:#F1F3F8!important;background-image:var(--kp-lotus),radial-
   .tr-toast{right:10px;left:10px;max-width:none}
 }
 
+
+/* ══ v503 — floor checklist column reorder controls ══ */
+/* The checklist header sits on #F5F7FA, so these controls are dark-on-light.
+   (The previous white-on-white delete button was effectively invisible.) */
+.fl-table thead th[data-fcol]{white-space:normal;transition:background .3s;max-width:none;min-width:96px}
+.fl-col-lbl{display:block;max-width:150px;margin:0 auto 4px}
+.fl-col-tools{display:inline-flex;align-items:center;justify-content:center;gap:3px}
+.fl-col-mv,.fl-col-del{
+  background:#E3E8EF;border:1px solid #D2D9E3;color:#4A5361;border-radius:5px;
+  width:19px;height:19px;font-size:11px;line-height:1;cursor:pointer;font-weight:800;
+  padding:0;display:inline-grid;place-items:center;
+  transition:background .14s,color .14s,border-color .14s,opacity .14s;
+}
+.fl-col-mv:hover:not(:disabled){background:var(--brand,#B12836);border-color:var(--brand,#B12836);color:#fff}
+.fl-col-mv:disabled{opacity:.3;cursor:default}
+.fl-col-del{font-size:13px}
+.fl-col-del:hover{background:#B0202E;border-color:#B0202E;color:#fff}
+@keyframes flColMoved{0%{background:#FBE3E6}100%{background:#F5F7FA}}
+.fl-table thead th.fl-col-moved{animation:flColMoved .7s ease-out}
+@media(max-width:640px){
+  .fl-col-tools{gap:1px;margin-inline-start:3px}
+  .fl-col-mv,.fl-col-del{width:16px;height:16px;font-size:10px}
+}
 </style>
 </head>
 <body class="role-viewer intro-playing">
@@ -7825,6 +7848,34 @@ function newFloor(name,cols){ var it={}; (cols||FLOOR_ITEMS_DEFAULT).forEach(fun
 function addFloorColumn(){ if(!CUR_FLOOR)return; if(!isEditor())return; var s=projByID(CUR_FLOOR.pid).sites[CUR_FLOOR.idx]; if(!s)return; var nm=window.prompt('New column name:',''); if(nm===null)return; nm=(nm||'').trim(); if(!nm)return; var key='fc_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); var cols=ensureFloorCols(s); cols.push([key,nm]); ensureFloors(s); (s.floors||[]).forEach(function(f){ if(!f.items)f.items={}; f.items[key]='n'; }); floorSave(); renderFloors(); try{toast('Column "'+nm+'" added',true);}catch(e){} }
 function delFloorColumn(key){ if(!CUR_FLOOR)return; if(!isEditor())return; var s=projByID(CUR_FLOOR.pid).sites[CUR_FLOOR.idx]; if(!s)return; var cols=ensureFloorCols(s); if(cols.length<=1){ try{toast('At least one column required',false);}catch(e){} return; } if(!window.confirm('Remove this column?'))return; s.floorColumns=cols.filter(function(c){return c[0]!==key;}); (s.floors||[]).forEach(function(f){ if(f.items) delete f.items[key]; }); floorSave(); renderFloors(); }
 function renameFloorColumn(key,newLabel){ if(!CUR_FLOOR)return; if(!isEditor())return; var s=projByID(CUR_FLOOR.pid).sites[CUR_FLOOR.idx]; if(!s)return; var v=(newLabel||'').trim(); if(!v)return; var cols=ensureFloorCols(s); var col=cols.find(function(c){return c[0]===key;}); if(col){col[1]=v;} floorSave(); renderFloors(); }
+/* v503 — reorder a checklist column one position left or right.
+   The column order lives in site.floorColumns, which is the same array the
+   header, every cell row and the Excel export all read from, so swapping two
+   entries moves the whole column — label, values and export position together.
+   floorSave() commits through persist(), so the new order reaches the database
+   and survives refresh like any other change. */
+function moveFloorColumn(key,dir){
+  if(!CUR_FLOOR||!isEditor())return;
+  var s=projByID(CUR_FLOOR.pid).sites[CUR_FLOOR.idx]; if(!s)return;
+  var cols=ensureFloorCols(s);
+  var i=cols.findIndex(function(c){return c[0]===key;});
+  if(i<0)return;
+  var j=i+(dir<0?-1:1);
+  if(j<0||j>=cols.length){ try{toast(dir<0?'Already the first column':'Already the last column',false);}catch(e){} return; }
+  var t=cols[i]; cols[i]=cols[j]; cols[j]=t;
+  floorSave();
+  renderFloors();
+  /* Keep the moved column in view and briefly highlight it so the user can see
+     where it landed in a wide, horizontally scrolled table. */
+  try{
+    var th=document.querySelector('#floorsModal th[data-fcol="'+key+'"]');
+    if(th){
+      th.classList.add('fl-col-moved');
+      if(th.scrollIntoView) th.scrollIntoView({block:'nearest',inline:'nearest'});
+      setTimeout(function(){ th.classList.remove('fl-col-moved'); },700);
+    }
+  }catch(e){}
+}
 function ensureDataCenter(){
   try{
     if(typeof PROJECTS_SEED==='undefined'||!STORE) return false;
@@ -7865,9 +7916,13 @@ function renderFloors(){ if(!CUR_FLOOR)return; var p=projByID(CUR_FLOOR.pid); if
   var PM=isEditor();
   var cols=getFloorCols(site);
   var floors=ensureFloors(site); var overall=siteFloorPct(site); var oc=overall>=70?'var(--good)':overall>=35?'var(--teal)':'var(--risk)'; var designPct=siteDesignPct(site); var finalPct=siteFinalPct(site); var fcol=finalPct>=70?'var(--good)':finalPct>=35?'var(--teal)':'var(--risk)';
-  var head='<th class="fl-floor-h">Floor</th>'+cols.map(function(x){
-    return '<th>'+(PM?'<span contenteditable="true" style="cursor:text;padding:1px 4px;border-radius:3px" onblur="renameFloorColumn(\''+x[0]+'\',this.textContent)">'+esc(x[1])+'</span>'
-    +'<button onclick="delFloorColumn(\''+x[0]+'\')" style="margin-left:4px;background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:4px;width:18px;height:18px;font-size:11px;cursor:pointer;font-weight:800" title="Remove column">&times;</button>'
+  var head='<th class="fl-floor-h">Floor</th>'+cols.map(function(x,ci){
+    return '<th data-fcol="'+esc(x[0])+'">'+(PM?'<span class="fl-col-lbl" contenteditable="true" style="cursor:text;padding:1px 4px;border-radius:3px" onblur="renameFloorColumn(\''+x[0]+'\',this.textContent)">'+esc(x[1])+'</span>'
+    +'<span class="fl-col-tools">'
+      +'<button class="fl-col-mv" onclick="moveFloorColumn(\''+x[0]+'\',-1)"'+(ci===0?' disabled':'')+' title="Move column left">\u2190</button>'
+      +'<button class="fl-col-mv" onclick="moveFloorColumn(\''+x[0]+'\',1)"'+(ci===cols.length-1?' disabled':'')+' title="Move column right">\u2192</button>'
+      +'<button class="fl-col-del" onclick="delFloorColumn(\''+x[0]+'\')" title="Remove column">&times;</button>'
+    +'</span>'
     :esc(x[1]))+'</th>';
   }).join('')+'<th>Progress</th><th></th>';
   var rows=floors.map(function(f,fi){
@@ -7884,7 +7939,7 @@ function renderFloors(){ if(!CUR_FLOOR)return; var p=projByID(CUR_FLOOR.pid); if
     '<div class="fl-legend" data-ui-key="legend:floors"><span data-ui-key="legend:floors:d"><i class="lg d"></i>Done</span><span data-ui-key="legend:floors:p"><i class="lg p"></i>In Progress</span><span data-ui-key="legend:floors:n"><i class="lg n"></i>Not Started</span><span class="fl-hint">Tap any cell to cycle status</span></div>'+
     (PM?'<div style="display:flex;gap:8px;margin:0 18px 10px;flex-wrap:wrap">'
       +'<button class="fl-add" onclick="addFloorColumn()" style="font-size:11.5px;padding:5px 14px">+ Add Column</button>'
-      +'<span style="font-size:11px;color:var(--muted);align-self:center">Click column headers to rename · × to delete</span>'
+      +'<span style="font-size:11px;color:var(--muted);align-self:center">Click column headers to rename · ← → to reorder · × to delete</span>'
     +'</div>':'')+
     '<div class="fl-table-wrap"><table class="fl-table"><thead><tr>'+head+'</tr></thead><tbody>'+rows+'</tbody></table></div>'+
     '<div class="fl-foot"><button class="fl-add" onclick="addFloor()">+ Add Floor</button><button class="fl-done" onclick="closeFloors()">Done</button></div>';
