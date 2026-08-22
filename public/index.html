@@ -2461,6 +2461,94 @@ body{background-color:#F1F3F8!important;background-image:var(--kp-lotus),radial-
   .fl-col-tools{gap:1px;margin-inline-start:3px}
   .fl-col-mv,.fl-col-del{width:16px;height:16px;font-size:10px}
 }
+
+/* ══ v505 — Trainers column ══ */
+.tr-table th.tr-th-tn{width:78px;text-align:center;white-space:nowrap}
+td.tr-tn{text-align:center;padding:6px 4px}
+.tr-tn-v{
+  display:inline-grid;place-items:center;min-width:34px;height:24px;padding:0 8px;
+  border-radius:7px;background:#EEF2F7;border:1px solid #DCE3EC;
+  font-weight:800;font-size:12px;color:var(--ink-2,#3B4048);
+  font-variant-numeric:tabular-nums;transition:background .14s,border-color .14s,color .14s;
+}
+body.role-pm .tr-tn-v{cursor:text}
+body.role-pm .tr-tn-v:hover{background:#E3EAF3;border-color:#C6D1DE}
+.tr-tn-v:focus{outline:none;background:#fff;border-color:var(--brand,#B12836);
+  box-shadow:0 0 0 2px var(--brand-soft,#F7E3E5);color:var(--brand-deep,#8A1E2A)}
+.tr-kpi.k-t b{color:#2C6E8A}
+
+/* ══ v505 — per-project Translate control (replaces the floating banner) ══ */
+.tr-proj-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  border-radius:9px;padding:7px 12px;margin-inline-end:6px;
+  font-family:var(--body,'Segoe UI',sans-serif);font-size:12px;font-weight:700;
+  border:1px solid var(--line,#E5E9F1);background:#fff;color:var(--muted,#8A97A6);
+  cursor:pointer;white-space:nowrap;transition:background .16s,border-color .16s,color .16s,box-shadow .16s;
+}
+.tr-proj-btn svg{width:14px;height:14px;flex:0 0 auto}
+.tr-proj-btn.is-idle{opacity:.62;cursor:default;color:#2E7D5B;border-color:#D8E6DD;background:#F4F9F6}
+.tr-proj-btn.is-active{
+  color:#fff;background:var(--brand,#B12836);border-color:var(--brand,#B12836);
+  box-shadow:0 2px 10px -3px rgba(177,40,54,.55);
+  animation:trWake .42s ease-out;
+}
+.tr-proj-btn.is-active:hover{filter:brightness(1.08)}
+.tr-proj-btn.is-busy{color:var(--ink-2,#3B4048);background:#EEF1F4;border-color:#DCE3EC;cursor:default}
+.tr-proj-n{
+  font-style:normal;font-size:10.5px;font-weight:800;line-height:1;
+  background:rgba(255,255,255,.26);border-radius:99px;padding:3px 6px;margin-inline-start:1px;
+}
+@keyframes trWake{
+  0%{transform:scale(.94);box-shadow:0 0 0 0 rgba(177,40,54,.45)}
+  60%{transform:scale(1.03);box-shadow:0 0 0 7px rgba(177,40,54,0)}
+  100%{transform:scale(1)}
+}
+/* The old floating banner must never render again. */
+#trToolbar,.tr-toolbar{display:none !important}
+@media(max-width:640px){
+  .tr-proj-btn{padding:6px 9px;font-size:11px}
+  .tr-proj-btn span{display:none}
+  .tr-proj-btn .tr-proj-n{display:inline}
+}
+
+/* ══ v506 — auto-translate ══ */
+.tr-auto-chip{
+  display:inline-flex;align-items:center;gap:5px;border-radius:9px;padding:7px 10px;margin-inline-end:6px;
+  font-family:var(--body,'Segoe UI',sans-serif);font-size:11.5px;font-weight:700;cursor:pointer;
+  border:1px solid var(--line,#E5E9F1);background:#fff;color:var(--muted,#8A97A6);
+  transition:background .16s,border-color .16s,color .16s;white-space:nowrap;
+}
+.tr-auto-chip i{width:7px;height:7px;border-radius:99px;background:#C7CCD6;transition:background .16s,box-shadow .16s}
+.tr-auto-chip.on{color:#2E7D5B;border-color:#BFDCCB;background:#EFF7F2}
+.tr-auto-chip.on i{background:#2E7D5B;box-shadow:0 0 0 3px rgba(46,125,91,.16)}
+.tr-auto-chip:hover{border-color:var(--brand,#B12836);color:var(--brand-deep,#8A1E2A)}
+
+[contenteditable].tr-auto-busy{background:linear-gradient(90deg,#EEF2F7 25%,#E2E9F2 50%,#EEF2F7 75%);
+  background-size:200% 100%;animation:trShim 1s linear infinite;border-radius:4px}
+@keyframes trShim{0%{background-position:200% 0}100%{background-position:-200% 0}}
+[contenteditable].tr-auto-ok{box-shadow:inset 0 -2px 0 #2E7D5B;transition:box-shadow .3s}
+[contenteditable].tr-auto-fail{box-shadow:inset 0 -2px 0 #C08A2E;transition:box-shadow .3s}
+
+.tr-bulk{position:fixed;inset:0;z-index:99999;background:rgba(18,22,38,.52);display:flex;align-items:center;justify-content:center}
+.tr-bulk-in{background:#fff;border-radius:14px;padding:22px 26px;width:min(420px,92vw);
+  box-shadow:0 24px 70px rgba(18,22,38,.4);font-family:var(--body,'Segoe UI',sans-serif);text-align:center}
+.tr-bulk-t{font-weight:800;font-size:15px;color:var(--ink,#20242E);margin-bottom:14px}
+.tr-bulk-bar{height:7px;border-radius:99px;background:#EEF1F4;overflow:hidden;margin-bottom:10px}
+.tr-bulk-bar>div{height:100%;width:0;background:var(--brand,#B12836);border-radius:99px;transition:width .25s}
+.tr-bulk-s{font-size:11.5px;color:var(--ink-3,#6B7280);margin-bottom:14px;font-variant-numeric:tabular-nums}
+.tr-bulk-x{border:1px solid var(--line,#E5E9F1);background:#fff;color:var(--ink-2,#3B4048);
+  border-radius:8px;padding:7px 18px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.tr-bulk-x:hover{background:var(--muted-bg,#EEF1F4)}
+@media(max-width:640px){ .tr-auto-chip span{display:none} }
+
+.tr-fld-row{flex-direction:row;align-items:flex-start;gap:10px;cursor:pointer;
+  background:#F4F6F9;border:1px solid var(--line-soft,#EDF0F5);border-radius:9px;padding:12px 13px}
+.tr-fld-row input{width:16px;height:16px;margin-top:1px;flex:0 0 auto;accent-color:var(--brand,#B12836)}
+.tr-fld-rl{display:flex;flex-direction:column;gap:3px}
+.tr-fld-rl b{font-size:12.5px;color:var(--ink-2,#3B4048)}
+.tr-fld-rl i{font-style:normal;font-size:11.5px;line-height:1.5;color:var(--ink-3,#6B7280)}
+.tr-btn-row{display:flex;gap:8px;flex-wrap:wrap}
+.tr-btn-row .tr-b2{flex:1;min-width:120px;padding:9px 10px;font-size:12px}
 </style>
 </head>
 <body class="role-viewer intro-playing">
@@ -13333,7 +13421,7 @@ var TR_STEPS=[
   ['workshop',  'Workshop',    'Workshop Place'],
   ['training',  'Training',    'Training Delivery']
 ];
-var TR_XL_HEAD=['Training Field','Training Data Prepration','Costumer Team Assignment','Due Date For Training','Workshop Place ','Training','Notes'];
+var TR_XL_HEAD=['Training Field','Training Data Prepration','Costumer Team Assignment','Due Date For Training','Workshop Place ','Training','Trainers','Notes'];
 var TR_IN={'done':'d','complete':'d','completed':'d','closed':'d','in progress':'p','inprogress':'p','ongoing':'p','pending':'n','not started':'n','':'n','hold':'h','on hold':'h'};
 var TR_OUT={d:'Done',p:'In Progress',n:'Pending',h:'On Hold'};
 
@@ -13386,6 +13474,27 @@ function trEdit(i,field,val){ var p=trProj(); if(!p||!p.training[i])return;
   val=String(val==null?'':val).trim();
   if(field==='name')p.training[i].name=val||p.training[i].name; else p.training[i][field]=val;
   trSave(false); }
+/* v505 — number of trainers assigned to a training track.
+   Stored as r.trainers. Kept as '' rather than 0 when unset so the table can
+   show an em dash for "not recorded yet", which is different from "zero
+   trainers assigned" — the distinction matters when planning staffing. */
+function trTrainers(r){
+  if(!r) return '';
+  var v=r.trainers;
+  if(v===''||v==null) return '';
+  var n=parseInt(v,10);
+  return isNaN(n)?'':Math.max(0,n);
+}
+function trEditTrainers(i,val){
+  if(!isEditor())return;
+  var p=trProj(); if(!p||!p.training[i])return;
+  var raw=String(val==null?'':val).replace(/[^0-9]/g,'').trim();
+  p.training[i].trainers=(raw===''?'':Math.max(0,parseInt(raw,10)||0));
+  trSave(true);
+}
+function trTotalTrainers(p){
+  return (p&&p.training||[]).reduce(function(a,r){ var n=trTrainers(r); return a+(n===''?0:n); },0);
+}
 function trAdd(){ if(!isEditor())return; var p=trProj(); if(!p)return;
   var nm=window.prompt('Training track / system name:',''); if(nm===null)return;
   var row={name:(nm||'').trim()||'New Track',notes:'',start:'',end:''};
@@ -13433,7 +13542,7 @@ function trExport(){
 
     var rows=[TR_XL_HEAD];
     t.forEach(function(r){
-      rows.push([r.name||''].concat(TR_STEPS.map(function(s){return TR_OUT[r[s[0]]||'n'];})).concat([r.notes||'']));
+      rows.push([r.name||''].concat(TR_STEPS.map(function(s){return TR_OUT[r[s[0]]||'n'];})).concat([trTrainers(r),r.notes||'']));
     });
     var ws2=XLSX.utils.aoa_to_sheet(rows);
     ws2['!cols']=[{wch:18},{wch:24},{wch:26},{wch:22},{wch:18},{wch:16},{wch:26}];
@@ -13465,10 +13574,26 @@ function trImport(file){
         });
         if(!rows){ toast('No "Training Field" header found in the workbook',false); return; }
         var out=[],skipped=0;
+        /* v505 — locate Notes and Trainers by HEADER, not by fixed index.
+           Adding the Trainers column shifted Notes from position 6 to 7, so a
+           hardcoded r[6] would read trainer counts into the notes field for new
+           files, or notes into nothing for old ones. Reading the header row
+           keeps both layouts importable. */
+        var _hdr=(rows[0]||[]).map(function(h){ return String(h==null?'':h).trim().toLowerCase(); });
+        var _iNotes=_hdr.indexOf('notes');
+        var _iTrainers=-1;
+        for(var _h=0;_h<_hdr.length;_h++){
+          if(/^(trainers|no\.? of trainers|number of trainers|trainer count|عدد المدربين)$/.test(_hdr[_h])){ _iTrainers=_h; break; }
+        }
+        if(_iNotes<0) _iNotes=(_iTrainers>=0?7:6);   /* fall back to legacy positions */
         for(var i=1;i<rows.length;i++){
           var r=rows[i]||[]; var nm=String(r[0]||'').trim();
           if(!nm){ skipped++; continue; }
-          var row={name:nm,notes:String(r[6]||'').trim(),start:'',end:''};
+          var row={name:nm,notes:String(r[_iNotes]||'').trim(),start:'',end:''};
+          if(_iTrainers>=0){
+            var _tv=String(r[_iTrainers]==null?'':r[_iTrainers]).replace(/[^0-9]/g,'').trim();
+            row.trainers=(_tv===''?'':Math.max(0,parseInt(_tv,10)||0));
+          }
           TR_STEPS.forEach(function(s,k){ row[s[0]]=trIn(r[k+1]); });
           out.push(row);
         }
@@ -13542,6 +13667,7 @@ function renderTraining(p){
     '<div class="tr-kpi k-d"><b>'+done+'</b><span>Completed</span></div>'+
     '<div class="tr-kpi k-p"><b>'+prog+'</b><span>In progress</span></div>'+
     '<div class="tr-kpi k-n"><b>'+pend+'</b><span>Not started</span></div>'+
+    '<div class="tr-kpi k-t"><b>'+trTotalTrainers(p)+'</b><span>Trainers assigned</span></div>'+
     '</div>';
 
   /* step rail */
@@ -13556,7 +13682,7 @@ function renderTraining(p){
   /* matrix */
   var head='<tr><th class="tr-th-n">Training track</th>'+
     TR_STEPS.map(function(s,k){return '<th title="'+esc(s[2])+'"><span class="tr-th-k">'+(k+1)+'</span>'+esc(s[1])+'</th>';}).join('')+
-    '<th class="tr-th-pg">Progress</th><th>Owner</th><th class="tr-th-no">Notes</th>'+(PM?'<th></th>':'')+'</tr>';
+    '<th class="tr-th-pg">Progress</th><th>Owner</th><th class="tr-th-tn" title="Number of trainers assigned to this track">Trainers</th><th class="tr-th-no">Notes</th>'+(PM?'<th></th>':'')+'</tr>';
 
   var body=t.map(function(r,i){
     var cells=TR_STEPS.map(function(s){
@@ -13572,13 +13698,14 @@ function renderTraining(p){
       cells+
       '<td><div class="tr-pg"><div class="tr-pg-bar"><div style="width:'+pc+'%;background:'+col+'"></div></div><span style="color:'+col+'">'+pc+'%</span></div></td>'+
       '<td><span class="tr-own'+(own==='CLOSED'?' tr-own-c':'')+'">'+esc(own)+'</span></td>'+
+      '<td class="tr-tn"><span class="tr-tn-v" contenteditable="'+(PM?'true':'false')+'" inputmode="numeric" onblur="trEditTrainers('+i+',this.textContent)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();this.blur();}" title="'+(PM?'Click to set the number of trainers':'Number of trainers')+'">'+esc(trTrainers(r)===''?'\u2014':String(trTrainers(r)))+'</span></td>'+
       '<td class="tr-no" contenteditable="'+(PM?'true':'false')+'" onblur="trEdit('+i+',\'notes\',this.textContent)">'+esc(r.notes||'')+'</td>'+
       (PM?'<td class="tr-act"><button class="tr-mini" title="Mark all steps done" onclick="trSetRow('+i+',\'d\')">\u2713</button><button class="tr-mini" title="Move up" onclick="trMove('+i+',-1)">\u2191</button><button class="tr-mini" title="Move down" onclick="trMove('+i+',1)">\u2193</button><button class="tr-mini tr-mini-x" title="Remove track" onclick="trDel('+i+')">\u2715</button></td>':'')+
     '</tr>';
   }).join('');
 
   if(!n){
-    body='<tr><td colspan="'+(TR_STEPS.length+4+(PM?1:0))+'" class="tr-empty">No training tracks yet. Upload the Excel sheet'+(PM?' or add a track':'')+' to get started.</td></tr>';
+    body='<tr><td colspan="'+(TR_STEPS.length+5+(PM?1:0))+'" class="tr-empty">No training tracks yet. Upload the Excel sheet'+(PM?' or add a track':'')+' to get started.</td></tr>';
   }
 
   return '<div class="sec-card pv-full tr-card"><div class="sec-head" onclick="toggleSection(this,event)">'+
@@ -14624,6 +14751,12 @@ function trOpenCfg(){
   +'    <label class="tr-fld"><span>Endpoint URL</span><input id="trEp" type="text" placeholder="Optional \u2014 override the default endpoint"></label>'
   +'    <label class="tr-fld"><span>Model / region</span><input id="trModel" type="text" placeholder="e.g. gpt-4o-mini, or the Azure region"></label>'
   +'    <div class="tr-note"><b>Where things are stored.</b> Translations are written to <code>STORE.i18n</code> and committed through <code>persist()</code>, which saves to the local cache and pushes to the Firebase Realtime Database \u2014 so they survive refresh, re-login and a new browser on another machine. The API key above is the one exception: it stays in this browser only and is never written to STORE, because STORE is broadcast in full to every member of the shared Firebase room and a key placed there would leak to all of them.</div>'
+  +'    <label class="tr-fld tr-fld-row"><input type="checkbox" id="trAutoChk"><span class="tr-fld-rl"><b>Auto-translate as I type</b><i>Any non-English text you finish editing is translated to professional English and saved automatically. The original is always kept and can be restored.</i></span></label>'
+  +'    <div class="tr-btn-row">'
+  +'      <button class="tr-b2" id="trAll2" title="Translate every non-English text in every project">Translate everything</button>'
+  +'      <button class="tr-b2" id="trRestore" title="Put the original text back into fields that were auto-translated">Restore originals</button>'
+  +'      <button class="tr-b2" id="trUndo" title="Undo the most recent automatic translation">Undo last</button>'
+  +'    </div>'
   +'    <div class="tr-note tr-note-2"><b>Glossary first.</b> Department names, workflow stages and official titles are resolved from a curated Arabic\u2013English glossary before any online engine is consulted, so proper nouns stay in their approved forms. Online engines are used only for free text the glossary cannot fully resolve.</div>'
   +'  </div>'
   +'  <div class="tr-modal-f">'
@@ -14638,6 +14771,11 @@ function trOpenCfg(){
   m.querySelector('#trKey').value=c.key||'';
   m.querySelector('#trEp').value=c.endpoint||'';
   m.querySelector('#trModel').value=c.model||'';
+  try{ m.querySelector('#trAutoChk').checked=(typeof trAutoOn==='function')?trAutoOn():false; }catch(e){}
+  m.querySelector('#trAutoChk').onchange=function(){ if(typeof trAutoSet==='function') trAutoSet(this.checked); };
+  m.querySelector('#trAll2').onclick=function(){ m.remove(); if(typeof translateEverything==='function') translateEverything(); };
+  m.querySelector('#trRestore').onclick=function(){ m.remove(); if(typeof restoreAllOriginals==='function') restoreAllOriginals(); };
+  m.querySelector('#trUndo').onclick=function(){ if(typeof trUndoLast==='function') trUndoLast(); };
   function close(){ m.remove(); }
   m.addEventListener('click',function(e){ if(e.target===m) close(); });
   m.querySelector('#trClose').onclick=close;
@@ -15190,6 +15328,608 @@ window.applyFloorColsToAll=applyFloorColsToAll;
 /* Run the compaction once the store is loaded. */
 document.addEventListener('DOMContentLoaded',function(){ setTimeout(compactSites,1200); });
 setTimeout(compactSites,2800);
+
+})();
+
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   v505 — TRANSLATION: PER-PROJECT BUTTON REPLACES THE FLOATING BANNER
+   ───────────────────────────────────────────────────────────────────────────
+   The floating toolbar sat over the content on every screen whether or not
+   there was anything to translate. It is removed. In its place each project
+   header carries its own Translate control that:
+     • stays dormant (greyed, non-interactive) while the project is all English
+     • wakes the moment non-English text appears anywhere in the project —
+       including as you type, without waiting for a save or re-render
+     • shows how many fields are waiting
+     • translates them all and commits each to the database
+
+   Detection runs against the project's DATA, not just the rendered DOM, so a
+   field scrolled out of view or sitting in a collapsed section still counts.
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function(){
+if(window.__v505) return; window.__v505=true;
+
+/* ── Kill the old floating toolbar for good ─────────────────────────────── */
+function nukeBanner(){
+  try{
+    var el=document.getElementById('trToolbar');
+    if(el) el.remove();
+  }catch(e){}
+}
+/* trToolbar() is called from several places in the v500 module; neutralise it
+   rather than editing every call site, so the rest of that module is untouched. */
+window.trToolbar=function(){ nukeBanner(); trProjBtnRefresh(); };
+setInterval(nukeBanner,1500);
+document.addEventListener('DOMContentLoaded',nukeBanner);
+
+/* ── Walk a project's data and collect every non-English string ─────────── */
+var SKIP_KEYS={id:1,icon:1,status:1,rag:1,color:1,key:1,type:1,src:1,srcHash:1,
+               provider:1,ts:1,lang:1,en:1,hidden:1,builtin:1};
+function collectForeign(node,out,depth){
+  if(depth>7||out.length>400) return;
+  if(node==null) return;
+  if(typeof node==='string'){
+    var t=node.trim();
+    if(t.length>1 && typeof trNeeds==='function' && trNeeds(t)) out.push(t);
+    return;
+  }
+  if(Array.isArray(node)){
+    for(var i=0;i<node.length;i++) collectForeign(node[i],out,depth+1);
+    return;
+  }
+  if(typeof node==='object'){
+    for(var k in node){
+      if(!Object.prototype.hasOwnProperty.call(node,k)) continue;
+      if(SKIP_KEYS[k]) continue;
+      collectForeign(node[k],out,depth+1);
+    }
+  }
+}
+/* Distinct source strings in this project that still need an English version. */
+function projPending(p){
+  if(!p||typeof trNeeds!=='function') return [];
+  var found=[];
+  collectForeign(p,found,0);
+  /* Include anything currently typed into the DOM but not yet committed. */
+  try{
+    document.querySelectorAll('#pvGrid [contenteditable="true"]').forEach(function(el){
+      var t=(el.textContent||'').trim();
+      if(t.length>1 && trNeeds(t)) found.push(t);
+    });
+  }catch(e){}
+  var seen={}, out=[];
+  found.forEach(function(s){
+    var norm=s.replace(/\s+/g,' ').trim();
+    if(seen[norm]) return; seen[norm]=1;
+    var e=(typeof trGet==='function')?trGet(norm):null;
+    if(!e || e.status!=='translated') out.push(norm);
+  });
+  return out;
+}
+window.projPending=projPending;
+
+/* ── The button ─────────────────────────────────────────────────────────── */
+function ensureProjBtn(){
+  var host=document.querySelector('.pv-actions');
+  if(!host) return null;
+  var btn=document.getElementById('trProjBtn');
+  if(btn && btn.parentNode===host) return btn;
+  if(btn) btn.remove();
+  btn=document.createElement('button');
+  btn.id='trProjBtn';
+  btn.type='button';
+  btn.className='tr-proj-btn is-idle';
+  btn.onclick=trProjRun;
+  /* First item in the action row, so it reads before the utility buttons. */
+  var first=host.firstElementChild;
+  if(first) host.insertBefore(btn,first); else host.appendChild(btn);
+  return btn;
+}
+
+var ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h10M9 4v4M11 20l4-9 4 9M12.5 17h5.5"/><path d="M12 8s-1.5 6-7 8"/></svg>';
+var SPIN='<svg class="tr-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9"/></svg>';
+var TICK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+
+var busy=false;
+function trProjBtnRefresh(){
+  if(busy) return;
+  var btn=ensureProjBtn();
+  if(!btn) return;
+  var p=(typeof CUR_PROJ!=='undefined'&&CUR_PROJ&&typeof projByID==='function')?projByID(CUR_PROJ):null;
+  if(!p){ btn.style.display='none'; return; }
+  btn.style.display='';
+  var pending=projPending(p);
+  btn.setAttribute('data-n',pending.length);
+  if(pending.length){
+    btn.className='tr-proj-btn is-active';
+    btn.disabled=false;
+    btn.innerHTML=ICON+'<span>Translate</span><i class="tr-proj-n">'+pending.length+'</i>';
+    btn.title=pending.length+' field(s) in this project are not in English.\nClick to translate them and save each to the database.';
+  } else {
+    btn.className='tr-proj-btn is-idle';
+    btn.disabled=true;
+    btn.innerHTML=TICK+'<span>English</span>';
+    btn.title='Everything in this project is already in English. This button activates automatically as soon as non-English text is entered.';
+  }
+}
+window.trProjBtnRefresh=trProjBtnRefresh;
+
+function trProjRun(){
+  if(busy) return;
+  var p=(typeof CUR_PROJ!=='undefined'&&CUR_PROJ)?projByID(CUR_PROJ):null;
+  if(!p) return;
+  var pending=projPending(p);
+  if(!pending.length){ return; }
+  if(!window.confirm('Translate '+pending.length+' field(s) in '+(p.nameEn||p.name)
+      +' into professional English and save each one to the database?')) return;
+
+  busy=true;
+  var btn=ensureProjBtn();
+  var done=0, failed=0, i=0;
+  function step(){
+    if(i>=pending.length){
+      busy=false;
+      trProjBtnRefresh();
+      try{ if(typeof trRefreshAll==='function') trRefreshAll(); }catch(e){}
+      try{ if(typeof renderProjectView==='function') renderProjectView(CUR_PROJ); }catch(e){}
+      try{
+        if(failed) toast(done+' translated and saved \u00b7 '+failed+' failed \u2014 check Translation Settings',false);
+        else toast(done+' translation(s) saved to the database',true);
+      }catch(e){}
+      return;
+    }
+    var src=pending[i++];
+    if(btn){
+      btn.className='tr-proj-btn is-busy';
+      btn.disabled=true;
+      btn.innerHTML=SPIN+'<span>Translating '+i+'/'+pending.length+'</span>';
+    }
+    trTranslate(src).then(function(res){
+      trPut(src,res.en,res.provider,'translated');   /* -> persist -> Firebase */
+      done++;
+    }).catch(function(err){
+      failed++;
+      console.warn('translation failed for:',src.slice(0,40),err&&err.message);
+    }).then(function(){
+      setTimeout(step,700);   /* pace requests so free providers are not throttled */
+    });
+  }
+  step();
+}
+window.trProjRun=trProjRun;
+
+/* ── Live activation while typing ────────────────────────────────────────
+   Re-evaluating the whole project on every keystroke would be wasteful, so a
+   cheap script test on the typed text decides whether a full refresh is worth
+   running. Typing Arabic flips the button on immediately; typing English does
+   not trigger any work. */
+var typeT=null;
+function onType(ev){
+  var el=ev.target;
+  if(!el||el.nodeType!==1) return;
+  if(!el.isContentEditable && el.tagName!=='INPUT' && el.tagName!=='TEXTAREA') return;
+  var txt=(el.value!=null?el.value:el.textContent)||'';
+  var foreign=(typeof trNeeds==='function') && trNeeds(txt);
+  var btn=document.getElementById('trProjBtn');
+  var wasActive=btn&&btn.classList.contains('is-active');
+  if(!foreign && !wasActive) return;      /* nothing to do */
+  clearTimeout(typeT);
+  typeT=setTimeout(trProjBtnRefresh,260);
+}
+document.addEventListener('input',function(ev){
+  /* A real keystroke means the user is authoring again; re-enable auto. */
+  if(ev.isTrusted && ev.target && ev.target.removeAttribute){
+    try{ ev.target.removeAttribute('data-tr-noauto'); }catch(e){}
+  }
+},true);
+document.addEventListener('input',onType,true);
+document.addEventListener('blur',function(){ clearTimeout(typeT); typeT=setTimeout(trProjBtnRefresh,320); },true);
+
+/* Refresh after renders and on project open. */
+function wrap(name){
+  var o=window[name];
+  if(typeof o!=='function'||o.__trProjWrapped) return;
+  var w=function(){ var r=o.apply(this,arguments); setTimeout(trProjBtnRefresh,180); return r; };
+  w.__trProjWrapped=true; window[name]=w;
+}
+document.addEventListener('DOMContentLoaded',function(){
+  setTimeout(function(){ ['renderProjectView','openProject','closeProject'].forEach(wrap); nukeBanner(); trProjBtnRefresh(); },1400);
+});
+setTimeout(function(){ ['renderProjectView','openProject','closeProject'].forEach(wrap); nukeBanner(); trProjBtnRefresh(); },3000);
+
+})();
+
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   v506 — AUTOMATIC TRANSLATION ON COMMIT
+   ───────────────────────────────────────────────────────────────────────────
+   When Auto-translate is on, any field you finish editing that contains
+   non-English text is translated to professional English and the English is
+   written into the field — no button press.
+
+   Three deliberate design decisions, because this feature can destroy work if
+   built naively:
+
+   1. IT FIRES ON COMMIT, NOT ON KEYSTROKE. Translating while you type would
+      rewrite the text under the cursor mid-sentence and make the field
+      unusable. The trigger is blur — you have finished with the field.
+
+   2. THE ORIGINAL IS NEVER LOST. Before the English is written in, the source
+      string is saved to STORE.i18n (original text, detected language,
+      translation, status, timestamp) and indexed by the English so it can be
+      found again. "Restore original" reverses any field, and Undo reverses the
+      last one.
+
+   3. IT NEVER OVERWRITES WITH A GUESS. If the glossary cannot fully resolve
+      the text and no online provider is reachable, the field is LEFT ALONE and
+      the Translate button stays lit. A partial or failed translation silently
+      replacing real content is worse than no translation.
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function(){
+if(window.__v506) return; window.__v506=true;
+
+/* ── Setting ─────────────────────────────────────────────────────────────
+   Per-browser, not in STORE: STORE is broadcast to every member of the shared
+   Firebase room, and one person enabling auto-rewrite of everyone else's
+   fields is not a decision that should travel silently. */
+function autoOn(){
+  try{ var v=localStorage.getItem('kp_tr_auto'); return v===null?true:(v==='1'); }catch(e){ return true; }
+}
+function autoSet(v){
+  try{ localStorage.setItem('kp_tr_auto',v?'1':'0'); }catch(e){}
+  try{ if(typeof trProjBtnRefresh==='function') trProjBtnRefresh(); }catch(e){}
+  renderAutoChip();
+}
+window.trAutoOn=autoOn; window.trAutoSet=autoSet;
+
+/* ── Reverse index: English -> original, so any field can be turned back ── */
+function idx(){
+  var g=(typeof trStore==='function')?trStore():null;
+  if(!g) return null;
+  if(!g.byEn) g.byEn={};
+  return g;
+}
+function indexApplied(src,en){
+  var g=idx(); if(!g) return;
+  try{ g.byEn[trKeyOf(en)]=String(src); }catch(e){}
+}
+function trKeyOf(s){
+  /* Mirror of the v500 key function; kept local so this module does not
+     depend on an internal that may not be exported. */
+  var t=String(s==null?'':s).replace(/\s+/g,' ').trim(), h=5381;
+  for(var i=0;i<t.length;i++){ h=(((h<<5)+h)+t.charCodeAt(i))|0; }
+  return (h>>>0).toString(36);
+}
+function originalFor(en){
+  var g=idx(); if(!g||!g.byEn) return null;
+  return g.byEn[trKeyOf(en)]||null;
+}
+window.trOriginalFor=originalFor;
+
+/* ── Undo stack for the most recent automatic rewrites ──────────────────── */
+var undoStack=[];
+function pushUndo(rec){ undoStack.push(rec); if(undoStack.length>40) undoStack.shift(); }
+window.trUndoLast=function(){
+  var r=undoStack.pop();
+  if(!r){ try{toast('Nothing to undo',false);}catch(e){} return; }
+  try{
+    /* Prefer the exact node. Attribute lookup is only a fallback for when a
+       re-render has detached it, and even then the attribute alone is NOT
+       unique — data-phname="0" exists on the first phase of every project — so
+       candidates are additionally matched on the text we wrote. Querying by
+       attribute first would happily revert a completely different field. */
+    var el=(r.el&&document.contains(r.el))?r.el:null;
+    if(!el&&r.attr&&r.val!=null){
+      try{
+        var cands=document.querySelectorAll('['+r.attr+'="'+String(r.val).replace(/"/g,'\\"')+'"]');
+        for(var ci=0;ci<cands.length;ci++){
+          if((cands[ci].textContent||'').trim()===r.en){ el=cands[ci]; break; }
+        }
+      }catch(_){ el=null; }
+    }
+    if(el&&document.contains(el)){
+      suppressUntil=Date.now()+1200;
+      el.textContent=r.src;
+      el.removeAttribute('data-tr-auto');
+      el.removeAttribute('data-tr-showing');
+      el.setAttribute('data-tr-src',r.src);
+      el.setAttribute('data-tr-noauto','1');
+      el.removeAttribute('title');
+      commitField(el);
+      /* The v500 display layer paints the stored English over any field whose
+         source has an accepted translation, so restoring the text alone would
+         be repainted within a frame. Demote the entry to 'outdated': the
+         English is kept for reference, the original is what shows, and the
+         field offers a Re-translate button. */
+      try{
+        var ent=trGet(r.src);
+        if(ent){ ent.status='outdated'; }
+      }catch(_){}
+      try{ if(typeof persist==='function') persist(); }catch(_){}
+      try{ if(typeof trProjBtnRefresh==='function') trProjBtnRefresh(); }catch(_){}
+      try{toast('Reverted to the original text',true);}catch(e){}
+      return;
+    }
+  }catch(e){}
+  try{toast('That field is no longer on screen \u2014 use Restore originals instead',false);}catch(e){}
+};
+
+/* ── Push a value through the field's own save handler ───────────────────
+   Every editable cell already has an onblur that reads this.textContent and
+   writes it to the model. Reusing it means the English lands in the model the
+   same way a typed value would, with no per-field special casing. */
+function commitField(el){
+  /* Editable cells in this app save through different hooks: most use onblur,
+     but phase and milestone names save on oninput. Firing only blur left those
+     fields showing English while the model still held the original, so the
+     value never reached the database or the Excel export. Drive both. */
+  var ok=false;
+  try{ if(typeof el.oninput==='function'){ el.oninput.call(el,new Event('input')); ok=true; } }catch(e){}
+  try{ el.dispatchEvent(new Event('input',{bubbles:true})); }catch(e){}
+  try{ if(typeof el.onblur==='function'){ el.onblur.call(el,new Event('blur')); ok=true; } }catch(e){}
+  try{ el.dispatchEvent(new Event('blur',{bubbles:true})); }catch(e){}
+  return ok;
+}
+
+/* ── Visual state on the field being worked on ──────────────────────────── */
+function mark(el,state){
+  if(!el||!el.classList) return;
+  el.classList.remove('tr-auto-busy','tr-auto-ok','tr-auto-fail');
+  if(state) el.classList.add('tr-auto-'+state);
+  if(state==='ok'||state==='fail'){
+    setTimeout(function(){ try{ el.classList.remove('tr-auto-ok','tr-auto-fail'); }catch(e){} },1600);
+  }
+}
+
+/* ── The core: translate one committed field ────────────────────────────── */
+var inFlight=new WeakSet();
+var suppressUntil=0;   /* short global pause used while undoing */
+
+function handleCommit(el){
+  if(!autoOn()) return;
+  if(!el||el.nodeType!==1) return;
+  if(!el.isContentEditable) return;
+  if(inFlight.has(el)) return;
+  /* Undo sets this. Without it, restoring the original text fires blur, which
+     re-enters here and immediately translates it again — undo would be a
+     no-op that merely flickered. Cleared as soon as the user edits the field
+     themselves, so a deliberate later edit still auto-translates. */
+  if(el.getAttribute('data-tr-noauto')==='1') return;
+  if(Date.now()<suppressUntil) return;
+  try{ if(el.closest('.tr-btn,.tr-toolbar,.tr-modal,.tr-proj-btn')) return; }catch(e){ return; }
+  if(!(typeof isEditor==='function'&&isEditor())) return;
+
+  var raw=(el.textContent||'').trim();
+  if(raw.length<2 || raw.length>4000) return;
+  if(typeof trNeeds!=='function' || !trNeeds(raw)) return;   /* already English */
+
+  /* Already translated before? Reuse it — no network, no cost. */
+  var known=(typeof trGet==='function')?trGet(raw):null;
+  if(known && known.status==='translated' && known.en){
+    applyTranslation(el,raw,known.en,known.provider||'cache');
+    return;
+  }
+
+  inFlight.add(el);
+  mark(el,'busy');
+  trTranslate(raw).then(function(res){
+    /* Guard: refuse to overwrite with something empty, unchanged, or still
+       largely non-English. A bad rewrite is worse than none. */
+    var en=String(res&&res.en||'').trim();
+    var stillForeign=trNeeds(en);
+    if(!en || en===raw || stillForeign){
+      throw new Error('translation was not usable');
+    }
+    trPut(raw,en,res.provider,'translated');    /* -> persist -> Firebase */
+    applyTranslation(el,raw,en,res.provider);
+    mark(el,'ok');
+  }).catch(function(err){
+    mark(el,'fail');
+    /* Leave the user's text exactly as they typed it and let the manual
+       button handle it, rather than damaging the field. */
+    console.warn('[auto-translate] left original in place:',raw.slice(0,40),'-',err&&err.message);
+    try{ if(typeof trProjBtnRefresh==='function') trProjBtnRefresh(); }catch(e){}
+  }).then(function(){
+    inFlight.delete(el);
+  });
+}
+
+function applyTranslation(el,src,en,provider){
+  /* Do not fight the user: if they have clicked back into this field, skip. */
+  if(document.activeElement===el) return;
+  var attr=null,val=null;
+  for(var i=0;i<el.attributes.length;i++){
+    var a=el.attributes[i];
+    if(/^data-/.test(a.name) && a.name!=='data-tr-src' && a.name!=='data-tr-bound' && a.name!=='data-tr-showing'){
+      attr=a.name; val=a.value; break;
+    }
+  }
+  pushUndo({src:src,en:en,attr:attr,val:val,el:el});
+  indexApplied(src,en);
+
+  el.textContent=en;
+  el.setAttribute('data-tr-src',en);
+  el.setAttribute('data-tr-auto','1');
+  el.title='Auto-translated from: '+src;
+  commitField(el);
+
+  /* The v500 field binding watches for the text changing on blur and flags the
+     stored translation as outdated, on the assumption that the user rewrote the
+     source. Here the text changed because WE replaced it, so re-assert the
+     status once that handler has run. Without this every auto-translation
+     immediately marks itself stale. */
+  setTimeout(function(){
+    try{
+      var e=trGet(src);
+      if(e && e.status==='outdated' && e.en===en){
+        e.status='translated';
+        e.srcHash=null;              /* re-verified against the stored source */
+        if(typeof persist==='function') persist();
+        if(typeof trRefreshAll==='function') trRefreshAll();
+      }
+    }catch(_){}
+  },220);
+
+  try{ if(typeof persist==='function') persist(); }catch(e){}
+  try{ if(typeof trProjBtnRefresh==='function') trProjBtnRefresh(); }catch(e){}
+  try{ if(typeof auditLog==='function') auditLog('','i18n','auto', src.slice(0,50)+' -> '+en.slice(0,50)); }catch(e){}
+}
+
+/* Blur is the commit signal. A short delay lets the field's own onblur write
+   the typed value first, so we translate what was actually saved. */
+document.addEventListener('blur',function(ev){
+  var el=ev.target;
+  if(!el||!el.isContentEditable) return;
+  setTimeout(function(){ handleCommit(el); },160);
+},true);
+
+/* Enter also commits in these single-line cells. */
+document.addEventListener('keydown',function(ev){
+  if(ev.key!=='Enter'||ev.shiftKey) return;
+  var el=ev.target;
+  if(!el||!el.isContentEditable) return;
+  setTimeout(function(){ handleCommit(el); },200);
+},true);
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TRANSLATE EVERYTHING — whole portfolio, every project
+   ══════════════════════════════════════════════════════════════════════════ */
+function collectAllForeign(){
+  var out=[], seen={};
+  if(!window.STORE||!Array.isArray(STORE.projects)) return out;
+  function walk(node,depth){
+    if(depth>7||out.length>1200||node==null) return;
+    if(typeof node==='string'){
+      var t=node.replace(/\s+/g,' ').trim();
+      if(t.length>1 && trNeeds(t) && !seen[t]){
+        var e=trGet(t);
+        if(!e||e.status!=='translated'){ seen[t]=1; out.push(t); }
+      }
+      return;
+    }
+    if(Array.isArray(node)){ for(var i=0;i<node.length;i++) walk(node[i],depth+1); return; }
+    if(typeof node==='object'){
+      for(var k in node){
+        if(!Object.prototype.hasOwnProperty.call(node,k)) continue;
+        if(k==='i18n'||k==='audit'||k==='snapshots') continue;   /* never re-translate our own records */
+        walk(node[k],depth+1);
+      }
+    }
+  }
+  STORE.projects.forEach(function(p){ walk(p,0); });
+  return out;
+}
+window.collectAllForeign=collectAllForeign;
+
+function translateEverything(){
+  if(!(typeof isEditor==='function'&&isEditor())){ try{toast('Editor role required',false);}catch(e){} return; }
+  var pending=collectAllForeign();
+  if(!pending.length){ try{toast('Nothing left to translate \u2014 the whole portfolio is in English',true);}catch(e){} return; }
+  if(!window.confirm('Translate '+pending.length+' distinct text(s) across every project into professional English '
+     +'and save each one to the database?\n\nOriginals are kept and can be restored at any time.\n\n'
+     +'This is paced to avoid provider rate limits and may take a few minutes.')) return;
+
+  var done=0,failed=0,i=0;
+  var box=document.createElement('div');
+  box.className='tr-bulk';
+  box.innerHTML='<div class="tr-bulk-in"><div class="tr-bulk-t">Translating the portfolio</div>'
+    +'<div class="tr-bulk-bar"><div id="trBulkFill"></div></div>'
+    +'<div class="tr-bulk-s" id="trBulkS">Starting\u2026</div>'
+    +'<button class="tr-bulk-x" id="trBulkStop">Stop</button></div>';
+  document.body.appendChild(box);
+  var stopped=false;
+  box.querySelector('#trBulkStop').onclick=function(){ stopped=true; };
+
+  function finish(){
+    try{ box.remove(); }catch(e){}
+    try{ if(typeof persist==='function') persist(); }catch(e){}
+    try{ if(typeof trRefreshAll==='function') trRefreshAll(); }catch(e){}
+    try{ if(typeof trProjBtnRefresh==='function') trProjBtnRefresh(); }catch(e){}
+    try{ if(window.CUR_PROJ&&typeof renderProjectView==='function') renderProjectView(CUR_PROJ); }catch(e){}
+    try{ if(typeof renderHub==='function') renderHub(); }catch(e){}
+    try{
+      toast(done+' translation(s) saved'+(failed?(' \u00b7 '+failed+' could not be translated offline'):'')
+        +(stopped?' \u00b7 stopped early':''), failed?false:true);
+    }catch(e){}
+  }
+  function step(){
+    if(stopped||i>=pending.length){ finish(); return; }
+    var src=pending[i++];
+    var pct=Math.round(i/pending.length*100);
+    try{
+      document.getElementById('trBulkFill').style.width=pct+'%';
+      document.getElementById('trBulkS').textContent=i+' of '+pending.length+' \u00b7 '+done+' saved'
+        +(failed?(' \u00b7 '+failed+' skipped'):'');
+    }catch(e){}
+    trTranslate(src).then(function(res){
+      var en=String(res&&res.en||'').trim();
+      if(!en||trNeeds(en)) throw new Error('unusable');
+      trPut(src,en,res.provider,'translated');
+      indexApplied(src,en);
+      done++;
+    }).catch(function(){ failed++; })
+      .then(function(){ setTimeout(step, 260); });
+  }
+  step();
+}
+window.translateEverything=translateEverything;
+
+/* ── Restore every automatically translated field to its original ───────── */
+function restoreAllOriginals(){
+  var g=idx(); if(!g||!g.entries){ try{toast('No translations recorded',false);}catch(e){} return; }
+  var n=Object.keys(g.entries).length;
+  if(!n){ try{toast('No translations recorded',false);}catch(e){} return; }
+  if(!window.confirm('Restore original text in every field that was automatically translated?\n\n'
+    +'The saved English translations are kept, so you can re-apply them later.')) return;
+  var fixed=0;
+  try{
+    document.querySelectorAll('[data-tr-auto="1"]').forEach(function(el){
+      var src=originalFor((el.textContent||'').trim());
+      if(src){ el.textContent=src; el.removeAttribute('data-tr-auto'); commitField(el); fixed++; }
+    });
+  }catch(e){}
+  try{ if(typeof persist==='function') persist(); }catch(e){}
+  try{ if(window.CUR_PROJ&&typeof renderProjectView==='function') renderProjectView(CUR_PROJ); }catch(e){}
+  try{ toast(fixed?('Restored '+fixed+' field(s) on this screen'):'No auto-translated fields on this screen',fixed>0); }catch(e){}
+}
+window.restoreAllOriginals=restoreAllOriginals;
+
+/* ── Small always-visible auto toggle beside the project Translate button ─ */
+function renderAutoChip(){
+  var host=document.querySelector('.pv-actions');
+  if(!host) return;
+  var chip=document.getElementById('trAutoChip');
+  if(!chip){
+    chip=document.createElement('button');
+    chip.id='trAutoChip'; chip.type='button';
+    chip.onclick=function(){ autoSet(!autoOn()); };
+    var anchor=document.getElementById('trProjBtn');
+    if(anchor&&anchor.parentNode===host) host.insertBefore(chip,anchor.nextSibling);
+    else host.insertBefore(chip,host.firstElementChild);
+  }
+  var on=autoOn();
+  chip.className='tr-auto-chip'+(on?' on':'');
+  chip.innerHTML='<i></i><span>Auto</span>';
+  chip.title=on
+    ? 'Auto-translate is ON. Any non-English text you finish typing is translated to professional English and saved. Originals are kept \u2014 click to turn off.'
+    : 'Auto-translate is OFF. Non-English text stays as typed; use the Translate button instead. Click to turn on.';
+}
+window.renderAutoChip=renderAutoChip;
+
+function wrapChip(name){
+  var o=window[name];
+  if(typeof o!=='function'||o.__autoChip) return;
+  var w=function(){ var r=o.apply(this,arguments); setTimeout(renderAutoChip,200); return r; };
+  w.__autoChip=true; window[name]=w;
+}
+document.addEventListener('DOMContentLoaded',function(){
+  setTimeout(function(){ ['renderProjectView','openProject'].forEach(wrapChip); renderAutoChip(); },1500);
+});
+setTimeout(function(){ ['renderProjectView','openProject'].forEach(wrapChip); renderAutoChip(); },3100);
 
 })();
 
