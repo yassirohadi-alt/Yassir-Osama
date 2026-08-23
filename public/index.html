@@ -2552,6 +2552,55 @@ body.role-pm .tr-tn-v:hover{background:#E3EAF3;border-color:#C6D1DE}
 
 .site-col-btn-hi{background:var(--brand-soft,#F7E3E5)!important;border-color:var(--brand,#B12836)!important;color:var(--brand-deep,#8A1E2A)!important;font-weight:800}
 .site-col-btn-hi:hover{background:var(--brand,#B12836)!important;color:#fff!important}
+
+/* ══ v510 — sync gate chip + progress feed ══ */
+.sync-gate{position:fixed;bottom:14px;left:14px;z-index:99990;display:inline-flex;align-items:center;gap:7px;
+  background:#fff;border:1px solid var(--line,#E5E9F1);border-radius:10px;padding:6px 11px;
+  box-shadow:0 6px 20px -8px rgba(16,24,40,.28);font-family:var(--body,'Segoe UI',sans-serif);font-size:11px;font-weight:700}
+.sync-gate i{width:8px;height:8px;border-radius:99px;background:#C7CCD6}
+.sync-gate.ok i{background:#2E7D5B;box-shadow:0 0 0 3px rgba(46,125,91,.16)}
+.sync-gate.bad i{background:#B0202E;box-shadow:0 0 0 3px rgba(176,32,46,.16)}
+.sync-gate.ok{color:#2E7D5B}.sync-gate.bad{color:#B0202E}
+.sync-gate em{font-style:normal;font-weight:600;color:var(--muted,#8A97A6);font-size:10px;font-variant-numeric:tabular-nums}
+#progressFeed{display:flex;flex-direction:column;gap:1px}
+.pf-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 12px;
+  border-bottom:1px solid var(--line-soft,#EDF0F5);font-family:var(--body,'Segoe UI',sans-serif)}
+.pf-row:last-child{border-bottom:none}
+.pf-main{display:flex;align-items:center;gap:9px;min-width:0;flex-wrap:wrap}
+.pf-main b{font-size:12.5px;color:var(--ink,#20242E)}
+.pf-move{font-size:11.5px;color:var(--ink-3,#6B7280);font-variant-numeric:tabular-nums}
+.pf-d{font-size:11px;font-weight:800;border-radius:99px;padding:2px 8px;font-variant-numeric:tabular-nums}
+.pf-d.up{background:#EAF2EC;color:#2E7D5B}.pf-d.dn{background:#F6E4E6;color:#B0202E}
+.pf-meta{display:flex;align-items:center;gap:9px;font-size:10.5px;color:var(--muted,#8A97A6);white-space:nowrap}
+.pf-empty{padding:20px;text-align:center;font-size:12px;color:var(--muted,#8A97A6);line-height:1.6}
+@media(max-width:640px){.sync-gate em{display:none}}
+
+/* == v511 - Digital Data Center controls == */
+.sec-btn-hi{background:var(--brand-soft,#F7E3E5)!important;border-color:var(--brand,#B12836)!important;color:var(--brand-deep,#8A1E2A)!important;font-weight:800}
+.sec-btn-hi:hover{background:var(--brand,#B12836)!important;color:#fff!important}
+.sec-btn-danger{color:#B0202E!important;border-color:#E4B4BA!important}
+.sec-btn-danger:hover{background:#B0202E!important;border-color:#B0202E!important;color:#fff!important}
+.dc-cat-tools{float:right;display:inline-flex;gap:4px;align-items:center}
+.dc-cat-tools button{background:rgba(255,255,255,.16);border:none;color:#fff;border-radius:4px;
+  width:19px;height:19px;font-size:11px;line-height:1;cursor:pointer;font-weight:800;
+  display:inline-grid;place-items:center;padding:0;transition:background .14s}
+.dc-cat-tools button:hover{background:rgba(255,255,255,.42)}
+.dc-cat-tools .dc-cat-x:hover{background:#C0392B}
+
+/* == v512 - delete a sub-project from the container page == */
+.subproj-card{position:relative}
+.subproj-del{
+  position:absolute;top:10px;right:10px;z-index:3;
+  width:26px;height:26px;border-radius:8px;padding:0;
+  display:grid;place-items:center;cursor:pointer;
+  background:#fff;border:1px solid var(--line,#E5E9F1);color:var(--muted,#8A97A6);
+  opacity:0;transition:opacity .15s,background .15s,color .15s,border-color .15s;
+}
+.subproj-del svg{width:13px;height:13px}
+.subproj-card:hover .subproj-del{opacity:1}
+.subproj-del:hover{background:#B0202E;border-color:#B0202E;color:#fff}
+.subproj-del:focus{opacity:1;outline:2px solid var(--brand,#B12836);outline-offset:2px}
+@media(hover:none){ .subproj-del{opacity:1} }
 </style>
 </head>
 <body class="role-viewer intro-playing">
@@ -5019,6 +5068,11 @@ function ensureServiceOffices(){
 function ensureDataCenterModel(){
   try{
     if(!STORE) return false;
+    /* v512: this function recreates p2-perm and p2-sdc when they are absent.
+       That is correct for a first-time migration and wrong after a deliberate
+       deletion, so honour the tombstone list. Without this a deleted data
+       centre would silently reappear on the next load. */
+    var _gone={}; (STORE._deletedIds||[]).forEach(function(id){ _gone[id]=1; });
     var mp=(typeof mainProjects==='function')?mainProjects():STORE.projects;
     if(!Array.isArray(mp)) return false;
     var dc=mp.find(function(x){return x&&x.id==='p2';});
@@ -5054,14 +5108,15 @@ function ensureDataCenterModel(){
       changed=true;
     }
     var perm=dc.subProjects.find(function(s){return s&&(/permanent|دائم/i.test((s.nameEn||'')+(s.name||''))||s.id==='p2-perm');});
-    if(!perm){
+    if(_gone['p2-perm']){ perm=null; }          /* deleted on purpose — do not recreate */
+    else if(!perm){
       perm={ id:'p2-perm', name:'المركز الدائم للبيانات', nameEn:'Permanent Data Center', icon:'datacenter',
         progress:0, phases:catsFrom(TMP), milestones:[], qa:[], budget:[], risks:[], team:[],
         sites:[], items:itemsFrom(TMP,true), documents:[], meta:{dcModel:true} };
       if(typeof dcRecompute==='function')dcRecompute(perm);
       dc.subProjects.push(perm);
       changed=true;
-    } else if(!(perm.meta&&perm.meta.dcModel===true)){
+    } else if(perm && !(perm.meta&&perm.meta.dcModel===true)){
       perm.items=(Array.isArray(perm.items)&&perm.items.length)?perm.items:itemsFrom(TMP,true);
       perm.phases=catsFrom(TMP); perm.milestones=[]; perm.meta=perm.meta||{}; perm.meta.dcModel=true;
       if(typeof dcRecompute==='function')dcRecompute(perm);
@@ -5069,14 +5124,15 @@ function ensureDataCenterModel(){
     }
     // SDC — third data center box (blank dcModel sub-project, consistent with tmp/perm)
     var sdc=dc.subProjects.find(function(s){return s&&(/\bSDC\b/i.test((s.nameEn||'')+' '+(s.name||''))||s.id==='p2-sdc');});
-    if(!sdc){
+    if(_gone['p2-sdc']){ sdc=null; }          /* deleted on purpose — do not recreate */
+    else if(!sdc){
       sdc={ id:'p2-sdc', name:'SDC', nameEn:'SDC', icon:'datacenter',
         progress:0, phases:catsFrom(TMP), milestones:[], qa:[], budget:[], risks:[], team:[],
         sites:[], items:itemsFrom(TMP,true), documents:[], meta:{dcModel:true} };
       if(typeof dcRecompute==='function')dcRecompute(sdc);
       dc.subProjects.push(sdc);
       changed=true;
-    } else if(!(sdc.meta&&sdc.meta.dcModel===true)){
+    } else if(sdc && !(sdc.meta&&sdc.meta.dcModel===true)){
       sdc.items=(Array.isArray(sdc.items)&&sdc.items.length)?sdc.items:itemsFrom(TMP,true);
       sdc.phases=catsFrom(TMP); sdc.milestones=[]; sdc.meta=sdc.meta||{}; sdc.meta.dcModel=true;
       if(typeof dcRecompute==='function')dcRecompute(sdc);
@@ -6849,7 +6905,12 @@ function renderDataCenter(p){
   var head='<th class="so-name-h" style="text-align:start">Item</th><th>Status</th><th>Start Date</th><th>End Date</th><th>Notes</th>'+(PM?'<th></th>':'');
   var dstyle='font:inherit;font-size:11px;border:1px solid #cfd3da;border-radius:6px;padding:2px 4px;background:#fff;color:#333';
   var body=order.map(function(g){
-    var cat='<tr><td colspan="'+cols+'" style="background:#2E3138;color:#fff;font-weight:700;font-size:11.5px;letter-spacing:.3px;padding:6px 11px">'+esc(g)+'</td></tr>';
+    var cat='<tr><td colspan="'+cols+'" style="background:#2E3138;color:#fff;font-weight:700;font-size:11.5px;letter-spacing:.3px;padding:6px 11px">'+esc(g)
+      +(PM?('<span class="dc-cat-tools">'
+        +'<button onclick="dcRenameCategory(\''+p.id+'\',\''+g.replace(/'/g,'')+'\')" title="Rename this category">\u270e</button>'
+        +'<button class="dc-cat-x" onclick="dcDeleteCategory(\''+p.id+'\',\''+g.replace(/'/g,'')+'\')" title="Delete this category and all its items">\u00d7</button>'
+      +'</span>'):'')
+      +'</td></tr>';
     var rows=byCat[g].map(function(idx){
       var it=items[idx]; var v=it.status||'n'; var gm=v==='d'?'\u2713':v==='p'?'\u25D0':'';
       var tt={d:'Done',p:'In Progress',n:'Not Done'}[v];
@@ -6866,7 +6927,14 @@ function renderDataCenter(p){
     return cat+rows+addr;
   }).join('');
   var badge=items.length?'<span style="font-size:10.5px;font-weight:600;color:#fff;background:var(--good);padding:2px 9px;border-radius:99px;margin-inline-start:6px">'+pct+'% \u00b7 '+doneCount+'/'+items.length+' done</span>':'<span style="font-size:10.5px;font-weight:600;color:#fff;background:var(--muted-st);padding:2px 9px;border-radius:99px;margin-inline-start:6px">empty \u00b7 add items</span>';
-  return '<div class="sec-card pv-full"><div class="sec-head"><div class="sec-head-l"><div class="sec-icon">'+DC_ICON+'</div><div class="sec-title">Data Center Site Tracker '+badge+'</div></div><div class="sec-actions">'+(PM?'<button class="sec-btn" onclick="dcAdd(\''+p.id+'\',\'\')">+ Item</button>':'')+'</div></div>'+
+  return '<div class="sec-card pv-full"><div class="sec-head"><div class="sec-head-l"><div class="sec-icon">'+DC_ICON+'</div><div class="sec-title">Data Center Site Tracker '+badge+'</div></div><div class="sec-actions">'+(PM?(
+      '<button class="sec-btn" onclick="dcAdd(\''+p.id+'\',\'\')">+ Item</button>'
+      +'<button class="sec-btn" onclick="dcAddCentre()" title="Add another data centre">+ Data Centre</button>'
+      +'<button class="sec-btn" onclick="dcRenameCentre(\''+p.id+'\')" title="Rename this data centre">Rename</button>'
+      +'<button class="sec-btn sec-btn-hi" onclick="dcExportExcel()" title="Export every data centre to Excel, one sheet each">\u2193 Export Excel</button>'
+      +'<button class="sec-btn" onclick="dcPickFile()" title="Import an edited workbook: applies added, changed and deleted rows and categories">\u2191 Import Excel</button>'
+      +'<button class="sec-btn sec-btn-danger" onclick="dcDeleteCentre(\''+p.id+'\')" title="Delete this entire data centre">\u00d7 Delete Centre</button>'
+    ):'')+'</div></div>'+
     '<div class="sec-body"><div class="so-legend" data-ui-key="legend:'+p.id+':items"><span data-ui-key="legend:'+p.id+':items:d"><i class="lg d"></i>Done</span><span data-ui-key="legend:'+p.id+':items:p"><i class="lg p"></i>In Progress</span><span data-ui-key="legend:'+p.id+':items:n"><i class="lg n"></i>Not Done</span><span class="so-hint">Tap status to cycle \u00b7 pick Start/End dates \u00b7 edit item &amp; notes inline</span></div>'+
     '<div class="so-wrap"><table class="so-table"><thead><tr>'+head+'</tr></thead><tbody>'+(body||'<tr><td colspan="'+cols+'" style="padding:16px;text-align:center;color:#8a8f98">No items yet \u2014 use \u201c+ Item\u201d to build the checklist.</td></tr>')+'</tbody></table></div></div></div>';
 }
@@ -7973,6 +8041,11 @@ function ensureDataCenter(){
     var seed=PROJECTS_SEED.find(function(x){return x.id==='p2';}); if(!seed||!seed.subProjects||!seed.subProjects.length) return false;
     var arr=(typeof mainProjects==='function')?mainProjects():(STORE.projects||[]); var cur=arr.find(function(x){return x.id==='p2';}); if(!cur) return false;
     if(cur.subProjects && cur.subProjects.length) return false; // already built (fresh seed or migrated) — preserve edits
+    /* v512: an EMPTY container is ambiguous — it is either a first run, or the
+       user deleted every data centre. Reseeding the second case silently undoes
+       a deliberate action, so a container that was emptied on purpose carries a
+       marker and is left alone. */
+    if(cur.meta && cur.meta.emptiedByUser===true) return false;
     var nm=cur.name, nmE=cur.nameEn;
     cur.subProjects=JSON.parse(JSON.stringify(seed.subProjects));
     cur.progress=seed.progress;
@@ -8053,7 +8126,11 @@ function renderContainer(p){
       ? ('<span><b>'+payOrders+'</b> Orders</span><span><b>'+payL.filter(function(x){return x.status==='Done';}).length+'</b> Paid</span><span><b>'+payL.filter(function(x){return x.status!=='Done';}).length+'</b> Pending</span>')
       : ('<span><b>'+cnt+'</b> '+lbl+'</span><span><b>'+dnc+'</b> Done</span><span><b>'+risks+'</b> Open Risks</span>');
     var tag=pay?'<span class="subproj-tag plan">Financial</span>':(/temporary/i.test(sp.nameEn||'')?'<span class="subproj-tag live">Operational</span>':'<span class="subproj-tag plan">Planning</span>');
+    var _ed=(typeof isEditor==='function'&&isEditor());
     return '<div class="subproj-card" onclick="openProject(\''+sp.id+'\')">'+
+      (_ed?('<button class="subproj-del" title="Delete this '+(dc?'data centre':'sub-project')+'" '
+        +'onclick="event.stopPropagation();deleteSubProject(\''+p.id+'\',\''+sp.id+'\')">'
+        +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>'):'')+
       '<div class="subproj-ring">'+miniRing(pct,col)+'</div>'+
       '<div class="subproj-body"><div class="subproj-name">'+esc(sp.nameEn||sp.name)+' '+tag+'</div>'+
       '<div class="subproj-stats">'+stats+'</div>'+
@@ -10208,7 +10285,12 @@ function __applyIncoming(data){
   refreshProjectGrids();                          // always redraw — never gated on which view happens to be active
   if(CUR_PROJ)renderProjectView(CUR_PROJ);
 }
-async function initFirebase(){if(!SYNC.cfg){setSyncUI('off');return;}setSyncUI('connecting');try{if(!window.firebase||!firebase.database){await loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');await loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js');}if(!firebase.apps.length)firebase.initializeApp(SYNC.cfg);SYNC.ref=firebase.database().ref('portals/'+SYNC.room);SYNC.actRef=firebase.database().ref('portals/'+SYNC.room+'/activity');SYNC.on=true;SYNC.ref.on('value',snap=>{ __applyIncoming(snap.val()); },()=>setSyncUI('error'));_attachActivityStream();}catch(e){SYNC.on=false;setSyncUI('error');_actArm();}}
+async function initFirebase(){if(!SYNC.cfg){setSyncUI('off');return;}setSyncUI('connecting');try{if(!window.firebase||!firebase.database){await loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');await loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js');}if(!firebase.apps.length)firebase.initializeApp(SYNC.cfg);SYNC.ref=firebase.database().ref('portals/'+SYNC.room);SYNC.actRef=firebase.database().ref('portals/'+SYNC.room+'/activity');SYNC.on=true;/* v510: NO permanent root listener. One bootstrap read instead; if the
+   optimiser has not installed yet, retry briefly rather than fall back to
+   a full-room subscription. */
+(function _boot(n){ if(typeof window.__syncBootstrap==='function'){ window.__syncBootstrap(); return; }
+  if((n||0)<40) setTimeout(function(){_boot((n||0)+1);},250);
+  else { setSyncUI('error'); console.error('[sync] optimiser missing — refusing to attach a root listener'); } })(0);_attachActivityStream();}catch(e){SYNC.on=false;setSyncUI('error');_actArm();}}
 /* Replay stored history, then stream new entries. child_added is keyed by
    push id, so refresh / re-sync can never duplicate an entry, and only the
    client that performed the action ever writes one. */
@@ -10241,8 +10323,13 @@ function pullNow(){
   try{
     setSyncUI('connecting');
     try{toast('Pulling the latest from your team…',true);}catch(e){}
-    SYNC.ref.off();
-    SYNC.ref.on('value',function(snap){ __applyIncoming(snap.val()); },function(){setSyncUI('error');});
+    /* v510: a single read. The old code called .off() then attached ANOTHER
+       permanent root listener, so every use of this button added a further
+       full-room subscription for the lifetime of the tab. */
+    if(typeof window.pullLatestOnce==='function'){ window.pullLatestOnce(); return; }
+    SYNC.ref.once('value').then(function(snap){
+      var d=snap&&snap.val(); if(d) __applyIncoming(d); setSyncUI('live');
+    },function(){ setSyncUI('error'); });
   }catch(e){ try{toast('Pull failed: '+e.message,false);}catch(_){} }
 }
 function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej();document.head.appendChild(s);});}
@@ -13874,6 +13961,34 @@ function devEditCell(listKey, rowIdx, colKey, val){
 }
 
 
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   v510a — GLOBAL BRIDGE
+   SYNC, CUR_PROJ and ROLE are declared with const/let at the top level of a
+   classic script. Those create global LEXICAL bindings, which are reachable by
+   bare identifier but are NOT properties of window — so every `window.SYNC`,
+   `window.CUR_PROJ` or `window.ROLE` read undefined. Later modules guarded on
+   exactly those, so their listeners and project lookups quietly did nothing.
+   These accessors close over the real bindings and keep both spellings valid.
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function(){
+  function bridge(name,get,set){
+    try{
+      if(Object.getOwnPropertyDescriptor(window,name)) return;
+      Object.defineProperty(window,name,{
+        get:get, set:set||function(){}, configurable:true, enumerable:false
+      });
+    }catch(e){ console.warn('[v510a] could not bridge',name,e); }
+  }
+  bridge('SYNC',     function(){ try{ return SYNC; }catch(e){ return undefined; } });
+  bridge('CUR_PROJ', function(){ try{ return CUR_PROJ; }catch(e){ return undefined; } },
+                     function(v){ try{ CUR_PROJ=v; }catch(e){} });
+  bridge('ROLE',     function(){ try{ return ROLE; }catch(e){ return undefined; } },
+                     function(v){ try{ ROLE=v; }catch(e){} });
+  bridge('CUR_FLOOR',function(){ try{ return CUR_FLOOR; }catch(e){ return undefined; } },
+                     function(v){ try{ CUR_FLOOR=v; }catch(e){} });
+})();
+
 /* ═══════════════════════════════════════════════════════════════════════════
    v501 — PERSISTENT REMOVAL OF UI CHROME
    ───────────────────────────────────────────────────────────────────────────
@@ -15981,6 +16096,12 @@ var DIRTY=false, dirtyAt=0, deferred=null, deferT=null;
 function markDirty(){ DIRTY=true; dirtyAt=Date.now(); }
 function clearDirty(){ DIRTY=false; dirtyAt=0; }
 window.__syncIsDirty=function(){ return DIRTY; };
+/* Exposed so a later module that REPLACES pushNow (rather than wrapping it)
+   can still honour the dirty contract. v510 swaps in a leaf-diff writer; if it
+   could not clear this flag, every incoming snapshot would be held forever and
+   the team's changes would never arrive. */
+window.__syncClearDirty=function(){ clearDirty(); };
+window.__syncMarkDirty=function(){ markDirty(); };
 
 /* Every local write goes through persist(), so that is the single hook. */
 (function wrapPersist(){
@@ -17001,6 +17122,904 @@ function rebind(){
 document.addEventListener('DOMContentLoaded',function(){ setTimeout(rebind,3600); });
 setTimeout(rebind,3800);
 setTimeout(rebind,5200);
+
+})();
+
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   v510 — BANDWIDTH, GRANULAR SYNC, PROGRESS-ONLY LIVE FEED
+   ───────────────────────────────────────────────────────────────────────────
+   Room:  portals/asimati-hub-v2      (unchanged — never portals/baghdad-main)
+   DB:    https://knowledge-papers-default-rtdb.firebaseio.com  (unchanged)
+
+   WHAT WAS ACTUALLY COSTING THE 25.57 GB
+   ──────────────────────────────────────
+   READ SIDE — two permanent root listeners, not one:
+     initFirebase()  -> SYNC.ref.on('value', ...)      on the whole room
+     pullLatest()    -> SYNC.ref.off(); SYNC.ref.on('value', ...)  re-attaches
+                        another permanent root listener every time it is used.
+     Any nested edit by anyone re-sent the entire ~13.73 MB room to every
+     connected client, and a client that had pressed "Pull" received it twice.
+
+   WRITE SIDE — the larger cost, and not what the brief predicted:
+     There is no post-write once('value') in this build. Instead pushNow() did
+       SYNC.ref.update( <the ENTIRE STORE> )
+     so every keystroke-debounced save UPLOADED the whole room, and that write
+     then fanned out to every listener as a full-room DOWNLOAD. One note edit
+     cost ~13.73 MB up and ~13.73 MB down per connected client.
+
+   WHAT THIS MODULE DOES
+   ─────────────────────
+     • one authoritative bootstrap read, then NO permanent root listener
+     • writes become multi-path update() of only the changed leaf paths
+     • a listener on the open project only, attached on open, detached on close
+     • Pull Latest is a single once('value'), never a new permanent listener
+     • writes stay disabled until a valid live read has been confirmed
+     • _last_good_live and _prepush_backup local backups
+     • Live Feed carries project progress changes only
+
+   NOT DONE, DELIBERATELY: no schema change, no migration, no normalisation,
+   no set() anywhere, no seeding, no automatic deploy.
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function(){
+if(window.__v510) return; window.__v510=true;
+
+var LGL='kp_last_good_live', PPB='kp_prepush_backup';
+
+/* ── Write gate ──────────────────────────────────────────────────────────
+   Writes stay closed until a live read has proved the room is reachable and
+   holds real data. Without this, a failed first read could let a client push
+   its embedded defaults over live production data. */
+var GATE={ bootstrapped:false, writable:false, reason:'waiting for first live read' };
+window.__syncGate=function(){ return Object.assign({},GATE); };
+
+function gateOpen(){ GATE.bootstrapped=true; GATE.writable=true; GATE.reason=''; paintGate(); }
+function gateClose(why){
+  GATE.writable=false; GATE.reason=why||'unknown';
+  paintGate();
+  console.error('[sync] WRITES DISABLED —',why);
+  try{ toast('Sync error: '+why+' — writes are disabled to protect live data',false); }catch(e){}
+}
+function paintGate(){
+  var el=document.getElementById('syncGateChip');
+  if(!el){
+    var host=document.querySelector('.appbar')||document.body;
+    el=document.createElement('div'); el.id='syncGateChip'; el.className='sync-gate';
+    host.appendChild(el);
+  }
+  var ok=GATE.writable;
+  el.className='sync-gate'+(ok?' ok':' bad');
+  var sent=SYNCX.lastSent?fmtBaghdad(SYNCX.lastSent):'—';
+  var recv=SYNCX.lastRecv?fmtBaghdad(SYNCX.lastRecv):'—';
+  el.innerHTML='<i></i><span>'+(ok?'Sync live':'Writes off')+'</span>'
+    +'<em title="Last successful write / last data received (Asia\u2013Baghdad)">\u2191'+sent+' \u2193'+recv+'</em>';
+  el.title=ok?('Writes enabled. Last sent '+sent+', last received '+recv)
+             :('Writes disabled: '+GATE.reason);
+}
+var SYNCX={ lastSent:null, lastRecv:null };
+window.__syncStamps=function(){ return Object.assign({},SYNCX); };
+
+function fmtBaghdad(d){
+  try{
+    return new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Baghdad',
+      hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'}).format(d);
+  }catch(e){ return String(d); }
+}
+window.fmtBaghdad=fmtBaghdad;
+
+/* ── Leaf diff: the whole point of the exercise ──────────────────────────
+   Produces a flat { 'projects/3/sites/2/notes': 'value' } map. Arrays whose
+   length changed are written whole at their own path, because per-index
+   patching of a shortened array leaves orphan tail entries behind. */
+function isObj(x){ return x&&typeof x==='object'&&!Array.isArray(x); }
+function diffLeaves(base,next,prefix,out,depth){
+  out=out||{}; prefix=prefix||''; depth=depth||0;
+  if(depth>12){ out[prefix]=next; return out; }
+  if(Array.isArray(base)||Array.isArray(next)){
+    if(!Array.isArray(base)||!Array.isArray(next)||base.length!==next.length){
+      if(JSON.stringify(base)!==JSON.stringify(next)) out[prefix]=next;
+      return out;
+    }
+    for(var i=0;i<next.length;i++) diffLeaves(base[i],next[i],prefix+'/'+i,out,depth+1);
+    return out;
+  }
+  if(isObj(base)&&isObj(next)){
+    var keys={},k;
+    for(k in base) keys[k]=1;
+    for(k in next) keys[k]=1;
+    for(k in keys){
+      if(k==='activity') continue;                    /* push-only child */
+      var p=prefix?(prefix+'/'+k):k;
+      if(!(k in next)){ out[p]=null; continue; }      /* deletion */
+      if(!(k in base)){ out[p]=next[k]; continue; }   /* addition */
+      diffLeaves(base[k],next[k],p,out,depth+1);
+    }
+    return out;
+  }
+  if(base!==next){
+    if(next===undefined) out[prefix]=null; else out[prefix]=next;
+  }
+  return out;
+}
+window.__diffLeaves=diffLeaves;
+
+function sanitizePaths(map){
+  var out={},n=0;
+  for(var k in map){
+    if(!k) continue;
+    if(/(^|\/)(activity|_activityLog)(\/|$)/.test(k)) continue;
+    if(/[.#$\[\]]/.test(k)) continue;                 /* illegal in an RTDB path */
+    out[k]=map[k]===undefined?null:map[k];
+    n++;
+  }
+  return {map:out,n:n};
+}
+
+/* ── Baseline: what the server is believed to hold ──────────────────────── */
+var BASE=null;
+function setBaseline(obj){
+  try{ BASE=JSON.parse(JSON.stringify(obj||{})); }catch(e){ BASE=null; }
+}
+window.__syncBaseline=function(){ return BASE; };
+
+/* ── Replacement pushNow: leaf-only multi-path update ────────────────────── */
+function pushLeaves(){
+  if(!SYNC||!SYNC.ref){
+    /* Not connected: there is no remote writer to race, so nothing needs
+       protecting. Leaving the dirty flag set here would block every future
+       incoming snapshot for a portal that simply runs offline. */
+    try{ if(typeof __syncClearDirty==='function') __syncClearDirty(); }catch(e){}
+    return;
+  }
+  if(!GATE.writable){ console.warn('[sync] push blocked —',GATE.reason); return; }
+  var current;
+  try{ current=JSON.parse(JSON.stringify(STORE)); }
+  catch(e){ try{toast('Sync failed — could not package the data',false);}catch(_){} return; }
+  delete current.activity; delete current._activityLog;
+
+  if(!BASE){
+    /* No baseline means we never completed a bootstrap read. Refuse rather
+       than fall back to a full-room write. */
+    console.warn('[sync] no baseline — skipping push');
+    return;
+  }
+
+  var raw=diffLeaves(BASE,current,'',{},0);
+  var s=sanitizePaths(raw);
+  if(!s.n){
+    /* No diff means the server already matches us. */
+    try{ if(typeof __syncClearDirty==='function') __syncClearDirty(); }catch(e){}
+    SYNCX.lastSent=SYNCX.lastSent||new Date(); paintGate(); return;
+  }
+
+  /* Local safety copy before anything leaves the machine. */
+  try{ localStorage.setItem(PPB,JSON.stringify({ts:new Date().toISOString(),store:current})); }catch(e){}
+
+  var bytes=0; try{ bytes=JSON.stringify(s.map).length; }catch(e){}
+  SYNC.ref.update(s.map).then(function(){
+    setBaseline(current);
+    /* Our state is now on the server, so incoming snapshots are safe to apply
+       again. Without this the v507 guard would hold every remote change. */
+    try{ if(typeof __syncClearDirty==='function') __syncClearDirty(); }catch(e){}
+    SYNCX.lastSent=new Date();
+    try{ SYNC.lastOk=SYNCX.lastSent; }catch(e){}
+    try{ setSyncUI('live'); }catch(e){}
+    paintGate();
+    console.info('[sync] wrote '+s.n+' leaf path(s), '+bytes+' bytes (was a full-room write)');
+  },function(err){
+    try{ setSyncUI('error'); }catch(e){}
+    var m=(err&&(err.message||err.code))||'unknown error';
+    try{toast('Sync failed — your team did NOT receive this change ('+m+')',false);}catch(_){}
+    console.error('[sync] leaf update failed',err);
+  });
+}
+
+/* ── Bootstrap: exactly one authoritative full read ──────────────────────── */
+function bootstrap(){
+  if(!window.SYNC||!SYNC.ref){ gateClose('not connected'); return; }
+  var settled=false;
+  var timer=setTimeout(function(){
+    if(settled) return; settled=true;
+    gateClose('the first read timed out');
+  },15000);
+
+  SYNC.ref.once('value').then(function(snap){
+    if(settled) return; settled=true; clearTimeout(timer);
+    var data=snap&&snap.val();
+    if(!data||typeof data!=='object'){
+      gateClose('the room returned no data on the first read');
+      return;                                   /* never seed over live data */
+    }
+    var okShape=(typeof isNewFormat==='function')?isNewFormat(data):!!data.projects;
+    if(!okShape){
+      gateClose('the first snapshot did not match the expected schema');
+      return;
+    }
+    try{ localStorage.setItem(LGL,JSON.stringify({ts:new Date().toISOString(),store:data})); }catch(e){}
+    try{
+      SYNC.applying=true;
+      if(typeof __applyIncoming==='function') __applyIncoming(JSON.parse(JSON.stringify(data)));
+    }finally{ SYNC.applying=false; }
+    var b; try{ b=JSON.parse(JSON.stringify(STORE)); delete b.activity; delete b._activityLog; }catch(e){ b=data; }
+    setBaseline(b);
+    SYNCX.lastRecv=new Date();
+    gateOpen();
+    console.info('[sync] bootstrap complete — root listener NOT attached');
+    attachProjectListener(window.CUR_PROJ);
+  }).catch(function(err){
+    if(settled) return; settled=true; clearTimeout(timer);
+    gateClose('the first read failed ('+((err&&err.message)||'unknown')+')');
+  });
+}
+window.__syncBootstrap=bootstrap;
+
+/* ── Granular listener: the open project only ────────────────────────────── */
+var CURLIS=null;
+function projectIndex(pid){
+  if(!window.STORE||!Array.isArray(STORE.projects)) return -1;
+  for(var i=0;i<STORE.projects.length;i++){
+    if(STORE.projects[i]&&STORE.projects[i].id===pid) return i;
+  }
+  return -1;
+}
+function detachProjectListener(){
+  if(!CURLIS) return;
+  try{ CURLIS.ref.off('value',CURLIS.cb); }catch(e){}
+  console.info('[sync] detached listener for',CURLIS.path);
+  CURLIS=null;
+}
+function attachProjectListener(pid){
+  if(!pid||!window.SYNC||!SYNC.ref||!GATE.bootstrapped) return;
+  var idx=projectIndex(pid);
+  if(idx<0) return;
+  var path='projects/'+idx;
+  if(CURLIS&&CURLIS.path===path) return;        /* no duplicates */
+  detachProjectListener();
+  var ref=SYNC.ref.child(path);
+  var cb=function(snap){
+    var v=snap&&snap.val();
+    if(!v||!v.id) return;
+    if(v.id!==pid) return;                      /* array reordered under us */
+    if(SYNC.applying) return;
+    var local=STORE.projects[idx];
+    if(!local||local.id!==pid) return;
+    if(JSON.stringify(local)===JSON.stringify(v)) return;
+    /* Newest wins, using the _mtime stamps the merge layer already maintains. */
+    var rt=+(v._mtime||0), lt=+(local._mtime||0);
+    if(rt<=lt) return;
+    var prevPct=Number(local.progress||0);
+    STORE.projects[idx]=v;
+    setBaseline((function(){ try{var b=JSON.parse(JSON.stringify(STORE));delete b.activity;delete b._activityLog;return b;}catch(e){return BASE;} })());
+    try{ localStorage.setItem(SK,JSON.stringify(STORE)); }catch(e){}
+    SYNCX.lastRecv=new Date(); paintGate();
+    var newPct=Number(v.progress||0);
+    if(newPct!==prevPct) feedProgress(v,prevPct,newPct,v._by||'');
+    if(window.CUR_PROJ===pid && typeof renderProjectView==='function') renderProjectView(pid);
+    console.info('[sync] applied remote change for',pid,'('+path+')');
+  };
+  ref.on('value',cb,function(){ try{setSyncUI('error');}catch(e){} });
+  CURLIS={path:path,ref:ref,cb:cb};
+  console.info('[sync] listening to',path,'only');
+}
+window.__attachProjectListener=attachProjectListener;
+window.__detachProjectListener=detachProjectListener;
+
+/* ── Pull Latest: one read, no permanent listener ────────────────────────── */
+function pullLatestOnce(){
+  if(!window.SYNC||!SYNC.ref){ try{toast('Not connected yet — open Sync Settings and connect first',false);}catch(e){} return; }
+  try{ setSyncUI('connecting'); toast('Pulling the latest from your team\u2026',true); }catch(e){}
+  SYNC.ref.once('value').then(function(snap){
+    var data=snap&&snap.val();
+    if(!data){ try{toast('The room returned no data — nothing was changed locally',false);}catch(e){} try{setSyncUI('error');}catch(e){} return; }
+    try{ localStorage.setItem(LGL,JSON.stringify({ts:new Date().toISOString(),store:data})); }catch(e){}
+    try{
+      SYNC.applying=true;
+      __applyIncoming(JSON.parse(JSON.stringify(data)));
+    }finally{ SYNC.applying=false; }
+    var b; try{ b=JSON.parse(JSON.stringify(STORE)); delete b.activity; delete b._activityLog; }catch(e){ b=data; }
+    setBaseline(b);
+    SYNCX.lastRecv=new Date();
+    if(!GATE.writable) gateOpen();
+    paintGate();
+    try{ if(typeof renderHub==='function') renderHub(); }catch(e){}
+    try{ if(window.CUR_PROJ&&typeof renderProjectView==='function') renderProjectView(CUR_PROJ); }catch(e){}
+    try{ setSyncUI('live'); toast('Up to date with your team',true); }catch(e){}
+    attachProjectListener(window.CUR_PROJ);
+  }).catch(function(e){
+    try{ setSyncUI('error'); toast('Pull failed: '+(e&&e.message||e),false); }catch(_){}
+  });
+}
+window.pullLatestOnce=pullLatestOnce;
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LIVE FEED — project progress changes only
+   ══════════════════════════════════════════════════════════════════════════ */
+var PCT={};            /* pid -> last known authoritative progress */
+var PEND={};           /* pid -> debounce timer, coalesces rapid changes */
+
+function whoAmI(){
+  try{
+    if(typeof CURRENT_USER!=='undefined'&&CURRENT_USER) return String(CURRENT_USER);
+    var n=localStorage.getItem('kp_user_name');
+    if(n) return n;
+  }catch(e){}
+  try{ return (typeof ROLE!=='undefined')?({dev:'Developer',pm:'Project Manager'}[ROLE]||'Viewer'):''; }catch(e){ return ''; }
+}
+
+function feedStore(){
+  if(!STORE.progressFeed||!Array.isArray(STORE.progressFeed)) STORE.progressFeed=[];
+  return STORE.progressFeed;
+}
+function feedProgress(p,from,to,by){
+  if(!p||!p.id) return;
+  from=Math.round(Number(from)||0); to=Math.round(Number(to)||0);
+  if(from===to) return;                              /* only real changes */
+  var f=feedStore();
+  var last=f[f.length-1];
+  /* Coalesce a rapid run of changes on the same project into one entry. */
+  if(last&&last.pid===p.id&&(Date.now()-(+new Date(last.at)||0))<9000){
+    last.to=to; last.d=to-last.from; last.at=new Date().toISOString(); last.by=by||last.by;
+  } else {
+    f.push({kind:'progress',pid:p.id,name:(p.nameEn||p.name||p.id),
+            from:from,to:to,d:to-from,by:by||whoAmI(),at:new Date().toISOString()});
+  }
+  while(f.length>100) f.shift();                     /* keep the latest 100 */
+  renderFeed();
+}
+window.feedProgress=feedProgress;
+
+/* Snapshot current percentages so the first comparison has something to
+   compare against — opening the page must never generate entries. */
+function primeProgress(){
+  try{
+    (STORE.projects||[]).forEach(function(p){ if(p&&p.id) PCT[p.id]=Math.round(Number(p.progress||0)); });
+  }catch(e){}
+}
+/* Detect local progress changes at save time, after the write succeeds. */
+function scanProgress(){
+  if(!window.STORE||!Array.isArray(STORE.projects)) return [];
+  var hits=[];
+  STORE.projects.forEach(function(p){
+    if(!p||!p.id) return;
+    var now=Math.round(Number(p.progress||0));
+    var was=PCT[p.id];
+    if(was===undefined){ PCT[p.id]=now; return; }
+    if(now!==was){ hits.push({p:p,from:was,to:now}); PCT[p.id]=now; }
+  });
+  return hits;
+}
+
+function renderFeed(){
+  var host=document.getElementById('progressFeed');
+  if(!host) return;
+  var f=feedStore().slice().reverse();
+  if(!f.length){
+    host.innerHTML='<div class="pf-empty">No progress changes recorded yet. An entry appears here when a project\u2019s completion percentage actually changes.</div>';
+    return;
+  }
+  host.innerHTML=f.map(function(e){
+    var up=e.d>0;
+    return '<div class="pf-row">'
+      +'<div class="pf-main"><b>'+esc(e.name)+'</b>'
+        +'<span class="pf-move">'+e.from+'% \u2192 '+e.to+'%</span>'
+        +'<span class="pf-d '+(up?'up':'dn')+'">'+(up?'\u25b2 +':'\u25bc ')+e.d+'</span></div>'
+      +'<div class="pf-meta">'+(e.by?('<span>'+esc(e.by)+'</span>'):'')
+        +'<time>'+fmtBaghdad(new Date(e.at))+'</time></div>'
+    +'</div>';
+  }).join('');
+}
+window.renderProgressFeed=renderFeed;
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   WIRING
+   ══════════════════════════════════════════════════════════════════════════ */
+function install(){
+  if(window.__v510wired) return;
+  if(typeof window.pushNow!=='function') return;
+  window.__v510wired=true;
+
+  /* 1. Replace the full-room writer. */
+  window.pushNow=function(){
+    pushLeaves();
+    var hits=scanProgress();
+    hits.forEach(function(h){ feedProgress(h.p,h.from,h.to,whoAmI()); });
+  };
+
+  /* 2. Never attach a permanent root listener. */
+  var origInit=window.initFirebase;
+  if(typeof origInit==='function'&&!origInit.__v510){
+    var wrapped=async function(){
+      if(!SYNC.cfg){ try{setSyncUI('off');}catch(e){} return; }
+      try{setSyncUI('connecting');}catch(e){}
+      try{
+        if(!window.firebase||!firebase.database){
+          await loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
+          await loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js');
+        }
+        if(!firebase.apps.length) firebase.initializeApp(SYNC.cfg);
+        SYNC.ref=firebase.database().ref('portals/'+SYNC.room);
+        SYNC.actRef=firebase.database().ref('portals/'+SYNC.room+'/activity');
+        SYNC.on=true;
+        bootstrap();                                  /* one read, no root .on */
+        if(typeof _attachActivityStream==='function') _attachActivityStream();
+      }catch(e){
+        SYNC.on=false; try{setSyncUI('error');}catch(_){}
+        gateClose('could not initialise Firebase');
+      }
+    };
+    wrapped.__v510=true;
+    window.initFirebase=wrapped;
+  }
+
+  /* 3. Pull Latest becomes a single read. */
+  if(typeof window.pullLatest==='function'&&!window.pullLatest.__v510){
+    var pl=function(){ pullLatestOnce(); };
+    pl.__v510=true; window.pullLatest=pl;
+  }
+
+  /* 4. Attach/detach the project listener with navigation. */
+  ['openProject','closeProject'].forEach(function(n){
+    var o=window[n];
+    if(typeof o!=='function'||o.__v510) return;
+    var w=function(){
+      var r=o.apply(this,arguments);
+      setTimeout(function(){
+        if(n==='openProject') attachProjectListener(window.CUR_PROJ);
+        else detachProjectListener();
+      },60);
+      return r;
+    };
+    w.__v510=true; window[n]=w;
+  });
+
+  primeProgress();
+  paintGate();
+  renderFeed();
+  console.info('[v510] granular sync active — room portals/'+(window.SYNC?SYNC.room:'?'));
+}
+document.addEventListener('DOMContentLoaded',function(){ setTimeout(install,4200); });
+setTimeout(install,4600);
+setTimeout(install,6000);
+
+/* Export JSON backup helper, surfaced for the pre-test instruction. */
+window.exportStoreJSON=function(){
+  try{
+    var blob=new Blob([JSON.stringify(STORE,null,2)],{type:'application/json'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='asimati-hub-backup-'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';
+    a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); },4000);
+    try{toast('Backup downloaded — keep it before testing',true);}catch(e){}
+  }catch(e){ try{toast('Backup failed: '+e.message,false);}catch(_){} }
+};
+window.restoreLastGoodLive=function(){
+  try{
+    var raw=localStorage.getItem(LGL);
+    if(!raw){ toast('No last-good-live snapshot stored yet',false); return; }
+    var o=JSON.parse(raw);
+    if(!confirm('Restore the last known-good live snapshot from '+o.ts+'?\n\nThis replaces local data only. Nothing is written to Firebase until you make an edit.')) return;
+    STORE=o.store; try{localStorage.setItem(SK,JSON.stringify(STORE));}catch(e){}
+    setBaseline(STORE);
+    if(typeof renderHub==='function') renderHub();
+    toast('Restored the snapshot from '+o.ts,true);
+  }catch(e){ toast('Restore failed: '+e.message,false); }
+};
+
+})();
+
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   v511 — DIGITAL DATA CENTER: FULL CRUD + EXCEL ROUND-TRIP
+   ───────────────────────────────────────────────────────────────────────────
+   Digital Data Center (p2) is a CONTAINER. The real data lives in its
+   sub-centres — Temporary, Permanent and SDC — each carrying meta.dcModel and
+   an items[] list of {group, name, status, start, end, notes}.
+
+   What existed: per-item edit, status cycle, add and delete (dcEdit/dcCycle/
+   dcAdd/dcDel). What did not:
+     • no Excel export or import for this model at all — exportExcel() has a
+       branch for the resource model but none for dcModel, so a data-centre
+       sub-project exported generic empty sheets
+     • no way to add, rename or delete a whole sub-centre
+     • no way to rename or delete a category
+     • no bulk edit path
+
+   This adds all of it, and makes Excel a true two-way mirror: whatever you
+   change in the sheet — rows, categories, or the set of sub-centres — comes
+   back in, including deletions.
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function(){
+if(window.__v511) return; window.__v511=true;
+
+var DC_HEAD=['Category','Item','Status','Start Date','End Date','Notes'];
+var S_OUT={d:'Done',p:'In Progress',n:'Not Started'};
+
+function sv(v){ return v==null?'':String(v).trim(); }
+function norm(s){ return sv(s).replace(/\s+/g,' ').toLowerCase(); }
+function sIn(v){
+  var t=norm(v);
+  if(!t||t==='—'||t==='-') return 'n';
+  if(/not\s*start|not\s*done|لم|غير/.test(t)) return 'n';
+  if(/hold|معلق/.test(t)) return 'h';
+  if(/prog|قيد|جاري/.test(t)) return 'p';
+  if(/done|complet|منجز/.test(t)) return 'd';
+  return 'n';
+}
+function dOnly(v){ var m=sv(v).match(/\d{4}-\d{2}-\d{2}/); return m?m[0]:sv(v); }
+
+/* The container and its sub-centres. */
+function dcContainer(){
+  try{
+    var mp=(typeof mainProjects==='function')?mainProjects():STORE.projects;
+    return (mp||[]).find(function(x){ return x&&x.id==='p2'; })||null;
+  }catch(e){ return null; }
+}
+function dcCentres(){
+  var c=dcContainer();
+  if(!c||!Array.isArray(c.subProjects)) return [];
+  return c.subProjects.filter(function(s){ return s&&s.meta&&s.meta.dcModel===true; });
+}
+window.dcContainer=dcContainer; window.dcCentres=dcCentres;
+
+function guard(){
+  if(typeof isEditor==='function'&&isEditor()) return true;
+  try{ toast('Editor role required',false); }catch(e){}
+  return false;
+}
+function commit(p){
+  if(p&&typeof dcRecompute==='function') dcRecompute(p);
+  /* Roll the container's own percentage up from its sub-centres. */
+  var c=dcContainer();
+  if(c){
+    var cs=dcCentres();
+    if(cs.length) c.progress=Math.round(cs.reduce(function(a,x){ return a+(Number(x.progress)||0); },0)/cs.length);
+  }
+  try{ persist(); }catch(e){}
+  try{ if(CUR_PROJ&&typeof renderProjectView==='function') renderProjectView(CUR_PROJ); }catch(e){}
+  try{ if(typeof renderHub==='function') renderHub(); }catch(e){}
+}
+window.__dcCommit=commit;
+
+/* ── Sub-centre CRUD ─────────────────────────────────────────────────────── */
+function dcAddCentre(){
+  if(!guard()) return;
+  var c=dcContainer();
+  if(!c){ try{toast('Digital Data Center container not found',false);}catch(e){} return; }
+  var nm=window.prompt('Name of the new data centre:','');
+  if(nm===null) return;
+  nm=sv(nm)||'New Data Centre';
+  var base=dcCentres()[0];
+  var id='p2-'+norm(nm).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,20)+'-'+Date.now().toString(36).slice(-4);
+  var copy=window.confirm('Start from the existing category and item structure?\n\nOK = copy the structure with every item reset to Not Started.\nCancel = start completely empty.');
+  var items=[], phases=[];
+  if(copy&&base){
+    items=(base.items||[]).map(function(it){
+      return {group:it.group,name:it.name,status:'n',start:'',end:'',notes:''};
+    });
+    phases=(base.phases||[]).map(function(ph){ return {name:ph.name,nameAr:ph.nameAr||'',planPct:100,actualPct:0}; });
+  }
+  if(!Array.isArray(c.subProjects)) c.subProjects=[];
+  c.subProjects.push({id:id,name:nm,nameEn:nm,icon:'datacenter',progress:0,
+    phases:phases,milestones:[],qa:[],budget:[],risks:[],team:[],sites:[],
+    items:items,documents:[],meta:{dcModel:true}});
+  commit(null);
+  try{ auditLog('p2','datacenter','add-centre',nm); }catch(e){}
+  try{ toast('Added "'+nm+'"'+(items.length?(' with '+items.length+' item(s)'):' (empty)'),true); }catch(e){}
+}
+function dcRenameCentre(id){
+  if(!guard()) return;
+  var s=projByID(id); if(!s) return;
+  var nm=window.prompt('Rename this data centre:',s.nameEn||s.name||'');
+  if(nm===null) return;
+  nm=sv(nm); if(!nm) return;
+  s.nameEn=nm; s.name=nm;
+  commit(s);
+  try{ auditLog('p2','datacenter','rename-centre',nm); }catch(e){}
+}
+function dcDeleteCentre(id){
+  if(!guard()) return;
+  var c=dcContainer(); if(!c||!Array.isArray(c.subProjects)) return;
+  var i=c.subProjects.findIndex(function(s){ return s&&s.id===id; });
+  if(i<0) return;
+  var s=c.subProjects[i];
+  var n=(s.items||[]).length;
+  if(!window.confirm('Delete "'+(s.nameEn||s.name)+'" and all '+n+' of its items?\n\nThis cannot be undone from the interface. Export to Excel first if you want a copy.')) return;
+  c.subProjects.splice(i,1);
+  if(!Array.isArray(STORE._deletedIds)) STORE._deletedIds=[];
+  STORE._deletedIds.push(id);          /* so the merge layer does not resurrect it */
+  if(CUR_PROJ===id){ try{ closeProject(); }catch(e){} }
+  commit(null);
+  try{ auditLog('p2','datacenter','delete-centre',(s.nameEn||s.name)+' ('+n+' items)'); }catch(e){}
+  try{ toast('Deleted "'+(s.nameEn||s.name)+'"',true); }catch(e){}
+}
+window.dcAddCentre=dcAddCentre;
+window.dcRenameCentre=dcRenameCentre;
+window.dcDeleteCentre=dcDeleteCentre;
+
+/* ── Category CRUD ───────────────────────────────────────────────────────── */
+function dcRenameCategory(pid,oldName){
+  if(!guard()) return;
+  var p=projByID(pid); if(!p) return;
+  var nm=window.prompt('Rename category:',oldName);
+  if(nm===null) return;
+  nm=sv(nm); if(!nm||nm===oldName) return;
+  (p.items||[]).forEach(function(it){ if((it.group||'General')===oldName) it.group=nm; });
+  (p.phases||[]).forEach(function(ph){ if(ph.name===oldName) ph.name=nm; });
+  commit(p);
+}
+function dcDeleteCategory(pid,g){
+  if(!guard()) return;
+  var p=projByID(pid); if(!p) return;
+  var n=(p.items||[]).filter(function(it){ return (it.group||'General')===g; }).length;
+  if(!window.confirm('Delete the category "'+g+'" and its '+n+' item(s)?')) return;
+  p.items=(p.items||[]).filter(function(it){ return (it.group||'General')!==g; });
+  p.phases=(p.phases||[]).filter(function(ph){ return ph.name!==g; });
+  commit(p);
+  try{ auditLog(pid,'datacenter','delete-category',g+' ('+n+' items)'); }catch(e){}
+}
+window.dcRenameCategory=dcRenameCategory;
+window.dcDeleteCategory=dcDeleteCategory;
+
+/* ── Export ──────────────────────────────────────────────────────────────
+   One sheet per sub-centre plus an index. Each sheet is stamped with its own
+   id so an import can route it back even if the sheet is renamed. */
+function dcExportExcel(){
+  if(typeof loadXLSX!=='function'){ try{toast('Excel library unavailable',false);}catch(e){} return; }
+  var centres=dcCentres();
+  if(!centres.length){ try{toast('No data centres to export',false);}catch(e){} return; }
+  loadXLSX(function(){
+    try{
+      var wb=XLSX.utils.book_new(), used={}, index=[['Centre ID','Centre','Sheet','Items','Done','Progress %']];
+      centres.forEach(function(s){
+        var rows=[DC_HEAD.concat(['__dcid:'+s.id])];
+        (s.items||[]).forEach(function(it){
+          rows.push([it.group||'General', it.name||'', S_OUT[it.status||'n']||'Not Started',
+                     it.start||'', it.end||'', it.notes||'', '']);
+        });
+        var base=sv(s.nameEn||s.name||s.id).replace(/[\\\/\?\*\[\]:]/g,' ').slice(0,26)||s.id;
+        var nm=base, k=2; while(used[nm]) nm=base.slice(0,24)+' '+(k++); used[nm]=1;
+        var ws=XLSX.utils.aoa_to_sheet(rows);
+        ws['!cols']=[{wch:24},{wch:52},{wch:14},{wch:13},{wch:13},{wch:46},{wch:16}];
+        ws['!freeze']={xSplit:2,ySplit:1};
+        XLSX.utils.book_append_sheet(wb,ws,nm);
+        var done=(s.items||[]).filter(function(x){return (x.status||'n')==='d';}).length;
+        index.push([s.id, s.nameEn||s.name||'', nm, (s.items||[]).length, done,
+                    (typeof dcPct==='function')?dcPct(s):0]);
+      });
+      var iws=XLSX.utils.aoa_to_sheet(index);
+      iws['!cols']=[{wch:16},{wch:34},{wch:28},{wch:8},{wch:8},{wch:12}];
+      XLSX.utils.book_append_sheet(wb,iws,'_Index');
+      XLSX.writeFile(wb,'Digital_Data_Center_'+new Date().toISOString().split('T')[0]+'.xlsx');
+      try{ auditLog('p2','excel','export-dc',centres.length+' centre(s)'); }catch(e){}
+      try{ toast('Exported '+centres.length+' data centre(s) \u2014 edit any sheet and use Import to apply it back',true); }catch(e){}
+    }catch(err){
+      console.error('[dc] export failed',err);
+      try{toast('Export failed: '+(err&&err.message||err),false);}catch(e){}
+    }
+  });
+}
+window.dcExportExcel=dcExportExcel;
+
+/* ── Import ──────────────────────────────────────────────────────────────
+   Applies everything the sheet says, including removals: items absent from a
+   sheet are deleted, categories that disappear go with them, and a sub-centre
+   whose sheet is gone is reported (never deleted silently — losing a whole
+   centre because someone deleted a tab by accident is not acceptable). */
+function dcImportWorkbook(wb){
+  var centres=dcCentres();
+  var byId={}, byName={};
+  centres.forEach(function(s){ byId[s.id]=s; byName[norm(s.nameEn||s.name||'')]=s; });
+
+  var applied=[], created=[], skipped=[], touched={};
+
+  wb.SheetNames.forEach(function(sn){
+    if(sn==='_Index') return;
+    var rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,blankrows:false,raw:false,defval:''});
+    if(!rows.length){ skipped.push(sn+' (empty)'); return; }
+    var hdr=(rows[0]||[]).map(sv);
+
+    /* Which centre? id stamp first, then sheet name. */
+    var id=null, stampCol=-1;
+    for(var i=0;i<hdr.length;i++){
+      var m=hdr[i].match(/^__dcid:(.+)$/);
+      if(m){ id=m[1].trim(); stampCol=i; break; }
+    }
+    var s=(id&&byId[id])||byName[norm(sn)]||null;
+
+    /* Map the columns by header so a reordered or renamed sheet still works. */
+    function col(re,dflt){
+      for(var i=0;i<hdr.length;i++){ if(i!==stampCol && re.test(norm(hdr[i]))) return i; }
+      return dflt;
+    }
+    var cG=col(/^(category|group|القسم|الفئة)$/,0),
+        cN=col(/^(item|name|description|البند|العنصر)$/,1),
+        cS=col(/^(status|state|الحالة)$/,2),
+        cA=col(/^(start|start date|from)$/,3),
+        cB=col(/^(end|end date|to|finish)$/,4),
+        cX=col(/^(notes|remarks|comment|ملاحظات)$/,5);
+
+    var items=[];
+    for(var r=1;r<rows.length;r++){
+      var row=rows[r]||[];
+      var nm=sv(row[cN]);
+      if(!nm) continue;
+      var prev=s?(s.items||[]).find(function(x){ return norm(x.name)===norm(nm); }):null;
+      items.push({
+        group: sv(row[cG])||'General',
+        name:  nm,
+        status:sIn(row[cS]),
+        start: dOnly(row[cA]),
+        end:   dOnly(row[cB]),
+        notes: sv(row[cX])||(prev?'':'')
+      });
+    }
+    if(!items.length){ skipped.push(sn+' (no item rows)'); return; }
+
+    if(!s){
+      /* A sheet for a centre that does not exist yet creates it. */
+      var c=dcContainer();
+      if(!c){ skipped.push(sn+' (container missing)'); return; }
+      s={id:(id||'p2-'+norm(sn).replace(/[^a-z0-9]+/g,'-').slice(0,18)+'-'+Date.now().toString(36).slice(-4)),
+         name:sn,nameEn:sn,icon:'datacenter',progress:0,phases:[],milestones:[],
+         qa:[],budget:[],risks:[],team:[],sites:[],items:[],documents:[],meta:{dcModel:true}};
+      if(!Array.isArray(c.subProjects)) c.subProjects=[];
+      c.subProjects.push(s);
+      created.push(sn);
+    }
+
+    var before=(s.items||[]).length;
+    var beforeCats=(s.items||[]).map(function(x){return x.group||'General';})
+                                .filter(function(v,i,a){return a.indexOf(v)===i;});
+    s.items=items;
+    /* Rebuild the category list in sheet order, keeping any recorded plan %. */
+    var seen=[], phases=[];
+    var oldPh={}; (s.phases||[]).forEach(function(ph){ oldPh[norm(ph.name)]=ph; });
+    items.forEach(function(it){
+      var g=it.group||'General';
+      if(seen.indexOf(g)>=0) return;
+      seen.push(g);
+      var o=oldPh[norm(g)];
+      phases.push({name:g,nameAr:(o&&o.nameAr)||'',planPct:(o&&o.planPct)!=null?o.planPct:100,actualPct:0});
+    });
+    s.phases=phases;
+    if(typeof dcRecompute==='function') dcRecompute(s);
+    touched[s.id]=1;
+
+    var addedCats=seen.filter(function(g){ return beforeCats.indexOf(g)<0; });
+    var goneCats=beforeCats.filter(function(g){ return seen.indexOf(g)<0; });
+    applied.push({sheet:sn,centre:s.nameEn||s.name,before:before,after:items.length,
+                  addedCats:addedCats,goneCats:goneCats});
+  });
+
+  /* A centre with no sheet in this workbook is left alone and reported. */
+  var untouched=dcCentres().filter(function(s){ return !touched[s.id]; })
+                           .map(function(s){ return s.nameEn||s.name; });
+  return {applied:applied,created:created,skipped:skipped,untouched:untouched};
+}
+window.dcImportWorkbook=dcImportWorkbook;
+
+function dcImportExcel(file){
+  if(!file) return;
+  if(!guard()) return;
+  loadXLSX(function(){
+    var rd=new FileReader();
+    rd.onload=function(ev){
+      try{
+        var wb=XLSX.read(ev.target.result,{type:'array',raw:false});
+        var out=dcImportWorkbook(wb);
+        if(!out.applied.length){
+          try{toast('Nothing imported \u2014 '+(out.skipped[0]||'no data-centre sheets found'),false);}catch(e){}
+          return;
+        }
+        commit(null);
+        var rows=out.applied.reduce(function(a,x){ return a+x.after; },0);
+        var delta=out.applied.reduce(function(a,x){ return a+(x.after-x.before); },0);
+        var cats=out.applied.reduce(function(a,x){ return a+x.addedCats.length; },0);
+        var gone=out.applied.reduce(function(a,x){ return a+x.goneCats.length; },0);
+        var bits=[out.applied.length+' centre(s)',rows+' item(s)'];
+        if(delta>0) bits.push('+'+delta+' new');
+        if(delta<0) bits.push(Math.abs(delta)+' removed');
+        if(cats) bits.push(cats+' new category(ies)');
+        if(gone) bits.push(gone+' category(ies) removed');
+        if(out.created.length) bits.push(out.created.length+' centre(s) created');
+        try{ toast('Imported: '+bits.join(' \u00b7 '),true); }catch(e){}
+        out.applied.forEach(function(x){
+          console.info('[dc import] '+x.centre+': '+x.before+' \u2192 '+x.after+' items'
+            +(x.addedCats.length?(' | +cats '+x.addedCats.join(', ')):'')
+            +(x.goneCats.length?(' | -cats '+x.goneCats.join(', ')):''));
+        });
+        if(out.untouched.length) console.info('[dc import] left unchanged (no sheet):',out.untouched.join(', '));
+        if(out.skipped.length) console.info('[dc import] skipped:',out.skipped.join(' | '));
+        try{ auditLog('p2','excel','import-dc',bits.join('; ')); }catch(e){}
+      }catch(err){
+        console.error('[dc] import failed',err);
+        try{toast('Import failed: '+(err&&err.message||err),false);}catch(e){}
+      }
+    };
+    rd.readAsArrayBuffer(file);
+  });
+}
+window.dcImportExcel=dcImportExcel;
+
+document.addEventListener('DOMContentLoaded',function(){
+  if(document.getElementById('dcXlsInput')) return;
+  var inp=document.createElement('input');
+  inp.type='file'; inp.id='dcXlsInput'; inp.accept='.xlsx,.xls'; inp.style.display='none';
+  inp.onchange=function(){ if(this.files&&this.files[0]) dcImportExcel(this.files[0]); this.value=''; };
+  document.body.appendChild(inp);
+});
+window.dcPickFile=function(){ var el=document.getElementById('dcXlsInput'); if(el) el.click(); };
+
+})();
+
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   v512 — DELETE A SUB-PROJECT FROM THE CONTAINER PAGE
+   ───────────────────────────────────────────────────────────────────────────
+   overallPct() already averages across subProjects.length, so removing one
+   makes the parent percentage divide by the remaining count on its own — no
+   separate recalculation is needed, and none is added here. What was missing
+   was a way to remove a centre without first opening it, and a tombstone so
+   the data-centre migration could not recreate it on the next load.
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function(){
+if(window.__v512) return; window.__v512=true;
+
+function deleteSubProject(containerId,subId){
+  if(!(typeof isEditor==='function'&&isEditor())){
+    try{toast('Editor role required',false);}catch(e){} return;
+  }
+  var c=projByID(containerId);
+  if(!c||!Array.isArray(c.subProjects)){ try{toast('Container not found',false);}catch(e){} return; }
+  var i=c.subProjects.findIndex(function(s){ return s&&s.id===subId; });
+  if(i<0) return;
+  var s=c.subProjects[i];
+  var nm=s.nameEn||s.name||s.id;
+  var items=(s.items||[]).length;
+  var ms=(s.milestones||[]).length;
+  var what=items?(items+' item(s)'):(ms?(ms+' milestone(s)'):'its data');
+
+  var remaining=c.subProjects.length-1;
+  var msg='Delete "'+nm+'" and '+what+'?\n\n';
+  if(remaining>0){
+    var others=c.subProjects.filter(function(x,j){ return j!==i && x; });
+    var newPct=Math.round(others.reduce(function(a,x){ return a+overallPct(x); },0)/others.length);
+    msg+=(c.nameEn||c.name)+' will then be averaged over '+remaining+' instead of '
+       +c.subProjects.length+', moving from '+overallPct(c)+'% to '+newPct+'%.\n\n';
+  } else {
+    msg+='This is the last one — '+(c.nameEn||c.name)+' will be left empty.\n\n';
+  }
+  msg+='Export to Excel first if you want a copy. This cannot be undone from the interface.';
+  if(!window.confirm(msg)) return;
+
+  c.subProjects.splice(i,1);
+  /* Tombstone: the sync merge and the data-centre migration both check this,
+     so a deleted centre cannot be resurrected by a teammate's snapshot or by
+     the next page load. */
+  if(!Array.isArray(STORE._deletedIds)) STORE._deletedIds=[];
+  if(STORE._deletedIds.indexOf(subId)<0) STORE._deletedIds.push(subId);
+
+  /* The parent percentage is derived, not stored, so just refresh it. */
+  try{ c.progress=overallPct(c); }catch(e){}
+  /* Removing the last child would otherwise look like a first run to the
+     seeding pass, which would refill the container on the next load. */
+  if(!c.subProjects.length){ c.meta=c.meta||{}; c.meta.emptiedByUser=true; }
+  else if(c.meta) delete c.meta.emptiedByUser;
+
+  if(typeof CUR_PROJ!=='undefined' && CUR_PROJ===subId){ try{ closeProject(); }catch(e){} }
+  try{ persist(); }catch(e){}
+  try{ if(CUR_PROJ&&typeof renderProjectView==='function') renderProjectView(CUR_PROJ); }catch(e){}
+  try{ if(typeof renderHub==='function') renderHub(); }catch(e){}
+  try{ auditLog(containerId,'container','delete-sub',nm+' ('+what+')'); }catch(e){}
+  try{ toast('Deleted "'+nm+'" \u00b7 '+(c.nameEn||c.name)+' now averages '+overallPct(c)+'% across '+remaining,true); }catch(e){}
+}
+window.deleteSubProject=deleteSubProject;
 
 })();
 
