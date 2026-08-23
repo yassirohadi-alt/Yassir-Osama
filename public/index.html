@@ -2549,6 +2549,9 @@ body.role-pm .tr-tn-v:hover{background:#E3EAF3;border-color:#C6D1DE}
 .tr-fld-rl i{font-style:normal;font-size:11.5px;line-height:1.5;color:var(--ink-3,#6B7280)}
 .tr-btn-row{display:flex;gap:8px;flex-wrap:wrap}
 .tr-btn-row .tr-b2{flex:1;min-width:120px;padding:9px 10px;font-size:12px}
+
+.site-col-btn-hi{background:var(--brand-soft,#F7E3E5)!important;border-color:var(--brand,#B12836)!important;color:var(--brand-deep,#8A1E2A)!important;font-weight:800}
+.site-col-btn-hi:hover{background:var(--brand,#B12836)!important;color:#fff!important}
 </style>
 </head>
 <body class="role-viewer intro-playing">
@@ -9188,6 +9191,8 @@ function renderSiteTracker(p){
         +'<button class="site-col-btn" onclick="addSiteColumn(\''+p.id+'\')">+ Column</button>'
         +'<button class="site-col-btn" onclick="restoreSiteCols(\''+p.id+'\')">Restore Columns'+(hiddenCount?(' ('+hiddenCount+')'):'')+'</button>'
         +'<button class="site-col-btn" onclick="applySiteColsToAll(\''+p.id+'\')">Apply layout to all projects</button>'
+        +'<button class="site-col-btn site-col-btn-hi" onclick="exportSiteDepartments(\''+p.id+'\')" title="Export this project\'s Site / Department tracker to Excel — all columns, sub-rows, floor checklists and a department roster">↓ Export Site / Department</button>'
+        +'<button class="site-col-btn" onclick="pickSiteDeptFile()" title="Import an edited Site / Department workbook back into this project">↑ Import</button>'
         +'<button class="site-col-btn" onclick="exportAllSiteTrackers()" title="Export the site tracker of every project into one workbook, one sheet per project">↓ Export all trackers</button>'
         +'<button class="site-col-btn" onclick="pickAllSiteTrackerFile()" title="Import a multi-project workbook and apply each sheet back to its project">↑ Import all trackers</button>'
         +'<span class="site-col-hint">Rename headers inline · ←→ reorder columns · ↑↓ reorder rows · × to delete</span>'
@@ -14977,11 +14982,17 @@ function stMapHeaders(p,header){
 
 function stCoerce(col,raw){
   if(!col) return null;
+  /* v508: calculated columns (Installation, KS %, Final %) are derived from
+     other data — Installation comes from the floor checklist. Importing the
+     rendered figure would freeze a stale number over the live calculation and
+     it would then disagree with the checklist it is supposed to summarise. */
+  if(col.type==='calc'||col.calc) return null;
   switch(col.type){
     case 'status': return stStatus(raw);
     case 'date':   return stDate(raw);
     case 'num':
-    case 'number': return stNum(raw);
+    case 'number':
+    case 'int':    return stNum(raw);
     case 'pct':
     case 'percent':return Math.max(0,Math.min(100,stNum(raw)));
     default:       return stSv(raw);
@@ -15361,7 +15372,8 @@ function nukeBanner(){
 /* trToolbar() is called from several places in the v500 module; neutralise it
    rather than editing every call site, so the rest of that module is untouched. */
 window.trToolbar=function(){ nukeBanner(); trProjBtnRefresh(); };
-setInterval(nukeBanner,1500);
+/* v507: the 1.5s poll was removed — CSS hides the old toolbar permanently,
+   so re-checking forever was pure overhead on every tick. */
 document.addEventListener('DOMContentLoaded',nukeBanner);
 
 /* ── Walk a project's data and collect every non-English string ─────────── */
@@ -15930,6 +15942,675 @@ document.addEventListener('DOMContentLoaded',function(){
   setTimeout(function(){ ['renderProjectView','openProject'].forEach(wrapChip); renderAutoChip(); },1500);
 });
 setTimeout(function(){ ['renderProjectView','openProject'].forEach(wrapChip); renderAutoChip(); },3100);
+
+})();
+
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   v507 — SYNC SAFETY, PERFORMANCE, SITE/DEPARTMENT EXPORT
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function(){
+if(window.__v507) return; window.__v507=true;
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PART 1 — STOP FIREBASE OVERWRITING UNSAVED LOCAL EDITS   ** the data-loss bug **
+   ──────────────────────────────────────────────────────────────────────────
+   __applyIncoming() ends with `STORE = data` — a wholesale replacement. The
+   push to Firebase is debounced by 700ms, and Firebase's on('value') listener
+   fires on any room activity. So this sequence loses work:
+
+     1. you edit a field            -> persist() writes localStorage,
+                                       schedulePush() waits 700ms
+     2. you close the project
+     3. Firebase echoes the room as it STILL is (your push has not landed)
+     4. __applyIncoming replaces STORE wholesale -> your edit is gone
+
+   That is exactly "I change something, close it, and the update is not there",
+   and it only happens when the portal is online, which is why it looks
+   intermittent.
+
+   Fix: a dirty watermark. Any local write marks the store dirty. While dirty,
+   an incoming snapshot is NOT applied over the top — this client pushes its
+   own state instead, and the echo of that push then matches and is ignored.
+   Genuinely remote changes still arrive normally once we are clean.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+var DIRTY=false, dirtyAt=0, deferred=null, deferT=null;
+
+function markDirty(){ DIRTY=true; dirtyAt=Date.now(); }
+function clearDirty(){ DIRTY=false; dirtyAt=0; }
+window.__syncIsDirty=function(){ return DIRTY; };
+
+/* Every local write goes through persist(), so that is the single hook. */
+(function wrapPersist(){
+  var orig=window.persist;
+  if(typeof orig!=='function'||orig.__dirtyWrapped) return;
+  var w=function(){
+    /* SYNC.applying is set while an incoming snapshot is being installed;
+       that is not a local edit and must not mark us dirty. */
+    if(!(window.SYNC&&SYNC.applying)) markDirty();
+    return orig.apply(this,arguments);
+  };
+  w.__dirtyWrapped=true;
+  window.persist=w;
+})();
+
+/* pushNow() sending our state to the server is what makes us clean again. */
+(function wrapPush(){
+  var orig=window.pushNow;
+  if(typeof orig!=='function'||orig.__dirtyWrapped) return;
+  var w=function(){
+    var r=orig.apply(this,arguments);
+    /* Clear only after the write has had a moment to reach the server; if
+       another edit lands in between, markDirty() will simply set it again. */
+    var at=dirtyAt;
+    setTimeout(function(){ if(dirtyAt===at) clearDirty(); },900);
+    return r;
+  };
+  w.__dirtyWrapped=true;
+  window.pushNow=w;
+})();
+
+(function wrapIncoming(){
+  var orig=window.__applyIncoming;
+  if(typeof orig!=='function'||orig.__guarded) return;
+  var w=function(data){
+    if(DIRTY){
+      /* Hold this snapshot and push ours. Keep only the newest deferred
+         snapshot — older ones are superseded by definition. */
+      /* Do NOT hold this for replay. Once we push, the snapshot we were handed
+         describes a state the server no longer has, so replaying it would undo
+         the very edit we just protected — which is precisely the original bug
+         wearing a delay. Firebase re-fires on('value') after our write lands,
+         so a genuinely newer remote change arrives on its own. Discard. */
+      deferred=null;
+      clearTimeout(deferT);
+      try{ if(typeof pushNow==='function') pushNow(); }catch(e){}
+      try{ if(typeof setSyncUI==='function') setSyncUI('live'); }catch(e){}
+      console.info('[sync] held an incoming snapshot to protect unsaved local edits');
+      return;
+    }
+    return orig.apply(this,arguments);
+  };
+  w.__guarded=true;
+  window.__applyIncoming=w;
+})();
+
+/* Last line of defence: never let the tab close with an unpushed change. */
+window.addEventListener('beforeunload',function(){
+  if(DIRTY){ try{ if(typeof pushNow==='function') pushNow(); }catch(e){} }
+});
+/* Mobile browsers often skip beforeunload; visibility change is reliable. */
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='hidden' && DIRTY){
+    try{ if(typeof pushNow==='function') pushNow(); }catch(e){}
+  }
+});
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PART 2 — PERFORMANCE
+   ──────────────────────────────────────────────────────────────────────────
+   Three always-on costs added by earlier versions, removed or gated here.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* (a) The banner-removal poll ran every 1.5s forever. CSS already hides the
+       old toolbar permanently, so the timer was pure overhead. */
+try{
+  var hi=setInterval(function(){},999999);      /* probe for the id range */
+  for(var i=1;i<hi;i++){ /* no-op: ids are opaque, handled below instead */ }
+  clearInterval(hi);
+}catch(e){}
+/* Replace the polling function with a cheap no-op after one final cleanup. */
+setTimeout(function(){
+  try{
+    var el=document.getElementById('trToolbar');
+    if(el) el.remove();
+  }catch(e){}
+  if(typeof window.trToolbar==='function'){
+    window.trToolbar=function(){
+      try{ if(typeof trProjBtnRefresh==='function') trProjBtnRefresh(); }catch(e){}
+    };
+  }
+},3500);
+
+/* (b) The uiHidden MutationObserver fired on every DOM mutation, including all
+       the text rewrites auto-translate performs. It is only ever needed when
+       something is actually hidden, so gate it on that and debounce harder. */
+setTimeout(function(){
+  if(typeof window.uhSchedule!=='function') return;
+  var origSched=window.uhSchedule, t=null;
+  window.uhSchedule=function(){
+    var hidden=(window.STORE&&Array.isArray(STORE.uiHidden))?STORE.uiHidden.length:0;
+    if(!hidden) return;                      /* nothing hidden: nothing to re-apply */
+    clearTimeout(t);
+    t=setTimeout(function(){ try{ uhApply(); }catch(e){} },220);
+  };
+},3200);
+
+/* (c) trScan walked every div/span/td in the document after every render.
+       Scope it to the visible project grid, which is the only region that is
+       re-rendered, and skip entirely while a bulk translation is running. */
+setTimeout(function(){
+  if(typeof window.trScan!=='function') return;
+  var orig=window.trScan;
+  window.trScan=function(root){
+    if(document.querySelector('.tr-bulk')) return 0;   /* bulk job owns the store */
+    var scope=root||document.getElementById('pvGrid')||document.body;
+    return orig.call(this,scope);
+  };
+},3200);
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PART 3 — EXPORT THE SITE / DEPARTMENT TRACKER TO EXCEL
+   ──────────────────────────────────────────────────────────────────────────
+   A button on the Site Tracker card itself that exports exactly what is on
+   screen — every visible column including custom ones, sub-rows, and the floor
+   checklist of each site on its own sheet. Re-importable through the existing
+   Site Tracker import, so edits made in Excel come back into the portal.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+function exportSiteDepartments(pid){
+  var p=(typeof projByID==='function')?projByID(pid||window.CUR_PROJ):null;
+  if(!p){ try{toast('Project not found',false);}catch(e){} return; }
+  if(typeof loadXLSX!=='function'){ try{toast('Excel library unavailable',false);}catch(e){} return; }
+
+  loadXLSX(function(){
+    try{
+      var wb=XLSX.utils.book_new();
+
+      /* Sheet 1 — the tracker exactly as rendered. */
+      var rows=(typeof siteTrackerExportRows==='function')?siteTrackerExportRows(p):null;
+      if(!rows||rows.length<2){ try{toast('This project has no site tracker rows',false);}catch(e){} return; }
+      var stamped=rows.map(function(r,i){ return i===0?r.concat(['__pid:'+p.id]):r.concat(['']); });
+      var ws=XLSX.utils.aoa_to_sheet(stamped);
+      ws['!cols']=(stamped[0]||[]).map(function(h){
+        return {wch:Math.min(46,Math.max(10,String(h||'').length+4))};
+      });
+      ws['!freeze']={xSplit:2,ySplit:1};
+      XLSX.utils.book_append_sheet(wb,ws,'Site Tracker');
+
+      /* Sheet 2 — one block per site's floor checklist, if any exist. */
+      var fl=[], any=false;
+      (p.sites||[]).filter(Boolean).forEach(function(s){
+        if(!Array.isArray(s.floors)||!s.floors.length) return;
+        any=true;
+        var cols=(typeof getFloorCols==='function')?getFloorCols(s):[];
+        fl.push([s.name||'']);
+        fl.push(['Floor'].concat(cols.map(function(c){return c[1];})).concat(['Progress']));
+        s.floors.forEach(function(f){
+          if(!f) return;
+          var items=f.items||{};
+          var vals=cols.map(function(c){
+            var v=items[c[0]]||'n';
+            return v==='d'?'Done':v==='p'?'In Progress':v==='h'?'On Hold':'Not Started';
+          });
+          var dn=cols.filter(function(c){return (items[c[0]]||'n')==='d';}).length;
+          var pct=cols.length?Math.round(dn/cols.length*100):0;
+          fl.push([f.name||''].concat(vals).concat([pct+'%']));
+        });
+        fl.push([]);
+      });
+      if(any){
+        var wsf=XLSX.utils.aoa_to_sheet(fl);
+        wsf['!cols']=[{wch:26}].concat(new Array(12).fill({wch:16}));
+        XLSX.utils.book_append_sheet(wb,wsf,'Floor Checklists');
+      }
+
+      /* Sheet 3 — a plain department roster, which is what most people
+         actually want to circulate. */
+      var ros=[['#','Site / Department','Survey','Design','Submitted','Progress','Notes']];
+      (p.sites||[]).filter(Boolean).forEach(function(s,i){
+        function lab(v){ return v==='d'?'Done':v==='p'?'In Progress':v==='h'?'On Hold':'Not Started'; }
+        var pct=(typeof sitePct==='function')?sitePct(s):'';
+        ros.push([i+1,s.name||'',lab(s.survey),lab(s.design),lab(s.submit),
+                  (pct===''?'':pct+'%'),s.notes||'']);
+      });
+      var wsr=XLSX.utils.aoa_to_sheet(ros);
+      wsr['!cols']=[{wch:5},{wch:40},{wch:13},{wch:13},{wch:13},{wch:10},{wch:52}];
+      XLSX.utils.book_append_sheet(wb,wsr,'Departments');
+
+      var safe=String(p.nameEn||p.name||p.id).replace(/[^A-Za-z0-9]+/g,'_').slice(0,40);
+      XLSX.writeFile(wb, safe+'_Site_Departments_'+new Date().toISOString().split('T')[0]+'.xlsx');
+      try{ if(typeof auditLog==='function') auditLog(p.id,'excel','export-sites',(p.sites||[]).filter(Boolean).length+' site(s)'); }catch(e){}
+      try{toast('Exported '+((p.sites||[]).filter(Boolean).length)+' site(s) \u00b7 edit in Excel and use Import to bring changes back',true);}catch(e){}
+    }catch(err){
+      console.error('site export failed',err);
+      try{toast('Export failed: '+(err&&err.message||err),false);}catch(e){}
+    }
+  });
+}
+window.exportSiteDepartments=exportSiteDepartments;
+
+/* Import straight back into this project's tracker. */
+function importSiteDepartments(pid,file){
+  if(!file) return;
+  if(!(typeof isEditor==='function'&&isEditor())){ try{toast('Editor role required',false);}catch(e){} return; }
+  loadXLSX(function(){
+    var rd=new FileReader();
+    rd.onload=function(ev){
+      try{
+        var wb=XLSX.read(ev.target.result,{type:'array',raw:false});
+        var sn=wb.SheetNames.indexOf('Site Tracker')>=0?'Site Tracker':wb.SheetNames[0];
+        var rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,blankrows:false,raw:false,defval:''});
+        /* Read the project id out of the file rather than trusting whatever
+           screen happens to be open. The current project can be null right
+           after a download, and the user may well import from the hub. */
+        var stampPid=null, hdr=rows[0]||[];
+        for(var i=0;i<hdr.length;i++){
+          var mm=String(hdr[i]||'').match(/^__pid:(.+)$/);
+          if(mm){
+            stampPid=mm[1].trim();
+            rows=rows.map(function(r){ var cp=r.slice(); cp.splice(i,1); return cp; });
+            break;
+          }
+        }
+        var p=projByID(stampPid||pid||window.CUR_PROJ);
+        if(!p){ try{toast('Could not tell which project this file belongs to \u2014 open the project and try again',false);}catch(e){} return; }
+        var res=(typeof stImportRows==='function')?stImportRows(p,rows):{ok:false,reason:'importer unavailable'};
+        if(res.ok){
+          persist();
+          try{ if(typeof renderProjectView==='function') renderProjectView(p.id); }catch(e){}
+          try{ if(typeof renderHub==='function') renderHub(); }catch(e){}
+          try{toast('Imported '+res.sites+' site(s)'+(res.subs?(' + '+res.subs+' sub-item(s)'):'')+' \u2014 saved to the database',true);}catch(e){}
+        } else {
+          try{toast('Import failed: '+res.reason,false);}catch(e){}
+        }
+      }catch(err){
+        console.error(err);
+        try{toast('Import failed: '+(err&&err.message||err),false);}catch(e){}
+      }
+    };
+    rd.readAsArrayBuffer(file);
+  });
+}
+window.importSiteDepartments=importSiteDepartments;
+
+document.addEventListener('DOMContentLoaded',function(){
+  if(document.getElementById('siteDeptXls')) return;
+  var inp=document.createElement('input');
+  inp.type='file'; inp.id='siteDeptXls'; inp.accept='.xlsx,.xls'; inp.style.display='none';
+  inp.onchange=function(){ importSiteDepartments(window.CUR_PROJ,this.files[0]); this.value=''; };
+  document.body.appendChild(inp);
+});
+window.pickSiteDeptFile=function(){
+  var el=document.getElementById('siteDeptXls');
+  if(el) el.click();
+};
+
+})();
+
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   v508 — MULTI-USER MERGE + FULL WORKBOOK IMPORT
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function(){
+if(window.__v508) return; window.__v508=true;
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PART 1 — WHY TRANSLATIONS VANISHED ON REFRESH
+   ──────────────────────────────────────────────────────────────────────────
+   _mergeLocalState() carries exactly two keys across an incoming snapshot:
+   _deletedIds and _activityLog. Everything else is taken from the remote
+   payload wholesale. So the moment any client pushes a room state that has no
+   i18n branch — a teammate on an older tab, or a push that raced ahead of the
+   first translation — STORE.i18n is replaced with nothing and every saved
+   translation disappears. STORE.uiHidden went the same way, which is why
+   removed filter buttons reappeared.
+
+   PART 2 — WHY THE TEAM'S SAVES DID NOT STICK
+   ──────────────────────────────────────────────────────────────────────────
+   Sync is whole-document. Two people editing different projects still
+   overwrite each other, because whoever pushes last sends their entire
+   projects array. Nothing merges at the project level.
+
+   Fix for both: a real merge. Each project carries an _mtime stamped when its
+   own content changes, and incoming snapshots are combined project by project
+   — newest wins per project, and projects only one side knows about are kept.
+   i18n entries are unioned (newest per string), uiHidden is unioned.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+function stamp(p){ try{ p._mtime=Date.now(); }catch(e){} }
+
+/* Per-project fingerprints, so we only bump _mtime for projects that changed. */
+var fp={};
+function fingerprint(p){
+  try{
+    var m=p._mtime; delete p._mtime;          /* exclude the stamp itself */
+    var s=JSON.stringify(p);
+    if(m!==undefined) p._mtime=m;
+    return s.length+':'+hash(s);
+  }catch(e){ return String(Math.random()); }
+}
+function hash(s){
+  var h=5381;
+  for(var i=0;i<s.length;i++){ h=(((h<<5)+h)+s.charCodeAt(i))|0; }
+  return (h>>>0).toString(36);
+}
+function stampChanged(){
+  if(!window.STORE||!Array.isArray(STORE.projects)) return;
+  STORE.projects.forEach(function(p){
+    if(!p||!p.id) return;
+    var f=fingerprint(p);
+    if(fp[p.id]!==f){ fp[p.id]=f; stamp(p); }
+  });
+}
+window.__stampChanged=stampChanged;
+
+/* Stamp on every local save, before the payload is built. */
+(function(){
+  var orig=window.persist;
+  if(typeof orig!=='function'||orig.__mtimeWrapped) return;
+  var w=function(){
+    if(!(window.SYNC&&SYNC.applying)){ try{ stampChanged(); }catch(e){} }
+    return orig.apply(this,arguments);
+  };
+  w.__mtimeWrapped=true;
+  window.persist=w;
+})();
+
+/* ── The merge ───────────────────────────────────────────────────────────── */
+function mergeStores(incoming,local){
+  if(!incoming||typeof incoming!=='object') return incoming;
+  if(!local||typeof local!=='object') return incoming;
+  try{
+    /* (a) Projects — newest wins per project, both sides' exclusives kept. */
+    if(Array.isArray(incoming.projects)&&Array.isArray(local.projects)){
+      var byId={}, order=[];
+      incoming.projects.forEach(function(p){
+        if(!p||!p.id) return;
+        byId[p.id]={remote:p}; order.push(p.id);
+      });
+      local.projects.forEach(function(p){
+        if(!p||!p.id) return;
+        if(!byId[p.id]){ byId[p.id]={}; order.push(p.id); }
+        byId[p.id].local=p;
+      });
+      var deleted={};
+      (incoming._deletedIds||[]).concat(local._deletedIds||[]).forEach(function(id){ if(id) deleted[id]=1; });
+
+      var out=[];
+      order.forEach(function(id){
+        if(deleted[id]) return;                     /* respect deletions from either side */
+        var e=byId[id];
+        if(!e) return;
+        if(e.remote&&!e.local){ out.push(e.remote); return; }
+        if(e.local&&!e.remote){ out.push(e.local);  return; }
+        var rt=+(e.remote._mtime||0), lt=+(e.local._mtime||0);
+        /* Ties go to local: if neither side stamped, the copy already in
+           memory is the one the user is looking at. */
+        out.push(rt>lt ? e.remote : e.local);
+      });
+      incoming.projects=out;
+    }
+
+    /* (b) Translations — union. A translation is append-only knowledge; losing
+           one is pure damage, so keep every entry either side has and let the
+           newer timestamp win where both know the same string. */
+    var li=(local.i18n&&local.i18n.entries)?local.i18n.entries:null;
+    var ri=(incoming.i18n&&incoming.i18n.entries)?incoming.i18n.entries:null;
+    if(li||ri){
+      var ent={}, k;
+      if(ri) for(k in ri) ent[k]=ri[k];
+      if(li) for(k in li){
+        var a=li[k], b=ent[k];
+        if(!b){ ent[k]=a; continue; }
+        ent[k]=(String(a&&a.ts||'')>String(b&&b.ts||''))?a:b;
+      }
+      incoming.i18n=incoming.i18n||{v:1};
+      incoming.i18n.entries=ent;
+      /* Preserve the English->original reverse index from both sides. */
+      var be={};
+      if(incoming.i18n.byEn) for(k in incoming.i18n.byEn) be[k]=incoming.i18n.byEn[k];
+      if(local.i18n&&local.i18n.byEn) for(k in local.i18n.byEn) be[k]=local.i18n.byEn[k];
+      incoming.i18n.byEn=be;
+    }
+
+    /* (c) Hidden interface elements — union, so a removal made on one machine
+           is not resurrected by a snapshot from another. */
+    var lu=Array.isArray(local.uiHidden)?local.uiHidden:[];
+    var ru=Array.isArray(incoming.uiHidden)?incoming.uiHidden:[];
+    if(lu.length||ru.length){
+      var seen={}, u=[];
+      ru.concat(lu).forEach(function(x){ if(x&&!seen[x]){ seen[x]=1; u.push(x); } });
+      incoming.uiHidden=u;
+    }
+
+    /* (d) Any other top-level key this build knows about but the sender did
+           not send. Absent is not the same as deleted. */
+    ['snapshots','engagements','settings','pmoRecs','digest'].forEach(function(key){
+      if(incoming[key]===undefined && local[key]!==undefined) incoming[key]=local[key];
+    });
+  }catch(e){ console.error('[v508] merge failed, keeping incoming as-is',e); }
+  return incoming;
+}
+window.mergeStores=mergeStores;
+
+/* Chain onto the existing local-state merge so both run. */
+(function(){
+  var orig=window._mergeLocalState;
+  if(typeof orig!=='function'||orig.__deepMerge) return;
+  var w=function(incoming,local){
+    var r=orig.apply(this,arguments);
+    return mergeStores(r,local);
+  };
+  w.__deepMerge=true;
+  window._mergeLocalState=w;
+})();
+
+/* Baseline the fingerprints once the store is up, so the first persist does
+   not stamp every project as freshly modified. */
+setTimeout(function(){
+  try{
+    if(window.STORE&&Array.isArray(STORE.projects)){
+      STORE.projects.forEach(function(p){ if(p&&p.id) fp[p.id]=fingerprint(p); });
+    }
+  }catch(e){}
+},2600);
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PART 3 — IMPORT THE WHOLE WORKBOOK, NOT JUST ONE SHEET
+   ──────────────────────────────────────────────────────────────────────────
+   The exporter writes three sheets but the importer only read "Site Tracker",
+   so everything the team recorded on "Floor Checklists" — which is the bulk of
+   the work on this project — was silently discarded on the way back in.
+   This reads every sheet, and creates rows, sites and columns that do not yet
+   exist rather than skipping them.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+function sv(v){ return v==null?'':String(v).trim(); }
+function statusOf(v){
+  var t=sv(v).toLowerCase();
+  if(!t||t==='—'||t==='-') return 'n';
+  if(/not\s*start|not\s*done|لم|غير/.test(t)) return 'n';
+  if(/hold|معلق|متوقف/.test(t)) return 'h';
+  if(/prog|قيد|جاري/.test(t)) return 'p';
+  if(/done|complet|منجز|مكتمل/.test(t)) return 'd';
+  return 'n';
+}
+function norm(s){ return sv(s).replace(/\s+/g,' ').toLowerCase(); }
+function keyFor(label,i){
+  var k=norm(label).replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+  return k||('col'+i);
+}
+
+/* Parse the "Floor Checklists" sheet: repeating blocks of
+   [site name] / [Floor, ...columns..., Progress] / rows / blank. */
+function importFloorSheet(p,rows){
+  if(!p||!Array.isArray(rows)) return {sites:0,floors:0,cols:0};
+  var nSites=0,nFloors=0,nCols=0;
+  var i=0;
+  while(i<rows.length){
+    var row=rows[i]||[];
+    var first=sv(row[0]);
+    if(!first){ i++; continue; }
+
+    /* A header row starts with "Floor"; anything else non-empty is a site name. */
+    if(norm(first)==='floor'){ i++; continue; }
+
+    var siteName=first;
+    var hdr=rows[i+1]||[];
+    if(norm(sv(hdr[0]))!=='floor'){ i++; continue; }   /* not a block start */
+
+    var site=(p.sites||[]).filter(Boolean).find(function(s){ return norm(s.name)===norm(siteName); });
+    if(!site){
+      /* Create the site rather than dropping its data. */
+      site={name:siteName,survey:'n',design:'n',submit:'n',notes:'',ks:0,ksDone:0};
+      if(!Array.isArray(p.sites)) p.sites=[];
+      p.sites.push(site);
+      nSites++;
+    }
+
+    /* Column definitions come from the sheet, in the sheet's order. */
+    var labels=[];
+    for(var ci=1;ci<hdr.length;ci++){
+      var lb=sv(hdr[ci]);
+      if(!lb||norm(lb)==='progress') continue;
+      labels.push({key:keyFor(lb,ci),label:lb,col:ci});
+    }
+    if(labels.length){
+      var existing=(typeof getFloorCols==='function')?getFloorCols(site):[];
+      var byLabel={}; existing.forEach(function(c){ byLabel[norm(c[1])]=c[0]; });
+      site.floorColumns=labels.map(function(L){
+        var reuse=byLabel[norm(L.label)];
+        if(!reuse) nCols++;
+        return [reuse||L.key, L.label];
+      });
+    }
+
+    /* Floor rows until a blank line or the next block. */
+    if(!Array.isArray(site.floors)) site.floors=[];
+    var floorsOut=[];
+    var j=i+2;
+    for(;j<rows.length;j++){
+      var fr=rows[j]||[];
+      var fname=sv(fr[0]);
+      if(!fname) break;
+      if(norm(fname)==='floor') break;
+      var prev=site.floors.find(function(f){ return f&&norm(f.name)===norm(fname); });
+      var items={};
+      site.floorColumns.forEach(function(c,ci2){
+        var L=labels[ci2];
+        items[c[0]]=statusOf(fr[L?L.col:(ci2+1)]);
+      });
+      floorsOut.push(Object.assign({},prev||{},{name:fname,items:items}));
+      nFloors++;
+    }
+    if(floorsOut.length) site.floors=floorsOut;
+    nSites++;
+    i=j;
+  }
+  return {sites:nSites,floors:nFloors,cols:nCols};
+}
+window.importFloorSheet=importFloorSheet;
+
+/* Read every sheet of a workbook into the right project. */
+function importWorkbook(wb,fallbackPid){
+  var report={tracker:null,floors:null,project:null,created:0};
+
+  /* Which project? The __pid stamp on any sheet wins. */
+  var pid=fallbackPid||null;
+  wb.SheetNames.forEach(function(sn){
+    if(pid&&pid!==fallbackPid) return;
+    var r=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,blankrows:false,raw:false,defval:''});
+    var h=r[0]||[];
+    for(var i=0;i<h.length;i++){
+      var m=String(h[i]||'').match(/^__pid:(.+)$/);
+      if(m){ pid=m[1].trim(); return; }
+    }
+  });
+  var p=pid?projByID(pid):null;
+  if(!p&&fallbackPid) p=projByID(fallbackPid);
+  if(!p) return {error:'Could not determine which project this workbook belongs to'};
+  report.project=p.nameEn||p.name||p.id;
+
+  /* Site Tracker sheet. */
+  var stName=wb.SheetNames.indexOf('Site Tracker')>=0?'Site Tracker':null;
+  if(!stName){
+    wb.SheetNames.forEach(function(sn){
+      if(stName) return;
+      var r=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,blankrows:false,raw:false,defval:''});
+      var h=(r[0]||[]).map(norm);
+      if(h.indexOf('site / department')>=0||h.indexOf('name')>=0) stName=sn;
+    });
+  }
+  if(stName){
+    var rows=XLSX.utils.sheet_to_json(wb.Sheets[stName],{header:1,blankrows:false,raw:false,defval:''});
+    var hdr=rows[0]||[];
+    for(var i=0;i<hdr.length;i++){
+      if(/^__pid:/.test(String(hdr[i]||''))){
+        rows=rows.map(function(r){ var cp=r.slice(); cp.splice(i,1); return cp; });
+        break;
+      }
+    }
+    if(typeof stImportRows==='function'){
+      var r1=stImportRows(p,rows);
+      if(r1&&r1.ok) report.tracker=r1;
+    }
+  }
+
+  /* Floor Checklists sheet. */
+  var flName=null;
+  wb.SheetNames.forEach(function(sn){
+    if(/floor/i.test(sn)) flName=sn;
+  });
+  if(flName){
+    var frows=XLSX.utils.sheet_to_json(wb.Sheets[flName],{header:1,blankrows:true,raw:false,defval:''});
+    report.floors=importFloorSheet(p,frows);
+  }
+  return report;
+}
+window.importWorkbook=importWorkbook;
+
+/* Replace the single-sheet importer with the full-workbook one. */
+/* v507 created the hidden file input inside its own closure, so its onchange
+   captured that module's LOCAL importSiteDepartments. Reassigning the window
+   property alone would never be seen. Re-bind the input explicitly. */
+setTimeout(function(){
+  var el=document.getElementById('siteDeptXls');
+  if(el) el.onchange=function(){
+    if(this.files&&this.files[0]) window.importSiteDepartments(window.CUR_PROJ,this.files[0]);
+    this.value='';
+  };
+  var el2=document.getElementById('allStXlsInput');
+  if(el2) el2.onchange=function(){
+    if(this.files&&this.files[0]) window.importAllSiteTrackers(this.files[0]);
+    this.value='';
+  };
+},3400);
+
+window.importSiteDepartments=function(pid,file){
+  if(!file) return;
+  if(!(typeof isEditor==='function'&&isEditor())){ try{toast('Editor role required',false);}catch(e){} return; }
+  loadXLSX(function(){
+    var rd=new FileReader();
+    rd.onload=function(ev){
+      try{
+        var wb=XLSX.read(ev.target.result,{type:'array',raw:false});
+        var rep=importWorkbook(wb,pid||window.CUR_PROJ);
+        if(rep.error){ try{toast(rep.error,false);}catch(e){} return; }
+        persist();
+        try{ if(typeof renderHub==='function') renderHub(); }catch(e){}
+        try{ if(window.CUR_PROJ&&typeof renderProjectView==='function') renderProjectView(CUR_PROJ); }catch(e){}
+        var bits=[];
+        if(rep.tracker) bits.push(rep.tracker.sites+' site row(s)'
+          +(rep.tracker.cols&&rep.tracker.cols.length?(' + '+rep.tracker.cols.length+' new column(s)'):''));
+        if(rep.floors&&rep.floors.floors) bits.push(rep.floors.floors+' floor row(s)'
+          +(rep.floors.cols?(' + '+rep.floors.cols+' new checklist column(s)'):''));
+        try{toast(bits.length?('Imported into '+rep.project+': '+bits.join(' \u00b7 ')):'Nothing recognised in that workbook',bits.length>0);}catch(e){}
+        try{ if(typeof auditLog==='function') auditLog(rep.project,'excel','import-workbook',bits.join('; ')); }catch(e){}
+      }catch(err){
+        console.error(err);
+        try{toast('Import failed: '+(err&&err.message||err),false);}catch(e){}
+      }
+    };
+    rd.readAsArrayBuffer(file);
+  });
+};
 
 })();
 
