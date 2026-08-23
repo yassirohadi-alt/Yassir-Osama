@@ -2648,6 +2648,38 @@ body.role-pm .tr-tn-v:hover{background:#E3EAF3;border-color:#C6D1DE}
   .site-table th:nth-child(2),
   .site-table td.site-name-td{min-width:150px}
 }
+
+/* ══ v514 — keep the frozen header usable ══
+   The header was already position:sticky, but it sticks to its own wrapper,
+   and the wrapper was capped at 72vh sitting well down a long page. So the
+   reader scrolls the PAGE to reach the table, the wrapper leaves the viewport,
+   and the header goes with it — the header looks like it never freezes.
+   Sizing the wrapper to the viewport makes its own scroller the one you use,
+   which is where the sticky header actually works. */
+.phase-matrix-wrap{ max-height:min(78vh,calc(100vh - 190px)) !important; }
+.sv-table-wrap,.res-table-wrap{ max-height:min(72vh,calc(100vh - 220px)); overflow:auto; }
+
+/* Make the frozen row visibly separate from the content sliding under it. */
+.phase-matrix-table thead th,
+.site-table thead th,
+.sv-table thead th,
+.fl-table thead th{ box-shadow:0 1px 0 rgba(16,24,40,.08); }
+.phase-matrix-wrap.is-vscrolled thead th,
+.site-table-wrap.is-vscrolled thead th,
+.fl-table-wrap.is-vscrolled thead th{
+  box-shadow:0 3px 10px -4px rgba(16,24,40,.34);
+}
+
+/* Field Survey: Tablet No. */
+.sv-table th,.sv-table td{white-space:nowrap}
+td.sv-tablet{text-align:center}
+.sv-tab-in{
+  width:78px;text-align:center;font-family:var(--mono,monospace);font-size:11.5px;
+  font-weight:700;color:var(--ink-2,#3B4048);
+  border:1px solid var(--line,#E5E9F1);border-radius:6px;padding:4px 6px;background:#fff;
+}
+.sv-tab-in:focus{outline:none;border-color:var(--brand,#B12836);box-shadow:0 0 0 2px var(--brand-soft,#F7E3E5)}
+.sv-tab-in::placeholder{color:var(--muted,#8A97A6);font-weight:400}
 </style>
 </head>
 <body class="role-viewer intro-playing">
@@ -5628,7 +5660,8 @@ function _devPanelSurvey(p){
     {key:'assignees',label:'Assignees',builtin:true},
     {key:'start',label:'Start Time',builtin:true},
     {key:'update',label:'Update Time',builtin:true},
-    {key:'daily',label:'Daily Number',builtin:true}
+    {key:'daily',label:'Daily Number',builtin:true},
+    {key:'tablet',label:'Tablet No.',builtin:true}
   ];
   var extras=Array.isArray(p.surveyColumns)?p.surveyColumns:[];
   extras.forEach(function(c){ if(c && c.key) cols.push(Object.assign({},c,{builtin:false})); });
@@ -7865,9 +7898,9 @@ function svToday(){ try{return new Date().toISOString().slice(0,10);}catch(e){re
 function surveyExportRows(p){
   var R=(p&&p.survey)||[];
   var extras=Array.isArray(p&&p.surveyColumns)?p.surveyColumns:[];
-  var header=['#','MUM Code','Building Name','Assignees (اعداد المكلفين)','Start Time','Update Time','Daily Number','Completion %'].concat(extras.map(function(c){return c.label||c.key;}));
+  var header=['#','MUM Code','Building Name','Assignees (اعداد المكلفين)','Start Time','Update Time','Daily Number','Tablet No.','Completion %'].concat(extras.map(function(c){return c.label||c.key;}));
   var rows=[header];
-  R.forEach(function(r,i){ var base=[i+1,r.code||'',r.name||'',(+r.assignees||0),r.start||'',r.update||'',(+r.daily||0),svPct(r)+'%']; extras.forEach(function(c){ base.push(r[c.key]==null?'':r[c.key]); }); rows.push(base); });
+  R.forEach(function(r,i){ var base=[i+1,r.code||'',r.name||'',(+r.assignees||0),r.start||'',r.update||'',(+r.daily||0),(r.tablet==null?'':String(r.tablet)),svPct(r)+'%']; extras.forEach(function(c){ base.push(r[c.key]==null?'':r[c.key]); }); rows.push(base); });
   return rows;
 }
 function surveyImportRows(p,rows){
@@ -7878,17 +7911,36 @@ function surveyImportRows(p,rows){
   var hr=-1;
   for(var i=0;i<Math.min(rows.length,15);i++){ var a=sv((rows[i]||[])[0]).toLowerCase(), b=sv((rows[i]||[])[1]).toLowerCase(); if((a==='#'||a==='no'||a==='رقم')&&/code|mum|كود/.test(b)){ hr=i; break; } }
   if(hr<0)return false;
+  /* v514: locate columns by HEADER rather than fixed index. Inserting
+     "Tablet No." shifted Completion % by one, and a hardcoded r[6] would read
+     the tablet number into Daily Number for any newly exported file. Header
+     lookup keeps both old and new workbooks importable. */
+  var _h=(rows[hr]||[]).map(function(x){return sv(x).toLowerCase();});
+  function _at(re,dflt){
+    for(var i=0;i<_h.length;i++){ if(re.test(_h[i])) return i; }
+    return dflt;
+  }
+  var iCode=_at(/^(mum ?code|code|كود)$/,1),
+      iName=_at(/^(building name|name|المبنى)$/,2),
+      iAsg =_at(/assignee|المكلف/,3),
+      iStart=_at(/^start/,4),
+      iUpd =_at(/^update/,5),
+      iDaily=_at(/^daily/,6),
+      iTab =_at(/^(tablet|tablet no\.?|tablet number|رقم اللوحي)$/,-1);
   var out=[];
-  for(var j=hr+1;j<rows.length;j++){ var r=rows[j]||[]; var code=sv(r[1]); var nm=sv(r[2]);
+  for(var j=hr+1;j<rows.length;j++){ var r=rows[j]||[]; var code=sv(r[iCode]); var nm=sv(r[iName]);
     if(!code && !nm) continue;
-    out.push({id:'sv'+(out.length+1)+'_'+Date.now(),code:code,name:nm,nameAr:'',assignees:num(r[3]),start:dOnly(r[4]),update:dOnly(r[5]),daily:num(r[6])});
+    var rec={id:'sv'+(out.length+1)+'_'+Date.now(),code:code,name:nm,nameAr:'',
+             assignees:num(r[iAsg]),start:dOnly(r[iStart]),update:dOnly(r[iUpd]),daily:num(r[iDaily])};
+    if(iTab>=0) rec.tablet=sv(r[iTab]);
+    out.push(rec);
   }
   if(out.length){
     p.survey=out;
     /* v20 — bidirectional column sync for Survey */
     try{
       var hdr=(rows[hr]||[]).map(function(x){return sv(x).toLowerCase();});
-      var known=['#','mum code','building name','assignees','assignees (اعداد المكلفين)','start time','update time','daily number','completion %'];
+      var known=['#','mum code','building name','assignees','assignees (اعداد المكلفين)','start time','update time','daily number','tablet no.','tablet no','tablet number','completion %'];
       var newCols=[];
       hdr.forEach(function(h,idx){
         if(!h) return; if(known.indexOf(h)>=0) return;
@@ -7968,6 +8020,7 @@ function renderSurvey(p){
       '<td>'+(PM?'<input type="date" value="'+esc(r.start||'')+'" onchange="svDate(\''+r.id+'\',\'start\',this.value)" class="dt">':esc(r.start||''))+'</td>'+
       '<td>'+(PM?'<input type="date" value="'+esc(r.update||'')+'" onchange="svDate(\''+r.id+'\',\'update\',this.value)" class="dt">':esc(r.update||''))+'</td>'+
       '<td class="sv-num">'+(PM?'<input class="num" type="number" min="0" value="'+(+r.daily||0)+'" onchange="svNum(\''+r.id+'\',\'daily\',this.value)">':svFmtN(r.daily))+'</td>'+
+      '<td class="sv-num sv-tablet">'+(PM?'<input class="num sv-tab-in" type="text" inputmode="numeric" placeholder="\u2014" value="'+esc(r.tablet==null?'':String(r.tablet))+'" onchange="svTablet(\''+r.id+'\',this.value)" title="Tablet device number">':esc(r.tablet==null||r.tablet===''?'\u2014':String(r.tablet)))+'</td>'+
       '<td class="sv-num" title="Variance = Daily \u2212 Assigned"><span style="font-weight:800;color:'+vcol+'">'+vtxt+'</span></td>'+
       '<td><div class="sv-prog"><div class="sv-bar"><i style="width:'+pct+'%;background:'+col+'"></i></div><span class="sv-pct" style="color:'+col+'">'+pct+'%</span></div><span class="sv-st" style="background:'+stc[0]+';color:'+stc[1]+'">'+st+'</span></td>'+
       (PM?'<td><button class="res-del" onclick="svDel(\''+r.id+'\')">✕</button></td>':'')+
@@ -7975,7 +8028,7 @@ function renderSurvey(p){
   }).join('');
   out+='<div class="res-sec"><div class="res-sec-h"><div class="n">3</div><h3>Survey Records</h3><span class="sub">'+count+' sites · updated live</span></div>'+
     (PM?'<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap"><button class="res-recalc" onclick="surveySave(true)">↻ Recalculate</button><span class="res-hint" style="margin:0;align-self:center">Enter the daily number the team reports → completion % updates automatically (Update Time auto-stamps)</span></div>':'')+
-    '<div class="res-table-wrap"><table class="sv-table"><thead><tr><th>MUM Code</th><th>Assignees</th><th>Start Time</th><th>Update Time</th><th>Daily Number</th><th>Variance</th><th>Completion</th>'+(PM?'<th></th>':'')+'</tr></thead><tbody>'+(rows||'<tr><td colspan="'+(PM?8:7)+'" style="text-align:center;padding:18px;color:#8a8f98">No sites match the current filter.</td></tr>')+'</tbody></table></div>'+
+    '<div class="res-table-wrap"><table class="sv-table"><thead><tr><th>MUM Code</th><th>Assignees</th><th>Start Time</th><th>Update Time</th><th>Daily Number</th><th title="Tablet device number issued to this team">Tablet No.</th><th>Variance</th><th>Completion</th>'+(PM?'<th></th>':'')+'</tr></thead><tbody>'+(rows||'<tr><td colspan="'+(PM?9:8)+'" style="text-align:center;padding:18px;color:#8a8f98">No sites match the current filter.</td></tr>')+'</tbody></table></div>'+
     (PM?'<button class="res-add" onclick="svAdd()">＋ Add Municipality</button>':'')+
     '</div>';
 
@@ -7985,6 +8038,17 @@ function renderSurvey(p){
 
 /* ---- handlers ---- */
 function svEdit(id,field,val){ var p=surveyProj(); if(!p||!p.survey)return; var r=p.survey.find(function(x){return x.id===id;}); if(!r)return; r[field]=(val||'').trim(); surveySave(false); }
+/* v514 — tablet device number.
+   Kept as text rather than a number: issued tablet identifiers in this
+   programme carry prefixes and leading zeros, and parseFloat would silently
+   destroy both. */
+function svTablet(id,val){
+  if(!isEditor())return;
+  var p=surveyProj(); if(!p||!p.survey)return;
+  var r=p.survey.find(function(x){return x.id===id;}); if(!r)return;
+  r.tablet=String(val==null?'':val).trim().slice(0,24);
+  surveySave(false);
+}
 function svNum(id,field,val){ var p=surveyProj(); if(!p||!p.survey)return; var r=p.survey.find(function(x){return x.id===id;}); if(!r)return; r[field]=Math.max(0,parseFloat(val)||0); if(field==='daily'){ r.update=svToday(); } surveySave(true); }
 function svDate(id,field,val){ var p=surveyProj(); if(!p||!p.survey)return; var r=p.survey.find(function(x){return x.id===id;}); if(!r)return; r[field]=val; surveySave(false); }
 function svAdd(){ var p=surveyProj(); if(!p)return; if(!p.survey)p.survey=[]; p.survey.push({id:'sv'+Date.now(),code:'MOB-NEW',name:'New Municipality',nameAr:'',assignees:0,daily:0,start:svToday(),update:svToday()}); surveySave(true); }
@@ -18118,6 +18182,47 @@ setTimeout(function(){
   });
   bind();
 },5000);
+})();
+
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   v514 — vertical-scroll cue for frozen headers
+   Adds .is-vscrolled to a table wrapper once it is scrolled down, so the
+   sticky header gains a shadow only when there is content beneath it. Shares
+   the binding pass with the horizontal cue from v513.
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function(){
+if(window.__v514) return; window.__v514=true;
+var SEL='.phase-matrix-wrap,.site-table-wrap,.fl-table-wrap,.sv-table-wrap,.res-table-wrap';
+function bind(){
+  document.querySelectorAll(SEL).forEach(function(w){
+    if(w.__vBound) return;
+    w.__vBound=true;
+    var upd=function(){
+      w.classList.toggle('is-vscrolled', w.scrollTop>2);
+      w.classList.toggle('is-scrolled',  w.scrollLeft>2);
+    };
+    w.addEventListener('scroll',upd,{passive:true});
+    upd();
+  });
+}
+var t=null;
+function sched(){ clearTimeout(t); t=setTimeout(bind,150); }
+function wrap(n){
+  var o=window[n];
+  if(typeof o!=='function'||o.__v514) return;
+  var w=function(){ var r=o.apply(this,arguments); sched(); return r; };
+  w.__v514=true; window[n]=w;
+}
+['renderProjectView','renderFloors','openProject','openFloors','renderSurvey'].forEach(wrap);
+document.addEventListener('DOMContentLoaded',function(){ setTimeout(function(){
+  ['renderProjectView','renderFloors','openProject','openFloors','renderSurvey'].forEach(wrap); bind();
+},1400); });
+setTimeout(function(){
+  ['renderProjectView','renderFloors','openProject','openFloors','renderSurvey'].forEach(wrap); bind();
+},3200);
+setTimeout(bind,5200);
 })();
 
 
