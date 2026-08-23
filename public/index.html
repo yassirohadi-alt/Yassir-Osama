@@ -2601,6 +2601,53 @@ body.role-pm .tr-tn-v:hover{background:#E3EAF3;border-color:#C6D1DE}
 .subproj-del:hover{background:#B0202E;border-color:#B0202E;color:#fff}
 .subproj-del:focus{opacity:1;outline:2px solid var(--brand,#B12836);outline-offset:2px}
 @media(hover:none){ .subproj-del{opacity:1} }
+
+/* ══ v513 — freeze the row number and Site / Department columns ══
+   The tracker scrolls a long way right; without an anchor column you lose
+   track of which department a row belongs to. Both leading columns stick, and
+   the header row already sticks vertically, so the two must combine at the
+   corner with a higher z-index than either alone. */
+.site-table{border-collapse:separate;border-spacing:0}
+
+.site-table th:nth-child(1),
+.site-table td.st-rowno{
+  position:sticky;left:0;z-index:3;
+  background:#F7F9FC;
+  min-width:52px;width:52px;
+}
+.site-table th:nth-child(2),
+.site-table td.site-name-td{
+  position:sticky;left:52px;z-index:3;
+  background:#fff;
+  min-width:210px;
+  box-shadow:1px 0 0 var(--line,#E5E9F1);
+}
+/* Header cells sit above the body cells in both axes. */
+.site-table thead th:nth-child(1),
+.site-table thead th:nth-child(2){ z-index:6; background:#2E3138; }
+
+/* Zebra striping must be repeated on the frozen cells, otherwise the sticky
+   background paints over the stripe and the frozen part looks detached. */
+.site-table tbody tr:nth-child(even) td.st-rowno{background:#F2F5F9}
+.site-table tbody tr:nth-child(even) td.site-name-td{background:#FAFBFD}
+.site-table tbody tr:hover td.st-rowno,
+.site-table tbody tr:hover td.site-name-td{background:var(--brand-soft,#F7E3E5)}
+
+/* A soft edge so the frozen block reads as pinned while content slides under. */
+.site-table td.site-name-td::after,
+.site-table thead th:nth-child(2)::after{
+  content:'';position:absolute;top:0;right:-8px;bottom:0;width:8px;
+  pointer-events:none;
+  background:linear-gradient(90deg,rgba(16,24,40,.07),rgba(16,24,40,0));
+  opacity:0;transition:opacity .18s;
+}
+.site-table-wrap.is-scrolled td.site-name-td::after,
+.site-table-wrap.is-scrolled thead th:nth-child(2)::after{opacity:1}
+
+@media(max-width:640px){
+  .site-table th:nth-child(2),
+  .site-table td.site-name-td{min-width:150px}
+}
 </style>
 </head>
 <body class="role-viewer intro-playing">
@@ -14971,14 +15018,18 @@ if(window.__v502) return; window.__v502=true;
    what actually matters on the wide Delivery Matrix.
    ══════════════════════════════════════════════════════════════════════════ */
 
-var SCROLLERS='.pv-body,.site-table-wrap,.phase-matrix-wrap,.gantt-wrap,.st-list,.tbl-wrap,.pm-matrix-wrap';
+var SCROLLERS='.pv-body,.site-table-wrap,.phase-matrix-wrap,.gantt-wrap,.st-list,.tbl-wrap,'
+  +'.pm-matrix-wrap,.fl-table-wrap,.fl-modal-body,.so-table-wrap,.dc-table-wrap,.modal-body';
 
 function captureScroll(){
   var snap={ win:(window.pageYOffset||document.documentElement.scrollTop||0), els:[] };
   try{
     document.querySelectorAll(SCROLLERS).forEach(function(el,i){
       if(el.scrollTop||el.scrollLeft){
-        snap.els.push({ sel:el.className, idx:i, top:el.scrollTop, left:el.scrollLeft });
+        /* Key on the FIRST class only. Matching the whole className breaks the
+           moment any transient state class is toggled — the v513 'is-scrolled'
+           cue did exactly that and silently disabled horizontal restore. */
+        snap.els.push({ sel:(el.classList[0]||el.tagName), idx:i, top:el.scrollTop, left:el.scrollLeft });
       }
     });
   }catch(e){}
@@ -14992,7 +15043,7 @@ function restoreScroll(snap){
       var el=all[s.idx];
       /* Match on index first, then verify the class still lines up, so a
          re-render that produced the same structure lands on the same node. */
-      if(el && el.className===s.sel){ el.scrollTop=s.top; el.scrollLeft=s.left; }
+      if(el && (el.classList[0]||el.tagName)===s.sel){ el.scrollTop=s.top; el.scrollLeft=s.left; }
     });
     if(snap.win) window.scrollTo(0,snap.win);
   }catch(e){}
@@ -15033,7 +15084,12 @@ window.__wrapPreserveScroll=wrapPreserveScroll;
 
 function installScrollGuards(){
   ['renderProjectView','renderSites','renderPhaseTracker','renderServiceOffices',
-   'renderTraining','renderSurvey','renderPayments','renderResources'].forEach(wrapPreserveScroll);
+   'renderTraining','renderSurvey','renderPayments','renderResources',
+   /* v513: renderFloors was missing, so every status click inside the floor
+      checklist modal rebuilt the table and threw the reader back to the top —
+      unusable on an 11-floor sheet. renderDataCenter and renderHub added for
+      the same reason. */
+   'renderFloors','renderDataCenter','renderContainer','renderHub'].forEach(wrapPreserveScroll);
 }
 document.addEventListener('DOMContentLoaded',function(){ setTimeout(installScrollGuards,700); });
 setTimeout(installScrollGuards,2300);
@@ -18021,6 +18077,47 @@ function deleteSubProject(containerId,subId){
 }
 window.deleteSubProject=deleteSubProject;
 
+})();
+
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   v513 — frozen-column shadow cue
+   The gradient on the frozen edge should only appear once the table is
+   actually scrolled sideways; showing it at rest makes an unscrolled table
+   look broken. One passive scroll listener per wrapper, re-bound after each
+   render because the wrapper is rebuilt.
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function(){
+if(window.__v513) return; window.__v513=true;
+function bind(){
+  document.querySelectorAll('.site-table-wrap,.fl-table-wrap').forEach(function(w){
+    if(w.__stickyBound) return;
+    w.__stickyBound=true;
+    var upd=function(){ w.classList.toggle('is-scrolled', w.scrollLeft>2); };
+    w.addEventListener('scroll',upd,{passive:true});
+    upd();
+  });
+}
+var t=null;
+function sched(){ clearTimeout(t); t=setTimeout(bind,150); }
+['renderProjectView','renderFloors','openProject','openFloors'].forEach(function(n){
+  var o=window[n];
+  if(typeof o!=='function'||o.__v513) return;
+  var w=function(){ var r=o.apply(this,arguments); sched(); return r; };
+  w.__v513=true; window[n]=w;
+});
+document.addEventListener('DOMContentLoaded',function(){ setTimeout(bind,1200); });
+setTimeout(bind,3000);
+setTimeout(function(){
+  ['renderProjectView','renderFloors','openProject','openFloors'].forEach(function(n){
+    var o=window[n];
+    if(typeof o!=='function'||o.__v513) return;
+    var w=function(){ var r=o.apply(this,arguments); sched(); return r; };
+    w.__v513=true; window[n]=w;
+  });
+  bind();
+},5000);
 })();
 
 
