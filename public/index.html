@@ -16440,9 +16440,10 @@ function keyFor(label,i){
 
 /* Parse the "Floor Checklists" sheet: repeating blocks of
    [site name] / [Floor, ...columns..., Progress] / rows / blank. */
-function importFloorSheet(p,rows){
-  if(!p||!Array.isArray(rows)) return {sites:0,floors:0,cols:0};
-  var nSites=0,nFloors=0,nCols=0;
+function importFloorSheet(p,rows,opts){
+  opts=opts||{};
+  if(!p||!Array.isArray(rows)) return {sites:0,floors:0,cols:0,orphans:[]};
+  var nSites=0,nFloors=0,nCols=0,orphans=[];
   var i=0;
   while(i<rows.length){
     var row=rows[i]||[];
@@ -16458,7 +16459,15 @@ function importFloorSheet(p,rows){
 
     var site=(p.sites||[]).filter(Boolean).find(function(s){ return norm(s.name)===norm(siteName); });
     if(!site){
-      /* Create the site rather than dropping its data. */
+      /* When the same workbook also carried a Site Tracker sheet, that sheet is
+         authoritative for which rows exist. A department deleted there must not
+         be resurrected by a stale block still sitting on the floor sheet. */
+      if(opts.allowCreate===false){
+        orphans.push(siteName);
+        var jj=i+2;
+        while(jj<rows.length && sv((rows[jj]||[])[0]) && norm(sv((rows[jj]||[])[0]))!=='floor') jj++;
+        i=jj; continue;
+      }
       site={name:siteName,survey:'n',design:'n',submit:'n',notes:'',ks:0,ksDone:0};
       if(!Array.isArray(p.sites)) p.sites=[];
       p.sites.push(site);
@@ -16504,7 +16513,7 @@ function importFloorSheet(p,rows){
     nSites++;
     i=j;
   }
-  return {sites:nSites,floors:nFloors,cols:nCols};
+  return {sites:nSites,floors:nFloors,cols:nCols,orphans:orphans};
 }
 window.importFloorSheet=importFloorSheet;
 
@@ -16611,6 +16620,387 @@ window.importSiteDepartments=function(pid,file){
     rd.readAsArrayBuffer(file);
   });
 };
+
+})();
+
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   v509 — ONE IMPORTER, COMPLETE CHANGE CAPTURE
+   ───────────────────────────────────────────────────────────────────────────
+   Two problems this fixes.
+
+   1. "Import all trackers" appeared to do nothing.
+      It only understood multi-project workbooks — one sheet per project, each
+      stamped __pid. Given the three-sheet Site / Department export it matched
+      the "Site Tracker" sheet and silently skipped "Floor Checklists" and
+      "Departments", so the floor work never came back and the button looked
+      broken. Both import buttons now run the same router, which recognises
+      every workbook this app produces and applies every sheet it finds.
+
+   2. Deletions and renames were never applied.
+      Adding a column or a row worked; removing one did not. The importer
+      rebuilt rows from the sheet but left the COLUMN definitions untouched, so
+      a header you deleted in Excel came straight back, still carrying its old
+      values. Renaming a header created a duplicate column and orphaned the
+      data. Both are now detected and applied.
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function(){
+if(window.__v509) return; window.__v509=true;
+
+function sv(v){ return v==null?'':String(v).trim(); }
+function norm(s){ return sv(s).replace(/\s+/g,' ').toLowerCase(); }
+function keyFor(label,i){
+  var k=norm(label).replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+  return k||('col'+i);
+}
+var CALC=/^(ks ?%|final ?%|installation|progress)$/i;
+
+/* ── Reconcile the project's columns against the sheet's headers ──────────
+   Returns {cols, added, removed, renamed}. Three cases per header:
+     • label matches an existing column      -> reuse it, data preserved
+     • no match, but an existing column at the same position has vanished from
+       the sheet entirely                    -> treat as a RENAME, keep the key
+                                                so the recorded data follows
+     • otherwise                             -> genuinely new column
+   Existing columns absent from the sheet are REMOVED. */
+function reconcileColumns(existing,headers,opts){
+  opts=opts||{};
+  var exist=(existing||[]).map(function(c){
+    return Array.isArray(c)?{key:c[0],label:c[1],builtin:false}:c;
+  });
+  var byLabel={};
+  exist.forEach(function(c){ byLabel[norm(c.label||c.key)]=c; });
+
+  var sheetLabels={};
+  headers.forEach(function(h){ if(sv(h)) sheetLabels[norm(h)]=1; });
+
+  /* Columns the sheet no longer mentions — candidates for rename or removal. */
+  var orphans=exist.filter(function(c){ return !sheetLabels[norm(c.label||c.key)]; });
+
+  var cols=[], added=[], renamed=[], usedKeys={}, oi=0;
+  headers.forEach(function(h,i){
+    var lb=sv(h);
+    if(!lb) return;
+    if(opts.skipCalc && CALC.test(lb)) { /* calculated: keep as a column but do not import values */ }
+    var hit=byLabel[norm(lb)];
+    if(hit && !usedKeys[hit.key]){
+      usedKeys[hit.key]=1;
+      cols.push({key:hit.key,label:lb,builtin:hit.builtin,type:hit.type});
+      return;
+    }
+    /* Unmatched header: if an orphan is still going spare, this is a rename. */
+    while(oi<orphans.length && usedKeys[orphans[oi].key]) oi++;
+    if(oi<orphans.length){
+      var o=orphans[oi++];
+      usedKeys[o.key]=1;
+      cols.push({key:o.key,label:lb,builtin:o.builtin,type:o.type});
+      renamed.push((o.label||o.key)+' \u2192 '+lb);
+      return;
+    }
+    var k=keyFor(lb,i);
+    while(usedKeys[k]) k=k+'_'+i;
+    usedKeys[k]=1;
+    cols.push({key:k,label:lb,builtin:false});
+    added.push(lb);
+  });
+
+  var removed=exist.filter(function(c){ return !usedKeys[c.key]; })
+                   .map(function(c){ return c.label||c.key; });
+  return {cols:cols,added:added,removed:removed,renamed:renamed};
+}
+window.reconcileColumns=reconcileColumns;
+
+/* ── Site tracker sheet, with full add / rename / delete handling ───────── */
+function importTrackerSheet(p,rows){
+  if(!p||!Array.isArray(rows)||rows.length<2) return {ok:false,reason:'sheet is empty'};
+  var headers=(rows[0]||[]).map(sv);
+
+  /* Drop the row-number column so it is never treated as data. */
+  var startCol=0;
+  if(headers.length && /^(#|no\.?|رقم)?$/i.test(headers[0])) startCol=1;
+
+  var existing=(typeof ensureSiteTrackerColumns==='function')?ensureSiteTrackerColumns(p):[];
+  var sheetHeaders=headers.slice(startCol);
+  var rec=reconcileColumns(existing,sheetHeaders,{skipCalc:true});
+
+  /* Which sheet column feeds each reconciled column. */
+  var colAt=rec.cols.map(function(c){
+    for(var i=0;i<sheetHeaders.length;i++){ if(norm(sheetHeaders[i])===norm(c.label)) return i+startCol; }
+    return -1;
+  });
+
+  var nameIdx=-1;
+  rec.cols.forEach(function(c,i){ if(nameIdx<0 && (c.key==='name'||/site|department|name/i.test(c.label))) nameIdx=i; });
+  if(nameIdx<0) nameIdx=0;
+
+  function coerce(c,raw){
+    if(CALC.test(c.label)) return undefined;              /* recomputed, never imported */
+    var t=c.type;
+    if(t==='status'||/^(survey|design|submission|submit|status)$/i.test(c.label)){
+      var s=norm(raw);
+      if(!s||s==='—'||s==='-') return 'n';
+      if(/not\s*start|not\s*done|لم|غير/.test(s)) return 'n';
+      if(/hold|معلق/.test(s)) return 'h';
+      if(/prog|قيد|جاري/.test(s)) return 'p';
+      if(/done|complet|منجز/.test(s)) return 'd';
+      return 'n';
+    }
+    if(t==='date'||/date/i.test(c.label)){ var m=sv(raw).match(/\d{4}-\d{2}-\d{2}/); return m?m[0]:sv(raw); }
+    if(t==='num'||/^(ks|ks total|ks done|count|qty|trainers)$/i.test(c.label)){
+      var n=parseFloat(sv(raw).replace(/[^0-9.\-]/g,'')); return isNaN(n)?0:n;
+    }
+    return sv(raw);
+  }
+
+  var sites=[], subs=0, cur=null, seen={};
+  for(var r=1;r<rows.length;r++){
+    var row=rows[r]||[];
+    var rawName=sv(row[colAt[nameIdx]>=0?colAt[nameIdx]:startCol]);
+    if(!rawName) continue;
+    var rowNo=sv(row[0]);
+    var isSub=/^\u21b3/.test(rawName)||/^\d+\.\d+$/.test(rowNo);
+    var name=rawName.replace(/^\u21b3\s*/,'').trim();
+
+    var out={};
+    rec.cols.forEach(function(c,ci){
+      var src=colAt[ci];
+      if(src<0) return;
+      var v=coerce(c,row[src]);
+      if(v!==undefined) out[c.key]=v;
+    });
+    out.name=name;
+
+    if(isSub&&cur){
+      if(!Array.isArray(cur.subs)) cur.subs=[];
+      cur.subs.push(out); subs++;
+    } else {
+      var prev=(p.sites||[]).filter(Boolean).find(function(s){ return norm(s.name)===norm(name); });
+      if(prev){
+        /* Keep anything the sheet does not represent — floors, sub-items and
+           internal fields — but DROP values for columns the sheet removed. */
+        Object.keys(prev).forEach(function(k){
+          if(k==='subs'||k==='name') return;
+          if(k in out) return;
+          var wasCol=existing.some(function(c){ return c.key===k; });
+          var stillCol=rec.cols.some(function(c){ return c.key===k; });
+          if(wasCol&&!stillCol) return;          /* column deleted in Excel */
+          out[k]=prev[k];
+        });
+      }
+      out.subs=[];
+      sites.push(out); cur=out; seen[norm(name)]=1;
+    }
+  }
+  if(!sites.length) return {ok:false,reason:'no data rows found'};
+
+  var deletedRows=(p.sites||[]).filter(Boolean)
+      .filter(function(s){ return !seen[norm(s.name)]; })
+      .map(function(s){ return s.name; });
+
+  /* Commit the reconciled column set. */
+  if(typeof ensureSiteTrackerColumns==='function'){
+    var live=ensureSiteTrackerColumns(p);
+    live.length=0;
+    rec.cols.forEach(function(c){ live.push({key:c.key,label:c.label,type:c.type,builtin:!!c.builtin}); });
+  }
+  sites.forEach(function(s){ if(!s.subs||!s.subs.length) delete s.subs; });
+  p.sites=sites;
+
+  return {ok:true,sites:sites.length,subs:subs,
+          added:rec.added,removed:rec.removed,renamed:rec.renamed,deletedRows:deletedRows,
+          /* `cols` is the field name the earlier importer returned; keep it as an
+             alias so existing callers and reports do not silently read undefined. */
+          cols:rec.added};
+}
+window.importTrackerSheet=importTrackerSheet;
+
+/* ── The router: understands every workbook this app exports ────────────── */
+function routeWorkbook(wb,fallbackPid){
+  var reports=[], skipped=[];
+
+  function grid(sn){
+    return XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,blankrows:true,raw:false,defval:''});
+  }
+  function pidOf(rows){
+    var h=rows[0]||[];
+    for(var i=0;i<h.length;i++){
+      var m=String(h[i]||'').match(/^__pid:(.+)$/);
+      if(m) return {pid:m[1].trim(),col:i};
+    }
+    return null;
+  }
+  function findProject(sheetName,rows){
+    var st=pidOf(rows);
+    if(st){
+      var p=projByID(st.pid);
+      if(p) return {p:p,stripCol:st.col};
+    }
+    var t=norm(sheetName);
+    var hit=null;
+    (STORE.projects||[]).forEach(function(x){
+      if(!x) return;
+      if(norm(x.nameEn||'')===t||norm(x.name||'')===t||x.id===sheetName) hit=x;
+      (x.subProjects||[]).forEach(function(sp){
+        if(sp&&(norm(sp.nameEn||'')===t||norm(sp.name||'')===t)) hit=sp;
+      });
+    });
+    if(hit) return {p:hit,stripCol:-1};
+    return null;
+  }
+
+  /* Sheets are classified by content, not just by name, so renamed sheets
+     still work. */
+  var trackerSheets=[], floorSheets=[], rosterSheets=[];
+  wb.SheetNames.forEach(function(sn){
+    if(sn==='_Index') return;
+    var rows=grid(sn);
+    if(!rows.length){ skipped.push(sn+' (empty)'); return; }
+    var h0=(rows[0]||[]).map(norm);
+    var h1=(rows[1]||[]).map(norm);
+    if(h0.indexOf('floor')>=0 || h1.indexOf('floor')>=0 || /floor/i.test(sn)){
+      floorSheets.push({sn:sn,rows:rows}); return;
+    }
+    if(h0.indexOf('submitted')>=0 && h0.indexOf('progress')>=0 && h0.indexOf('survey date')<0){
+      rosterSheets.push({sn:sn,rows:rows}); return;
+    }
+    trackerSheets.push({sn:sn,rows:rows});
+  });
+
+  var lastProject=null;
+
+  trackerSheets.forEach(function(x){
+    var f=findProject(x.sn,x.rows);
+    if(!f){ skipped.push(x.sn+' (no matching project)'); return; }
+    lastProject=f.p;
+    var rows=x.rows;
+    if(f.stripCol>=0){
+      rows=rows.map(function(r){ var cp=r.slice(); cp.splice(f.stripCol,1); return cp; });
+    }
+    var res=importTrackerSheet(f.p,rows);
+    if(res.ok){ res.sheet=x.sn; res.project=f.p.nameEn||f.p.name||f.p.id; reports.push(res); }
+    else skipped.push(x.sn+' ('+res.reason+')');
+  });
+
+  /* Floor sheets belong to whichever project the tracker sheet identified;
+     if a workbook is floors-only, fall back to the open project. */
+  floorSheets.forEach(function(x){
+    var f=findProject(x.sn,x.rows);
+    var p=(f&&f.p)||lastProject||(fallbackPid?projByID(fallbackPid):null);
+    if(!p){ skipped.push(x.sn+' (no matching project)'); return; }
+    if(typeof importFloorSheet==='function'){
+      var coveredByTracker=reports.some(function(r){
+        return r.sites && r.project===(p.nameEn||p.name||p.id);
+      });
+      var fr=importFloorSheet(p,x.rows,{allowCreate:!coveredByTracker});
+      if(fr&&fr.orphans&&fr.orphans.length){
+        console.info('[import] floor blocks ignored for rows deleted in the tracker sheet:',fr.orphans.join(', '));
+      }
+      if(fr&&fr.floors){
+        reports.push({ok:true,sheet:x.sn,project:p.nameEn||p.name||p.id,
+                      floors:fr.floors,floorCols:fr.cols,sites:0,subs:0,
+                      added:[],removed:[],renamed:[],deletedRows:[]});
+      } else skipped.push(x.sn+' (no floor rows recognised)');
+    }
+  });
+
+  /* The Departments roster is a summary of the tracker. Only apply it when no
+     tracker sheet covered that project, so a full workbook is not overwritten
+     by its own summary. */
+  rosterSheets.forEach(function(x){
+    var f=findProject(x.sn,x.rows);
+    var p=(f&&f.p)||lastProject;
+    if(!p){ skipped.push(x.sn+' (no matching project)'); return; }
+    var alreadyDone=reports.some(function(r){ return r.project===(p.nameEn||p.name||p.id) && r.sites; });
+    if(alreadyDone){ skipped.push(x.sn+' (superseded by the Site Tracker sheet)'); return; }
+    var res=importTrackerSheet(p,x.rows);
+    if(res.ok){ res.sheet=x.sn; res.project=p.nameEn||p.name||p.id; reports.push(res); }
+    else skipped.push(x.sn+' ('+res.reason+')');
+  });
+
+  return {reports:reports,skipped:skipped};
+}
+window.routeWorkbook=routeWorkbook;
+
+/* ── Shared entry point for BOTH import buttons ─────────────────────────── */
+function runImport(file,fallbackPid){
+  if(!file) return;
+  if(!(typeof isEditor==='function'&&isEditor())){ try{toast('Editor role required',false);}catch(e){} return; }
+  loadXLSX(function(){
+    var rd=new FileReader();
+    rd.onload=function(ev){
+      try{
+        var wb=XLSX.read(ev.target.result,{type:'array',raw:false});
+        var out=routeWorkbook(wb,fallbackPid||window.CUR_PROJ);
+        if(!out.reports.length){
+          try{toast('Nothing imported \u2014 '+(out.skipped[0]||'no recognisable sheets'),false);}catch(e){}
+          console.warn('[import] skipped:',out.skipped.join(' | '));
+          return;
+        }
+        persist();
+        try{ if(typeof renderHub==='function') renderHub(); }catch(e){}
+        try{ if(window.CUR_PROJ&&typeof renderProjectView==='function') renderProjectView(CUR_PROJ); }catch(e){}
+
+        /* Report every structural change, because a silent deletion is how
+           people lose confidence in an importer. */
+        var A=0,R=0,N=0,DR=0,S=0,FL=0,projects={};
+        out.reports.forEach(function(r){
+          projects[r.project]=1;
+          S+=r.sites||0; FL+=r.floors||0;
+          A+=(r.added||[]).length; R+=(r.removed||[]).length;
+          N+=(r.renamed||[]).length; DR+=(r.deletedRows||[]).length;
+        });
+        var bits=[];
+        if(S)  bits.push(S+' row(s)');
+        if(FL) bits.push(FL+' floor row(s)');
+        if(A)  bits.push(A+' column(s) added');
+        if(N)  bits.push(N+' renamed');
+        if(R)  bits.push(R+' column(s) removed');
+        if(DR) bits.push(DR+' row(s) deleted');
+        var who=Object.keys(projects);
+        try{
+          toast('Imported into '+(who.length>1?(who.length+' projects'):who[0])+': '+bits.join(' \u00b7 '),true);
+        }catch(e){}
+        out.reports.forEach(function(r){
+          if((r.added||[]).length)   console.info('[import] '+r.project+' added columns:',r.added.join(', '));
+          if((r.renamed||[]).length) console.info('[import] '+r.project+' renamed:',r.renamed.join(', '));
+          if((r.removed||[]).length) console.info('[import] '+r.project+' removed columns:',r.removed.join(', '));
+          if((r.deletedRows||[]).length) console.info('[import] '+r.project+' deleted rows:',r.deletedRows.join(', '));
+        });
+        if(out.skipped.length) console.info('[import] skipped sheets:',out.skipped.join(' | '));
+        try{ if(typeof auditLog==='function') auditLog('','excel','import',bits.join('; ')); }catch(e){}
+      }catch(err){
+        console.error('[import] failed',err);
+        try{toast('Import failed: '+(err&&err.message||err),false);}catch(e){}
+      }
+    };
+    rd.readAsArrayBuffer(file);
+  });
+}
+window.runImport=runImport;
+
+/* Point every import path at the router. */
+window.importSiteDepartments=function(pid,file){ runImport(file,pid); };
+window.importAllSiteTrackers=function(file){ runImport(file,window.CUR_PROJ); };
+window.stImportRows=function(p,rows){ return importTrackerSheet(p,rows); };
+
+/* Re-bind the hidden inputs: their handlers were created inside earlier
+   modules' closures and would otherwise keep calling the old importers. */
+function rebind(){
+  [['siteDeptXls',null],['allStXlsInput',null],['excelFile','legacy']].forEach(function(pair){
+    var el=document.getElementById(pair[0]);
+    if(!el||el.__v509) return;
+    el.__v509=true;
+    if(pair[1]==='legacy') return;                 /* leave the per-project Excel flow alone */
+    el.onchange=function(){
+      if(this.files&&this.files[0]) runImport(this.files[0],window.CUR_PROJ);
+      this.value='';
+    };
+  });
+}
+document.addEventListener('DOMContentLoaded',function(){ setTimeout(rebind,3600); });
+setTimeout(rebind,3800);
+setTimeout(rebind,5200);
 
 })();
 
