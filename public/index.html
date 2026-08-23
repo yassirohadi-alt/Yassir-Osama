@@ -5271,6 +5271,32 @@ function initStore(){
   try{ if(ensureFieldSurvey()){ localStorage.setItem(SK,JSON.stringify(STORE)); localStorage.setItem(SK+'_seedver',SEED_VERSION); } }catch(e){}
   try{ if(unifySystemsTheme()){ localStorage.setItem(SK,JSON.stringify(STORE)); localStorage.setItem(SK+'_seedver',SEED_VERSION); } }catch(e){}
 }
+const SYNC_PENDING_IDS='kp_sync_pending_projects';
+const SYNC_PENDING_REV='kp_sync_pending_rev';
+function syncPendingMap(){
+  try{ var v=JSON.parse(localStorage.getItem(SYNC_PENDING_IDS)||'{}'); return v&&typeof v==='object'?v:{}; }
+  catch(e){ return {}; }
+}
+function markSyncPending(pid){
+  try{
+    var m=syncPendingMap(), key=pid||((typeof CUR_PROJ!=='undefined'&&CUR_PROJ)?CUR_PROJ:'*');
+    m[key]=Date.now();
+    var rev=Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);
+    localStorage.setItem(SYNC_PENDING_IDS,JSON.stringify(m));
+    localStorage.setItem(SYNC_PENDING_REV,rev);
+    return rev;
+  }catch(e){ return ''; }
+}
+function clearSyncPending(expectedRev){
+  try{
+    var current=localStorage.getItem(SYNC_PENDING_REV)||'';
+    if(expectedRev&&current!==expectedRev) return false; /* a newer edit exists */
+    localStorage.removeItem(SYNC_PENDING_IDS); localStorage.removeItem(SYNC_PENDING_REV); return true;
+  }catch(e){ return false; }
+}
+window.__syncPendingMap=syncPendingMap;
+window.__syncClearPending=clearSyncPending;
+
 function persist(changedPid){
   /* Auto-stamp updatedAt on the changed project */
   if(changedPid && STORE && Array.isArray(STORE.projects)){
@@ -5283,6 +5309,9 @@ function persist(changedPid){
     if(cp2) cp2.updatedAt=new Date().toISOString();
   }
   try{localStorage.setItem(SK,JSON.stringify(STORE));localStorage.setItem(SK+'_seedver',SEED_VERSION);}catch(e){}
+  /* Remember unsent work independently of device time. On the next bootstrap
+     only these projects may win over the server copy. */
+  try{ if(!(typeof SYNC!=='undefined'&&SYNC.applying)) markSyncPending(changedPid); }catch(e){}
   /* Diff the whole record set and log only what genuinely changed.
      A save with no real change produces no event. */
   try{ detectAndLogChanges(); }catch(e){}
@@ -16576,6 +16605,7 @@ function mergeStores(incoming,local){
       var deleted={};
       (incoming._deletedIds||[]).concat(local._deletedIds||[]).forEach(function(id){ if(id) deleted[id]=1; });
 
+      var pending={}; try{ pending=(typeof window.__syncPendingMap==='function')?window.__syncPendingMap():{}; }catch(e){}
       var out=[];
       order.forEach(function(id){
         if(deleted[id]) return;                     /* respect deletions from either side */
@@ -16583,11 +16613,10 @@ function mergeStores(incoming,local){
         if(!e) return;
         if(e.remote&&!e.local){ out.push(e.remote); return; }
         if(e.local&&!e.remote){ out.push(e.local);  return; }
-        var rt=+(e.remote._mtime||0), lt=+(e.local._mtime||0);
-        /* The live database wins ties. A genuinely newer offline edit carries
-           an _mtime stamp and is retained; an unstamped stale cache must never
-           overwrite a teammate's confirmed server copy. */
-        out.push(lt>rt ? e.local : e.remote);
+        /* Never compare Date.now() values from two PCs—their clocks can differ
+           and make a teammate's fresh edit disappear. Firebase wins unless
+           this browser explicitly recorded an unsent edit for this project. */
+        out.push((pending['*']||pending[id]) ? e.local : e.remote);
       });
       incoming.projects=out;
     }
@@ -17403,6 +17432,7 @@ function pushLeaves(){
     return;
   }
   if(!GATE.writable){ console.warn('[sync] push blocked —',GATE.reason); return; }
+  var pendingRev=''; try{ pendingRev=localStorage.getItem(SYNC_PENDING_REV)||''; }catch(e){}
   var current;
   try{ current=JSON.parse(JSON.stringify(STORE)); }
   catch(e){ try{toast('Sync failed — could not package the data',false);}catch(_){} return; }
@@ -17420,6 +17450,7 @@ function pushLeaves(){
   if(!s.n){
     /* No diff means the server already matches us. */
     try{ if(typeof __syncClearDirty==='function') __syncClearDirty(); }catch(e){}
+    try{ if(typeof window.__syncClearPending==='function') window.__syncClearPending(pendingRev); }catch(e){}
     SYNCX.lastSent=SYNCX.lastSent||new Date(); paintGate(); return;
   }
 
@@ -17432,6 +17463,7 @@ function pushLeaves(){
     /* Our state is now on the server, so incoming snapshots are safe to apply
        again. Without this the v507 guard would hold every remote change. */
     try{ if(typeof __syncClearDirty==='function') __syncClearDirty(); }catch(e){}
+    try{ if(typeof window.__syncClearPending==='function') window.__syncClearPending(pendingRev); }catch(e){}
     SYNCX.lastSent=new Date();
     try{ SYNC.lastOk=SYNCX.lastSent; }catch(e){}
     try{ setSyncUI('live'); }catch(e){}
@@ -17498,7 +17530,7 @@ window.__syncBootstrap=bootstrap;
    A root value listener downloads the 2+ MB room again after every edit.
    Listening for child changes under `projects` keeps the portfolio genuinely
    live while downloading only the project that changed. */
-var CURLIS=null, STRUCT_T=null;
+var CURLIS=null, STRUCT_T=null, FOCUS_DEFER={};
 function copyObj(x){ try{return JSON.parse(JSON.stringify(x));}catch(e){return x;} }
 function projectList(){
   try{ if(typeof syncProjectArrays==='function') syncProjectArrays(); }catch(e){}
@@ -17531,6 +17563,26 @@ function baselineProject(v,key){
   put(BASE.projects);
   try{ put(BASE.engagements&&BASE.engagements[0]&&BASE.engagements[0].projects); }catch(e){}
 }
+function applyLeafChanges(target,map){
+  for(var path in map){
+    var keys=String(path).split('/').filter(Boolean), cur=target;
+    if(!keys.length) continue;
+    for(var i=0;i<keys.length-1;i++){
+      var k=keys[i];
+      if(!cur[k]||typeof cur[k]!=='object') cur[k]={};
+      cur=cur[k];
+    }
+    var last=keys[keys.length-1], val=map[path];
+    if(val===null) delete cur[last]; else cur[last]=copyObj(val);
+  }
+  return target;
+}
+function mergeConcurrentProject(base,local,remote){
+  try{
+    var changes=sanitizePaths(diffLeaves(base||{},local||{},'',{},0)).map;
+    return applyLeafChanges(copyObj(remote),changes);
+  }catch(e){ return copyObj(local||remote); }
+}
 function saveRemoteLocally(){
   try{ if(typeof syncProjectArrays==='function') syncProjectArrays(); }catch(e){}
   try{ localStorage.setItem(SK,JSON.stringify(STORE)); }catch(e){}
@@ -17538,13 +17590,42 @@ function saveRemoteLocally(){
   try{ refreshProjectGrids(); }catch(e){}
   try{ if(window.CUR_PROJ&&typeof renderProjectView==='function') renderProjectView(CUR_PROJ); }catch(e){}
 }
+function projectOwnsOpenView(p){
+  if(!p||!window.CUR_PROJ) return false;
+  if(p.id===window.CUR_PROJ) return true;
+  var subs=Array.isArray(p.subProjects)?p.subProjects:[];
+  for(var i=0;i<subs.length;i++) if(projectOwnsOpenView(subs[i])) return true;
+  return false;
+}
+function deferWhileTyping(v,key){
+  var ae=document.activeElement;
+  if(!ae||!projectOwnsOpenView(v)) return false;
+  var tag=String(ae.tagName||'').toLowerCase();
+  var editable=tag==='input'||tag==='textarea'||tag==='select'||ae.isContentEditable;
+  if(!editable) return false;
+  FOCUS_DEFER[v.id]={key:key,value:copyObj(v)};
+  if(!ae.__syncBlurBound){
+    ae.__syncBlurBound=true;
+    ae.addEventListener('blur',function(){
+      ae.__syncBlurBound=false;
+      setTimeout(function(){
+        var all=FOCUS_DEFER; FOCUS_DEFER={};
+        Object.keys(all).forEach(function(id){
+          var x=all[id]; acceptRemoteProject({key:x.key,val:function(){return x.value;}});
+        });
+      },80);
+    },{once:true});
+  }
+  return true;
+}
 function acceptRemoteProject(snap){
   if(SYNC.applying) return;
   var v=snap&&snap.val(), key=snap&&snap.key;
   if(!v||!v.id) return;
+  if(deferWhileTyping(v,key)) return;             /* never re-render over a live input */
   var arr=projectList(), idx=projectIndex(v.id,arr), local=idx<0?null:arr[idx];
+  var oldBase=copyObj(baseProject(v.id));
   var dirty=projectIsLocallyDirty(local);
-  var lt=+(local&&local._mtime||0), rt=+(v._mtime||0);
   var same=false; try{ same=!!local&&JSON.stringify(local)===JSON.stringify(v); }catch(e){}
   baselineProject(v,key);                         /* BASE always mirrors server */
   if(same){
@@ -17554,12 +17635,15 @@ function acceptRemoteProject(snap){
 
   /* Protect an unsent edit to this same project. Unrelated local edits never
      block a teammate's project from arriving. */
-  if(local&&lt>rt){
-    console.info('[sync] rejected an older teammate copy and re-queued the newer project',v.id);
-    schedulePush(); return;
-  }
   if(dirty&&local){
-    if(!rt||lt>=rt){ console.info('[sync] kept newer unsent local project',v.id); schedulePush(); return; }
+    /* Three-way merge: start with the teammate's server copy, then reapply only
+       the leaves this browser changed since its old baseline. Different fields
+       survive; if both edited the same field, this still-unsent edit goes next. */
+    arr[idx]=mergeConcurrentProject(oldBase,local,v);
+    if(typeof PCT==='object') PCT[v.id]=Math.round(Number(arr[idx].progress||0));
+    saveRemoteLocally();
+    console.info('[sync] three-way merged teammate data with an unsent local project',v.id);
+    schedulePush(); return;
   }
 
   if(idx<0) arr.push(copyObj(v)); else arr[idx]=copyObj(v);
@@ -17580,9 +17664,7 @@ function reconcileProjectStructure(remote){
   var merged=[];
   remote.forEach(function(r){
     var l=byId[r.id];
-    var lt=+(l&&l._mtime||0), rt=+(r._mtime||0);
-    if(l&&lt>rt){ merged.push(l); requeue=true; }
-    else if(l&&projectIsLocallyDirty(l)) merged.push((!rt||lt>=rt)?l:copyObj(r));
+    if(l&&projectIsLocallyDirty(l)){ merged.push(mergeConcurrentProject(baseProject(r.id),l,r)); requeue=true; }
     else merged.push(copyObj(r));
     delete byId[r.id];
   });
