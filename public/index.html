@@ -5244,9 +5244,11 @@ function initStore(){
     }
     return false;
   })();
-  if(s&&isNewFormat(s)&&savedVer===SEED_VERSION&&!cacheLooksStale){
-    // cached data belongs to the current seed version and looks intact → keep the user's edits
+  if(s&&isNewFormat(s)&&!cacheLooksStale){
+    // Keep every intact local edit across dashboard builds. Schema migrations
+    // below bring an older cache forward without deleting the team's work.
     STORE=s;
+    try{localStorage.setItem(SK+'_seedver',SEED_VERSION);}catch(e){}
   }else{
     // no cache, or cache predates this seed version → load fresh embedded projects
     STORE={v:1,projects:JSON.parse(JSON.stringify(PROJECTS_SEED))};
@@ -10318,6 +10320,10 @@ const DEFAULT_SYNC_CONFIG={
 const DEFAULT_SYNC_ROOM='asimati-hub-v2';
 const PMO_MASTER_BUILD='2026-08-09-MOBILE-PC-FIREBASE-MASTER';
 const SYNC={ref:null,actRef:null,on:false,applying:false,last:null,cfg:DEFAULT_SYNC_CONFIG,room:DEFAULT_SYNC_ROOM,pushT:null};
+/* Global lexical `const` bindings are not properties of window.  The sync
+   safety/optimisation modules intentionally use window.SYNC as their public
+   health check, so expose the single canonical object explicitly. */
+window.SYNC=SYNC;
 function setSyncUI(st){const dot=document.getElementById('syncDot'),txt=document.getElementById('syncTxt'),fab=document.getElementById('syncFab'),fd=document.getElementById('fabDot');const m={off:['#8A93A8','Live Connectivity'],connecting:['#8A6A2C','Connecting...'],live:['#2E7D5B','Live'],error:['#B0202E','Error']};const v=m[st]||m.off;if(dot)dot.style.background=v[0];if(txt)txt.textContent=v[1];if(fab)fab.className='sync-fab'+(st==='live'?' live':'');if(fd)fd.style.background=v[0];}
 /* refresh BOTH possible project grids (company view + hub view) — a mutation
    should never depend on guessing which one is currently on screen. */
@@ -10535,6 +10541,7 @@ function copySyncSettings(){
   }catch(e){ try{toast('Could not copy: '+e.message,false);}catch(_){} }
 }
 function disconnectSync(){
+  try{if(typeof window.__detachProjectListener==='function')window.__detachProjectListener(true);}catch(e){}
   try{if(SYNC.ref)SYNC.ref.off();}catch(e){}
   SYNC.on=false;SYNC.ref=null;
   SYNC.cfg=DEFAULT_SYNC_CONFIG;SYNC.room=DEFAULT_SYNC_ROOM;
@@ -10568,12 +10575,8 @@ function updateWeekChip(){ try{ var el=document.getElementById('weekChip'); if(!
 setInterval(function(){ try{ updateWeekChip(); }catch(e){} }, 60000);
 window.addEventListener('error',function(ev){ try{ if(document.body && !document.body.getAttribute('data-booted')){ var d=document.getElementById('__bootErr')||document.createElement('div'); d.id='__bootErr'; d.style.cssText='position:fixed;inset:0;z-index:99999;background:#fff;color:#8A6A2C;font:14px/1.6 -apple-system,Segoe UI,Arial;padding:26px;overflow:auto;direction:ltr'; d.innerHTML='<b style=\"color:#B12836;font-size:16px\">Dashboard — Loading issue</b><br><br>The dashboard hit an error while starting on this browser.<br><br><span style=\"color:#B0202E;font-family:monospace;font-size:12px\">'+String(ev.message||ev.error||'unknown')+'</span><br><span style=\"color:#7A879E;font-size:11px\">'+String(ev.filename||'')+' : '+String(ev.lineno||'')+'</span><br><br><span style=\"color:#7A879E;font-size:12px\">If you are opening the file directly on an iPhone, try opening it through the free <b>Documents by Readdle</b> app, or via a web link. Full details are in the chat.</span>'; if(document.body)document.body.appendChild(d); } }catch(_){ } });
 window.addEventListener('DOMContentLoaded',()=>{
-  // NUCLEAR: on a new build, discard any stored data whose seed version doesn't match,
-  // so a stale empty cache can never win. (User edits persist only within the same build.)
-  try{
-    const sv=localStorage.getItem(SK+'_seedver');
-    if(sv!==SEED_VERSION){ localStorage.removeItem(SK); localStorage.removeItem(SK+'_seedver'); }
-  }catch(e){}
+  // Never discard a valid local cache merely because a new HTML build was
+  // deployed. initStore() validates it and the migrations update it safely.
   try{ initStore(); }catch(e){ console.error('initStore',e); }
   try{ ensureCompany(); }catch(e){}
   try{ if(typeof syncProjectArrays==='function'&&syncProjectArrays()){ localStorage.setItem(SK,JSON.stringify(STORE)); } }catch(e){}
@@ -16581,9 +16584,10 @@ function mergeStores(incoming,local){
         if(e.remote&&!e.local){ out.push(e.remote); return; }
         if(e.local&&!e.remote){ out.push(e.local);  return; }
         var rt=+(e.remote._mtime||0), lt=+(e.local._mtime||0);
-        /* Ties go to local: if neither side stamped, the copy already in
-           memory is the one the user is looking at. */
-        out.push(rt>lt ? e.remote : e.local);
+        /* The live database wins ties. A genuinely newer offline edit carries
+           an _mtime stamp and is retained; an unstamped stale cache must never
+           overwrite a teammate's confirmed server copy. */
+        out.push(lt>rt ? e.local : e.remote);
       });
       incoming.projects=out;
     }
@@ -17317,8 +17321,14 @@ function paintGate(){
   el.title=ok?('Writes enabled. Last sent '+sent+', last received '+recv)
              :('Writes disabled: '+GATE.reason);
 }
-var SYNCX={ lastSent:null, lastRecv:null };
+var SYNCX={ lastSent:SYNC.lastOk||null, lastRecv:SYNC.lastReceived||null };
 window.__syncStamps=function(){ return Object.assign({},SYNCX); };
+function markReceived(){
+  SYNCX.lastRecv=new Date();
+  SYNC.lastReceived=SYNCX.lastRecv;
+  paintGate();
+}
+window.__syncMarkReceived=markReceived;
 
 function fmtBaghdad(d){
   try{
@@ -17456,17 +17466,27 @@ function bootstrap(){
       gateClose('the first snapshot did not match the expected schema');
       return;
     }
+    var serverBase;
+    try{
+      serverBase=JSON.parse(JSON.stringify(data));
+      delete serverBase.activity; delete serverBase._activityLog;
+    }catch(e){ serverBase=data; }
     try{ localStorage.setItem(LGL,JSON.stringify({ts:new Date().toISOString(),store:data})); }catch(e){}
     try{
       SYNC.applying=true;
       if(typeof __applyIncoming==='function') __applyIncoming(JSON.parse(JSON.stringify(data)));
     }finally{ SYNC.applying=false; }
-    var b; try{ b=JSON.parse(JSON.stringify(STORE)); delete b.activity; delete b._activityLog; }catch(e){ b=data; }
-    setBaseline(b);
-    SYNCX.lastRecv=new Date();
+    /* BASE must describe the server, not the merged local view. If this browser
+       has a newer offline edit, the diff below will safely send only that edit. */
+    setBaseline(serverBase);
+    markReceived();
     gateOpen();
     console.info('[sync] bootstrap complete — root listener NOT attached');
-    attachProjectListener(window.CUR_PROJ);
+    attachProjectListener();
+    try{
+      var cur=JSON.parse(JSON.stringify(STORE)); delete cur.activity; delete cur._activityLog;
+      if(sanitizePaths(diffLeaves(serverBase,cur,'',{},0)).n) schedulePush();
+    }catch(e){}
   }).catch(function(err){
     if(settled) return; settled=true; clearTimeout(timer);
     gateClose('the first read failed ('+((err&&err.message)||'unknown')+')');
@@ -17474,53 +17494,164 @@ function bootstrap(){
 }
 window.__syncBootstrap=bootstrap;
 
-/* ── Granular listener: the open project only ────────────────────────────── */
-var CURLIS=null;
-function projectIndex(pid){
-  if(!window.STORE||!Array.isArray(STORE.projects)) return -1;
-  for(var i=0;i<STORE.projects.length;i++){
-    if(STORE.projects[i]&&STORE.projects[i].id===pid) return i;
-  }
+/* ── Granular portfolio listener ───────────────────────────────────────────
+   A root value listener downloads the 2+ MB room again after every edit.
+   Listening for child changes under `projects` keeps the portfolio genuinely
+   live while downloading only the project that changed. */
+var CURLIS=null, STRUCT_T=null;
+function copyObj(x){ try{return JSON.parse(JSON.stringify(x));}catch(e){return x;} }
+function projectList(){
+  try{ if(typeof syncProjectArrays==='function') syncProjectArrays(); }catch(e){}
+  try{ if(typeof mainProjects==='function') return mainProjects(); }catch(e){}
+  return (typeof STORE!=='undefined'&&STORE&&Array.isArray(STORE.projects))?STORE.projects:[];
+}
+function projectIndex(pid,arr){
+  arr=arr||projectList();
+  for(var i=0;i<arr.length;i++) if(arr[i]&&arr[i].id===pid) return i;
   return -1;
 }
-function detachProjectListener(){
-  if(!CURLIS) return;
-  try{ CURLIS.ref.off('value',CURLIS.cb); }catch(e){}
-  console.info('[sync] detached listener for',CURLIS.path);
+function baseProject(pid){
+  var a=BASE&&Array.isArray(BASE.projects)?BASE.projects:[];
+  var i=projectIndex(pid,a); return i<0?null:a[i];
+}
+function projectIsLocallyDirty(local){
+  if(!local||!local.id) return false;
+  var b=baseProject(local.id);
+  if(!b) return true;
+  try{ return JSON.stringify(local)!==JSON.stringify(b); }catch(e){ return true; }
+}
+function baselineProject(v,key){
+  if(!BASE||!v||!v.id) return;
+  function put(arr){
+    if(!Array.isArray(arr)) return;
+    var i=projectIndex(v.id,arr), k=parseInt(key,10);
+    if(i<0 && isFinite(k) && k>=0 && k<=arr.length) i=k;
+    if(i<0) arr.push(copyObj(v)); else arr[i]=copyObj(v);
+  }
+  put(BASE.projects);
+  try{ put(BASE.engagements&&BASE.engagements[0]&&BASE.engagements[0].projects); }catch(e){}
+}
+function saveRemoteLocally(){
+  try{ if(typeof syncProjectArrays==='function') syncProjectArrays(); }catch(e){}
+  try{ localStorage.setItem(SK,JSON.stringify(STORE)); }catch(e){}
+  markReceived();
+  try{ refreshProjectGrids(); }catch(e){}
+  try{ if(window.CUR_PROJ&&typeof renderProjectView==='function') renderProjectView(CUR_PROJ); }catch(e){}
+}
+function acceptRemoteProject(snap){
+  if(SYNC.applying) return;
+  var v=snap&&snap.val(), key=snap&&snap.key;
+  if(!v||!v.id) return;
+  var arr=projectList(), idx=projectIndex(v.id,arr), local=idx<0?null:arr[idx];
+  var dirty=projectIsLocallyDirty(local);
+  var lt=+(local&&local._mtime||0), rt=+(v._mtime||0);
+  var same=false; try{ same=!!local&&JSON.stringify(local)===JSON.stringify(v); }catch(e){}
+  baselineProject(v,key);                         /* BASE always mirrors server */
+  if(same){
+    if(typeof PCT==='object') PCT[v.id]=Math.round(Number(v.progress||0));
+    markReceived(); return;
+  }
+
+  /* Protect an unsent edit to this same project. Unrelated local edits never
+     block a teammate's project from arriving. */
+  if(local&&lt>rt){
+    console.info('[sync] rejected an older teammate copy and re-queued the newer project',v.id);
+    schedulePush(); return;
+  }
+  if(dirty&&local){
+    if(!rt||lt>=rt){ console.info('[sync] kept newer unsent local project',v.id); schedulePush(); return; }
+  }
+
+  if(idx<0) arr.push(copyObj(v)); else arr[idx]=copyObj(v);
+  var newPct=Number(v.progress||0);
+  if(typeof PCT==='object') PCT[v.id]=Math.round(newPct);
+  saveRemoteLocally();
+  console.info('[sync] applied teammate update for',v.id);
+}
+function valueToProjects(v){
+  if(Array.isArray(v)) return v.filter(function(x){return x&&x.id;});
+  if(!v||typeof v!=='object') return [];
+  return Object.keys(v).sort(function(a,b){return (+a)-(+b);})
+    .map(function(k){return v[k];}).filter(function(x){return x&&x.id;});
+}
+function reconcileProjectStructure(remote){
+  var local=projectList(), byId={}, requeue=false;
+  local.forEach(function(p){ if(p&&p.id) byId[p.id]=p; });
+  var merged=[];
+  remote.forEach(function(r){
+    var l=byId[r.id];
+    var lt=+(l&&l._mtime||0), rt=+(r._mtime||0);
+    if(l&&lt>rt){ merged.push(l); requeue=true; }
+    else if(l&&projectIsLocallyDirty(l)) merged.push((!rt||lt>=rt)?l:copyObj(r));
+    else merged.push(copyObj(r));
+    delete byId[r.id];
+  });
+  /* A local-only project is retained only when it contains an unsent edit. */
+  Object.keys(byId).forEach(function(id){ if(projectIsLocallyDirty(byId[id])) merged.push(byId[id]); });
+
+  var eng=STORE.engagements&&STORE.engagements[0];
+  if(eng){ eng.projects=merged; STORE.projects=eng.projects; }
+  else STORE.projects=merged;
+  if(BASE){
+    BASE.projects=copyObj(remote);
+    if(BASE.engagements&&BASE.engagements[0]) BASE.engagements[0].projects=copyObj(remote);
+  }
+  saveRemoteLocally();
+  if(requeue) schedulePush();
+}
+function refreshProjectStructure(){
+  clearTimeout(STRUCT_T);
+  STRUCT_T=setTimeout(function(){
+    if(!CURLIS||!CURLIS.ref) return;
+    CURLIS.ref.once('value').then(function(s){ reconcileProjectStructure(valueToProjects(s&&s.val())); },function(e){
+      console.error('[sync] project structure refresh failed',e); try{setSyncUI('error');}catch(_){}
+    });
+  },120);
+}
+function detachProjectListener(force){
+  /* Closing a project must not stop portfolio updates. Only disconnect or a
+     different Firebase room removes this listener. */
+  if(!force||!CURLIS) return;
+  try{ CURLIS.ref.off('child_changed',CURLIS.changed); }catch(e){}
+  try{ CURLIS.ref.off('child_added',CURLIS.added); }catch(e){}
+  try{ CURLIS.ref.off('child_removed',CURLIS.removed); }catch(e){}
+  try{ CURLIS.delRef.off('value',CURLIS.deleted); }catch(e){}
+  try{ CURLIS.feedRef.off('value',CURLIS.feed); }catch(e){}
   CURLIS=null;
 }
-function attachProjectListener(pid){
-  if(!pid||!window.SYNC||!SYNC.ref||!GATE.bootstrapped) return;
-  var idx=projectIndex(pid);
-  if(idx<0) return;
-  var path='projects/'+idx;
-  if(CURLIS&&CURLIS.path===path) return;        /* no duplicates */
-  detachProjectListener();
-  var ref=SYNC.ref.child(path);
-  var cb=function(snap){
-    var v=snap&&snap.val();
-    if(!v||!v.id) return;
-    if(v.id!==pid) return;                      /* array reordered under us */
-    if(SYNC.applying) return;
-    var local=STORE.projects[idx];
-    if(!local||local.id!==pid) return;
-    if(JSON.stringify(local)===JSON.stringify(v)) return;
-    /* Newest wins, using the _mtime stamps the merge layer already maintains. */
-    var rt=+(v._mtime||0), lt=+(local._mtime||0);
-    if(rt<=lt) return;
-    var prevPct=Number(local.progress||0);
-    STORE.projects[idx]=v;
-    setBaseline((function(){ try{var b=JSON.parse(JSON.stringify(STORE));delete b.activity;delete b._activityLog;return b;}catch(e){return BASE;} })());
-    try{ localStorage.setItem(SK,JSON.stringify(STORE)); }catch(e){}
-    SYNCX.lastRecv=new Date(); paintGate();
-    var newPct=Number(v.progress||0);
-    if(newPct!==prevPct) feedProgress(v,prevPct,newPct,v._by||'');
-    if(window.CUR_PROJ===pid && typeof renderProjectView==='function') renderProjectView(pid);
-    console.info('[sync] applied remote change for',pid,'('+path+')');
+function attachProjectListener(){
+  if(!window.SYNC||!SYNC.ref||!GATE.bootstrapped) return;
+  if(CURLIS&&CURLIS.root===SYNC.ref) return;
+  detachProjectListener(true);
+  var ref=SYNC.ref.child('projects'), delRef=SYNC.ref.child('_deletedIds');
+  var feedRef=SYNC.ref.child('progressFeed').limitToLast(100);
+  var changed=function(s){ acceptRemoteProject(s); };
+  var added=function(s){
+    var v=s&&s.val();
+    if(v&&v.id&&projectIndex(v.id,projectList())>=0) acceptRemoteProject(s);
+    else refreshProjectStructure();
   };
-  ref.on('value',cb,function(){ try{setSyncUI('error');}catch(e){} });
-  CURLIS={path:path,ref:ref,cb:cb};
-  console.info('[sync] listening to',path,'only');
+  var removed=function(){ refreshProjectStructure(); };
+  var deleted=function(s){
+    var v=s&&s.val(); STORE._deletedIds=Array.isArray(v)?v:[];
+    if(BASE) BASE._deletedIds=copyObj(STORE._deletedIds);
+    try{ localStorage.setItem(SK,JSON.stringify(STORE)); }catch(e){}
+  };
+  var feed=function(s){
+    var v=s&&s.val();
+    STORE.progressFeed=Array.isArray(v)?v:[];
+    if(BASE) BASE.progressFeed=copyObj(STORE.progressFeed);
+    try{ localStorage.setItem(SK,JSON.stringify(STORE)); }catch(e){}
+    try{ if(typeof renderFeed==='function') renderFeed(); }catch(e){}
+    markReceived();
+  };
+  ref.on('child_changed',changed,function(){try{setSyncUI('error');}catch(e){}});
+  ref.on('child_added',added,function(){try{setSyncUI('error');}catch(e){}});
+  ref.on('child_removed',removed,function(){try{setSyncUI('error');}catch(e){}});
+  delRef.on('value',deleted,function(){try{setSyncUI('error');}catch(e){}});
+  feedRef.on('value',feed,function(){try{setSyncUI('error');}catch(e){}});
+  CURLIS={root:SYNC.ref,ref:ref,delRef:delRef,feedRef:feedRef,changed:changed,added:added,removed:removed,deleted:deleted,feed:feed};
+  console.info('[sync] listening to every project change in the portfolio');
 }
 window.__attachProjectListener=attachProjectListener;
 window.__detachProjectListener=detachProjectListener;
@@ -17532,20 +17663,26 @@ function pullLatestOnce(){
   SYNC.ref.once('value').then(function(snap){
     var data=snap&&snap.val();
     if(!data){ try{toast('The room returned no data — nothing was changed locally',false);}catch(e){} try{setSyncUI('error');}catch(e){} return; }
+    var serverBase;
+    try{ serverBase=JSON.parse(JSON.stringify(data)); delete serverBase.activity; delete serverBase._activityLog; }
+    catch(e){ serverBase=data; }
     try{ localStorage.setItem(LGL,JSON.stringify({ts:new Date().toISOString(),store:data})); }catch(e){}
     try{
       SYNC.applying=true;
       __applyIncoming(JSON.parse(JSON.stringify(data)));
     }finally{ SYNC.applying=false; }
-    var b; try{ b=JSON.parse(JSON.stringify(STORE)); delete b.activity; delete b._activityLog; }catch(e){ b=data; }
-    setBaseline(b);
-    SYNCX.lastRecv=new Date();
+    setBaseline(serverBase);
+    markReceived();
     if(!GATE.writable) gateOpen();
     paintGate();
     try{ if(typeof renderHub==='function') renderHub(); }catch(e){}
     try{ if(window.CUR_PROJ&&typeof renderProjectView==='function') renderProjectView(CUR_PROJ); }catch(e){}
     try{ setSyncUI('live'); toast('Up to date with your team',true); }catch(e){}
-    attachProjectListener(window.CUR_PROJ);
+    attachProjectListener();
+    try{
+      var cur=JSON.parse(JSON.stringify(STORE)); delete cur.activity; delete cur._activityLog;
+      if(sanitizePaths(diffLeaves(serverBase,cur,'',{},0)).n) schedulePush();
+    }catch(e){}
   }).catch(function(e){
     try{ setSyncUI('error'); toast('Pull failed: '+(e&&e.message||e),false); }catch(_){}
   });
@@ -17586,6 +17723,7 @@ function feedProgress(p,from,to,by){
             from:from,to:to,d:to-from,by:by||whoAmI(),at:new Date().toISOString()});
   }
   while(f.length>100) f.shift();                     /* keep the latest 100 */
+  try{ localStorage.setItem(SK,JSON.stringify(STORE)); }catch(e){}
   renderFeed();
 }
 window.feedProgress=feedProgress;
@@ -17599,7 +17737,7 @@ function primeProgress(){
 }
 /* Detect local progress changes at save time, after the write succeeds. */
 function scanProgress(){
-  if(!window.STORE||!Array.isArray(STORE.projects)) return [];
+  if(typeof STORE==='undefined'||!STORE||!Array.isArray(STORE.projects)) return [];
   var hits=[];
   STORE.projects.forEach(function(p){
     if(!p||!p.id) return;
@@ -17643,9 +17781,11 @@ function install(){
 
   /* 1. Replace the full-room writer. */
   window.pushNow=function(){
-    pushLeaves();
+    /* Build the progress-only feed before packaging the write so the feed and
+       the project percentage reach Firebase in the same atomic update. */
     var hits=scanProgress();
     hits.forEach(function(h){ feedProgress(h.p,h.from,h.to,whoAmI()); });
+    pushLeaves();
   };
 
   /* 2. Never attach a permanent root listener. */
@@ -17700,9 +17840,11 @@ function install(){
   renderFeed();
   console.info('[v510] granular sync active — room portals/'+(window.SYNC?SYNC.room:'?'));
 }
-document.addEventListener('DOMContentLoaded',function(){ setTimeout(install,4200); });
-setTimeout(install,4600);
-setTimeout(install,6000);
+/* Install before DOMContentLoaded so the very first Firebase connection and
+   every early save already use the safe granular writer. */
+install();
+document.addEventListener('DOMContentLoaded',function(){ setTimeout(install,0); });
+setTimeout(install,1200);
 
 /* Export JSON backup helper, surfaced for the pre-test instruction. */
 window.exportStoreJSON=function(){
