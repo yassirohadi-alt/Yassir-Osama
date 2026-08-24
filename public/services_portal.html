@@ -1,0 +1,2879 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Knowledge Papers — Work Place Hub</title>
+<link rel="icon" type="image/png" href="/Logo%20PNG.png">
+<link rel="apple-touch-icon" href="/Logo%20PNG.png">
+<style>
+:root{
+  --brand:#B12836; --brand-2:#CB2E28; --brand-deep:#8A1E2A; --brand-soft:#F7E3E5; --brand-light:rgba(177,40,54,.08);
+  --good:#2E7D5B; --good-bg:#EAF2EC; --warn:#8A6A2C; --warn-bg:#F2ECDD;
+  --risk:#B0202E; --risk-bg:#F6E4E6; --info:#41618A; --info-bg:#E9EEF5;
+  --muted-st:#5B6572; --muted-bg:#EEF1F4;
+  --ink:#20242E; --ink-2:#3B4048; --ink-3:#6B7280; --muted:#8A97A6;
+  --line:#E5E9F1; --line-soft:#EDF0F5; --bg:#F4F6F9; --card:#FFFFFF;
+  --disp:'Calibri','Segoe UI','Montserrat',sans-serif;
+  --body:'Calibri','Segoe UI','IBM Plex Sans Arabic',sans-serif;
+  --mono:'IBM Plex Mono','Consolas',monospace;
+  --r:12px; --r-sm:8px;
+  --sh:0 1px 2px rgba(16,24,40,.04),0 8px 20px -14px rgba(16,24,40,.18);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--body);color:var(--ink);background:var(--bg);min-height:100vh}
+button,input,select,textarea{font-family:var(--body)}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:4px}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* ── App bar ─────────────────────────────────────────────────── */
+.appbar{position:sticky;top:0;z-index:60;background:var(--brand);color:#fff;
+  display:flex;align-items:center;gap:14px;padding:0 18px;height:58px;
+  box-shadow:0 2px 14px -6px rgba(16,24,40,.5)}
+.ab-logo{width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,.16);
+  display:grid;place-items:center;font-weight:800;font-size:13px;flex:0 0 auto;letter-spacing:-.5px}
+.ab-title{font-family:var(--disp);font-weight:800;font-size:16px;letter-spacing:.2px;white-space:nowrap}
+.ab-title small{display:block;font-size:10.5px;font-weight:600;opacity:.78;letter-spacing:.3px}
+.ab-spacer{flex:1}
+.ab-btn{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);color:#fff;
+  border-radius:9px;padding:7px 13px;font-size:12px;font-weight:700;display:inline-flex;
+  align-items:center;gap:6px;transition:background .15s}
+.ab-btn:hover{background:rgba(255,255,255,.28)}
+.ab-btn svg{width:14px;height:14px}
+.ab-who{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);
+  border-radius:99px;padding:5px 12px 5px 5px;font-size:12px;font-weight:700}
+.ab-av{width:26px;height:26px;border-radius:99px;background:#fff;color:var(--brand);
+  display:grid;place-items:center;font-size:11px;font-weight:800}
+.sync-dot{width:8px;height:8px;border-radius:99px;background:#9AA1AC;flex:0 0 auto}
+.sync-dot.on{background:#7BD9A8;box-shadow:0 0 0 3px rgba(123,217,168,.25)}
+.sync-dot.err{background:#FFB4B4;box-shadow:0 0 0 3px rgba(255,180,180,.25)}
+
+/* ── Shell ───────────────────────────────────────────────────── */
+.shell{display:flex;min-height:calc(100vh - 58px)}
+.side{width:218px;flex:0 0 218px;background:#fff;border-right:1px solid var(--line);
+  padding:14px 10px;display:flex;flex-direction:column;gap:2px;
+  position:sticky;top:58px;height:calc(100vh - 58px);overflow-y:auto}
+.side-lbl{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);padding:12px 10px 6px}
+.nav{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;
+  font-size:13px;font-weight:600;color:var(--ink-2);background:none;border:none;
+  width:100%;text-align:left;transition:background .14s,color .14s}
+.nav svg{width:16px;height:16px;flex:0 0 auto;opacity:.72}
+.nav:hover{background:var(--muted-bg)}
+.nav.on{background:var(--brand-soft);color:var(--brand-deep);font-weight:800}
+.nav.on svg{opacity:1}
+.nav .pill{margin-left:auto;background:var(--brand);color:#fff;border-radius:99px;
+  font-size:10px;font-weight:800;padding:2px 7px;min-width:20px;text-align:center}
+.nav.on .pill{background:var(--brand-deep)}
+.main{flex:1;min-width:0;padding:20px 24px 60px}
+
+/* ── Page furniture ──────────────────────────────────────────── */
+.page-h{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;
+  flex-wrap:wrap;margin-bottom:18px}
+.page-t{font-family:var(--disp);font-size:23px;font-weight:800;letter-spacing:-.2px}
+.page-s{font-size:12.5px;color:var(--ink-3);margin-top:3px;max-width:62ch;line-height:1.5}
+.btn{border-radius:9px;padding:9px 16px;font-size:12.5px;font-weight:700;border:1px solid var(--line);
+  background:#fff;color:var(--ink-2);display:inline-flex;align-items:center;gap:7px;transition:all .15s}
+.btn:hover{background:var(--muted-bg)}
+.btn svg{width:14px;height:14px}
+.btn-p{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn-p:hover{filter:brightness(1.08);background:var(--brand)}
+.btn-d{color:var(--risk);border-color:#E4B4BA}
+.btn-d:hover{background:var(--risk);border-color:var(--risk);color:#fff}
+.btn-sm{padding:6px 11px;font-size:11.5px}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh)}
+.card-h{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:13px 16px;border-bottom:1px solid var(--line-soft)}
+.card-t{font-weight:800;font-size:13.5px;display:flex;align-items:center;gap:9px}
+.card-t .ico{width:26px;height:26px;border-radius:7px;background:var(--brand-soft);color:var(--brand);
+  display:grid;place-items:center}
+.card-t .ico svg{width:14px;height:14px}
+.card-b{padding:16px}
+
+/* ── KPI strip ───────────────────────────────────────────────── */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;margin-bottom:18px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;box-shadow:var(--sh)}
+.kpi b{display:block;font-family:var(--disp);font-size:26px;font-weight:800;line-height:1.1;letter-spacing:-.5px}
+.kpi span{display:block;font-size:10.5px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--muted);margin-top:4px}
+.kpi.k-warn b{color:var(--warn)} .kpi.k-good b{color:var(--good)}
+.kpi.k-risk b{color:var(--risk)} .kpi.k-info b{color:var(--info)}
+
+/* ── Service launcher ────────────────────────────────────────── */
+.svc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:13px}
+.svc{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:17px;
+  text-align:left;box-shadow:var(--sh);transition:transform .16s,box-shadow .16s,border-color .16s;
+  display:flex;flex-direction:column;gap:9px}
+.svc:hover{transform:translateY(-2px);border-color:var(--brand);
+  box-shadow:0 10px 26px -12px rgba(177,40,54,.4)}
+.svc-ico{width:38px;height:38px;border-radius:10px;background:var(--brand-soft);color:var(--brand);
+  display:grid;place-items:center}
+.svc-ico svg{width:19px;height:19px}
+.svc-n{font-weight:800;font-size:14px}
+.svc-d{font-size:11.5px;color:var(--ink-3);line-height:1.55}
+.svc-m{font-size:10.5px;font-weight:700;color:var(--brand);margin-top:auto;
+  display:inline-flex;align-items:center;gap:5px}
+.svc-m svg{width:12px;height:12px;flex:0 0 auto;stroke-width:2.6}
+.svc{min-height:0}
+/* any inline icon inside a button or chip inherits a sane size */
+.btn svg,.vp-ico svg,.card-t .ico svg,.tl-nav svg{flex:0 0 auto}
+
+/* ── Forms ───────────────────────────────────────────────────── */
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.fld{display:flex;flex-direction:column;gap:5px}
+.fld.wide{grid-column:1/-1}
+.fld>label{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.fld>label .req{color:var(--brand)}
+.fld input,.fld select,.fld textarea{
+  font-family:inherit;font-size:13px;color:var(--ink-2);background:#fff;
+  border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 11px;width:100%}
+.fld textarea{min-height:78px;resize:vertical;line-height:1.55}
+.fld input:focus,.fld select:focus,.fld textarea:focus{
+  outline:none;border-color:var(--brand);box-shadow:0 0 0 2px var(--brand-soft)}
+.fld .hint{font-size:10.5px;color:var(--muted);line-height:1.5}
+.fld.bad input,.fld.bad select,.fld.bad textarea{border-color:var(--risk);background:#FFFBFB}
+.fld .err{font-size:10.5px;color:var(--risk);font-weight:700}
+.form-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding-top:15px;margin-top:16px;border-top:1px solid var(--line-soft)}
+.form-foot .grow{flex:1}
+
+/* ── Tables ──────────────────────────────────────────────────── */
+.tw{overflow:auto;border:1px solid var(--line);border-radius:var(--r);background:#fff;
+  max-height:min(70vh,calc(100vh - 240px))}
+table.t{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px}
+table.t thead th{position:sticky;top:0;z-index:2;background:#2E3138;color:#fff;
+  font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+  padding:10px;text-align:left;white-space:nowrap;box-shadow:0 1px 0 rgba(16,24,40,.12)}
+table.t tbody td{padding:10px;border-bottom:1px solid var(--line-soft);vertical-align:middle;background:#fff}
+table.t tbody tr:nth-child(even) td{background:#FBFCFD}
+table.t tbody tr:hover td{background:var(--brand-soft)}
+table.t tbody tr:last-child td{border-bottom:none}
+table.t .num{font-family:var(--mono);font-size:11.5px;text-align:right}
+table.t .ref{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--brand-deep)}
+.t-empty{padding:34px 20px;text-align:center;color:var(--muted);font-size:12.5px;line-height:1.7}
+.t-empty b{display:block;color:var(--ink-2);font-size:13.5px;margin-bottom:5px}
+
+/* ── Chips ───────────────────────────────────────────────────── */
+.chip{display:inline-flex;align-items:center;gap:5px;border-radius:99px;padding:3px 10px;
+  font-size:10.5px;font-weight:800;letter-spacing:.02em;white-space:nowrap}
+.chip i{width:6px;height:6px;border-radius:99px;background:currentColor;flex:0 0 auto}
+.c-new{background:var(--info-bg);color:var(--info)}
+.c-ok{background:var(--good-bg);color:var(--good)}
+.c-no{background:var(--risk-bg);color:var(--risk)}
+.c-wait{background:var(--warn-bg);color:var(--warn)}
+.c-done{background:var(--muted-bg);color:var(--muted-st)}
+.c-hi{background:var(--risk-bg);color:var(--risk)}
+.c-md{background:var(--warn-bg);color:var(--warn)}
+.c-lo{background:var(--muted-bg);color:var(--muted-st)}
+
+/* ── Filter bar ──────────────────────────────────────────────── */
+.fbar{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+.fbtn{border:1px solid var(--line);background:#fff;border-radius:99px;padding:6px 14px;
+  font-size:11.5px;font-weight:700;color:var(--ink-2)}
+.fbtn:hover{background:var(--muted-bg)}
+.fbtn.on{background:#2E3138;border-color:#2E3138;color:#fff}
+.fsearch{margin-left:auto;position:relative}
+.fsearch input{border:1px solid var(--line);border-radius:99px;padding:7px 13px 7px 32px;
+  font-size:12px;width:210px;background:#fff}
+.fsearch svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);
+  width:13px;height:13px;color:var(--muted)}
+
+/* ── Room timeline (signature element) ───────────────────────── */
+.tl{border:1px solid var(--line);border-radius:var(--r);background:#fff;overflow:hidden}
+.tl-head{display:flex;align-items:center;gap:12px;padding:12px 15px;border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
+.tl-date{font-weight:800;font-size:13px}
+.tl-nav{display:flex;gap:5px}
+.tl-body{overflow-x:auto}
+.tl-grid{min-width:820px}
+.tl-hours{display:grid;grid-template-columns:170px 1fr;border-bottom:1px solid var(--line-soft);
+  position:sticky;top:0;background:#FAFBFD;z-index:2}
+.tl-hours>div:first-child{padding:8px 12px;font-size:10px;font-weight:800;
+  text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-right:1px solid var(--line-soft)}
+.tl-hrs{display:grid}
+.tl-hrs span{font-size:10px;font-weight:700;color:var(--muted);text-align:center;
+  padding:8px 0;border-left:1px solid var(--line-soft);font-family:var(--mono)}
+.tl-row{display:grid;grid-template-columns:170px 1fr;border-bottom:1px solid var(--line-soft)}
+.tl-row:last-child{border-bottom:none}
+.tl-room{padding:11px 12px;border-right:1px solid var(--line-soft);background:#FCFDFE}
+.tl-room b{display:block;font-size:12.5px;font-weight:800}
+.tl-room span{display:block;font-size:10.5px;color:var(--muted);margin-top:2px}
+.tl-track{position:relative;min-height:52px;background-image:repeating-linear-gradient(
+  90deg,transparent,transparent calc(100%/11 - 1px),var(--line-soft) calc(100%/11 - 1px),var(--line-soft) calc(100%/11))}
+.tl-slot{position:absolute;top:7px;bottom:7px;border-radius:7px;padding:5px 9px;overflow:hidden;
+  background:var(--brand);color:#fff;font-size:10.5px;font-weight:700;line-height:1.3;
+  box-shadow:0 2px 8px -3px rgba(177,40,54,.6);cursor:pointer;border:none;text-align:left}
+.tl-slot{display:flex;flex-direction:column;justify-content:center}
+.tl-slot>span,.tl-slot small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.tl-slot small{font-weight:600;opacity:.85;font-size:9.5px}
+.tl-slot.mine{background:var(--brand-deep)}
+.tl-slot.virt{background:#41618A;box-shadow:0 2px 8px -3px rgba(65,97,138,.6)}
+.tl-slot:hover{filter:brightness(1.12)}
+.tl-free{position:absolute;inset:7px 0;display:grid;place-items:center;font-size:11px;color:var(--muted)}
+
+/* ── Virtual room ────────────────────────────────────────────── */
+.vr{display:grid;grid-template-columns:1fr 268px;gap:14px;align-items:start}
+.vr-stage{background:#1A1D23;border-radius:var(--r);overflow:hidden;position:relative;min-height:420px}
+.vr-share{width:100%;display:block;background:#000;max-height:62vh;object-fit:contain}
+.vr-empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:30px;color:#8A97A6}
+.vr-empty b{display:block;color:#fff;font-size:15px;font-weight:800;margin-bottom:7px}
+.vr-empty p{font-size:12px;line-height:1.65;max-width:44ch;margin:0 auto}
+.vr-bar{display:flex;align-items:center;gap:9px;padding:11px 13px;background:#22262E;flex-wrap:wrap}
+.vr-btn{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:#fff;
+  border-radius:9px;padding:8px 13px;font-size:12px;font-weight:700;
+  display:inline-flex;align-items:center;gap:7px;transition:all .15s}
+.vr-btn:hover{background:rgba(255,255,255,.2)}
+.vr-btn svg{width:15px;height:15px}
+.vr-btn.live{background:var(--brand);border-color:var(--brand)}
+.vr-btn.off{background:#B0202E;border-color:#B0202E}
+.vr-btn:disabled{opacity:.45;cursor:not-allowed}
+.vr-side{display:flex;flex-direction:column;gap:12px}
+.vr-people{max-height:330px;overflow-y:auto}
+.vp{display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid var(--line-soft)}
+.vp:last-child{border-bottom:none}
+.vp-av{width:30px;height:30px;border-radius:99px;background:var(--brand-soft);color:var(--brand-deep);
+  display:grid;place-items:center;font-size:11px;font-weight:800;flex:0 0 auto;position:relative}
+.vp-av.talk{box-shadow:0 0 0 3px rgba(46,125,91,.4)}
+.vp-n{font-size:12.5px;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vp-r{font-size:10px;color:var(--muted);font-weight:700}
+.vp-ico{margin-left:auto;display:flex;gap:5px;color:var(--muted)}
+.vp-ico svg{width:14px;height:14px}
+.vp-ico .mute{color:var(--risk)}
+.vr-note{font-size:11px;color:var(--ink-3);line-height:1.6;background:#FAFBFD;
+  border:1px solid var(--line-soft);border-radius:9px;padding:11px 12px}
+.vr-note b{color:var(--ink-2)}
+
+/* ── Toast ───────────────────────────────────────────────────── */
+.toast{position:fixed;bottom:22px;right:22px;z-index:99999;max-width:400px;
+  background:#20242E;color:#fff;padding:12px 16px;border-radius:10px;font-size:12.5px;
+  font-weight:600;line-height:1.5;box-shadow:0 12px 34px rgba(0,0,0,.34);
+  border-left:4px solid var(--good);opacity:0;transform:translateY(10px);
+  transition:opacity .22s,transform .22s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.err{border-left-color:var(--risk)}
+
+/* ── Modal ───────────────────────────────────────────────────── */
+.mod{position:fixed;inset:0;z-index:9000;background:rgba(18,22,38,.52);
+  display:flex;align-items:center;justify-content:center;padding:20px}
+.mod-in{background:#fff;border-radius:14px;width:min(600px,96vw);max-height:92vh;overflow:auto;
+  box-shadow:0 26px 74px rgba(18,22,38,.42)}
+.mod-h{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+  padding:16px 20px;background:var(--brand);color:#fff}
+.mod-t{font-weight:800;font-size:15.5px}
+.mod-s{font-size:11.5px;opacity:.86;margin-top:2px}
+.mod-x{background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;
+  border-radius:8px;font-size:14px;flex:0 0 auto}
+.mod-x:hover{background:rgba(255,255,255,.34)}
+.mod-b{padding:18px 20px}
+.mod-f{display:flex;gap:10px;align-items:center;padding:14px 20px;
+  border-top:1px solid var(--line);background:#FAFBFD}
+.mod-f .grow{flex:1}
+
+/* ── Detail rows ─────────────────────────────────────────────── */
+.dl{display:grid;grid-template-columns:auto 1fr;gap:9px 16px;font-size:12.5px}
+.dl dt{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--muted);padding-top:2px}
+.dl dd{color:var(--ink-2);line-height:1.55}
+.split{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;align-items:start}
+.stack{display:flex;flex-direction:column;gap:16px}
+.cat{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.cat-i{border:1px solid var(--line);border-radius:9px;padding:11px 12px;display:flex;
+  align-items:center;gap:10px;background:#fff}
+.cat-i b{font-size:12.5px}
+.cat-i small{display:block;color:var(--muted);font-size:10.5px;margin-top:1px}
+.cat-i input{width:62px;margin-left:auto;text-align:center;border:1px solid var(--line);
+  border-radius:7px;padding:5px;font-family:var(--mono);font-size:12px}
+.cat-i.has{border-color:var(--brand);background:var(--brand-soft)}
+.dir-pick{grid-column:1/-1;border:1px solid var(--line);border-radius:10px;background:#FAFBFD;overflow:hidden}
+.dir-select{padding:10px;border-bottom:1px solid var(--line-soft);background:#fff}
+.dir-select select{width:100%;border:1px solid var(--brand);border-radius:8px;padding:9px 10px;font-size:12.5px;background:#fff;color:var(--ink-2)}
+.dir-search{padding:10px;border-bottom:1px solid var(--line-soft)}
+.dir-search input{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12.5px;background:#fff}
+.dir-list{max-height:220px;overflow:auto;padding:6px}
+.dir-row{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:12.5px}
+.dir-row:hover{background:var(--brand-soft)}
+.dir-row input{width:16px;height:16px;accent-color:var(--brand);flex:0 0 auto}
+.dir-row b{display:block}.dir-row small{display:block;color:var(--muted);font-size:10.5px;margin-top:2px}
+.appr-pick{grid-column:1/-1;border:1px solid #DFC98F;background:var(--warn-bg);border-radius:10px;padding:11px 12px}
+.appr-pick>label{display:block;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--warn);margin-bottom:8px}
+.appr-options{display:flex;gap:8px;flex-wrap:wrap}
+.appr-option{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid #DFC98F;border-radius:99px;padding:6px 10px;font-size:11.5px;font-weight:700;cursor:pointer}
+.appr-option input{width:14px;height:14px;accent-color:var(--brand)}
+.approval-line{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--line-soft);font-size:12px}
+.approval-line:last-child{border-bottom:0}
+
+/* ── Work Place Hub access gate ───────────────────────────────────────── */
+.hub-gate{position:fixed;inset:0;z-index:120000;display:flex;align-items:center;justify-content:center;padding:22px;
+  background:linear-gradient(145deg,rgba(92,19,30,.97),rgba(177,40,54,.94)),linear-gradient(135deg,#8A1E2A,#CB2E28);color:#fff}
+.hub-gate.hidden{display:none}
+.hub-gate-card{width:min(410px,94vw);background:#fff;color:var(--ink);border-radius:18px;padding:30px 28px 26px;
+  box-shadow:0 30px 80px rgba(28,8,12,.45);text-align:center;border:1px solid rgba(255,255,255,.45)}
+.hub-gate-logo{width:62px;height:62px;border-radius:17px;margin:0 auto 15px;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--brand-deep),var(--brand-2));color:#fff;font-family:var(--disp);font-weight:900;font-size:20px}
+.hub-gate-title{font-family:var(--disp);font-size:22px;font-weight:900;color:var(--brand-deep)}
+.hub-gate-sub{font-size:12.5px;color:var(--ink-3);line-height:1.55;margin:6px auto 19px}
+.hub-pin{width:100%;height:50px;border:1.5px solid var(--line);border-radius:11px;text-align:center;font-family:var(--mono);
+  font-size:22px;letter-spacing:9px;color:var(--ink);outline:none;background:#FAFBFD;padding-left:9px}
+.hub-pin:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft);background:#fff}
+.hub-gate-error{min-height:19px;margin:8px 0 3px;font-size:12px;font-weight:700;color:var(--risk)}
+.hub-gate-btn{width:100%;border:0;border-radius:10px;padding:12px 16px;background:linear-gradient(135deg,var(--brand-deep),var(--brand-2));
+  color:#fff;font-size:14px;font-weight:800;justify-content:center}
+.hub-gate-back{display:inline-block;margin-top:15px;color:var(--ink-3);font-size:11.5px;text-decoration:none}
+.hub-gate-back:hover{color:var(--brand)}
+@media(max-width:560px){.hub-gate{padding:14px}.hub-gate-card{padding:25px 20px}.hub-pin{font-size:21px}}
+
+@media(max-width:1080px){ .split{grid-template-columns:1fr} .vr{grid-template-columns:1fr} }
+@media(max-width:860px){
+  .appbar{height:auto;min-height:58px;padding:8px 10px;gap:8px;overflow-x:auto}
+  .appbar>*{flex-shrink:0}.ab-spacer{display:none}.ab-title{margin-right:auto}.ab-btn{padding:7px 9px}
+  .shell{flex-direction:column}
+  .side{width:100%;flex:none;height:auto;position:static;flex-direction:row;
+    overflow-x:auto;border-right:none;border-bottom:1px solid var(--line);padding:8px}
+  .side-lbl{display:none}
+  .nav{width:auto;white-space:nowrap;padding:8px 12px}
+  .nav span.lbl{display:inline}
+  .main{padding:16px 14px 50px}
+  .ab-title small{display:none}
+  .toast{left:12px;right:12px;max-width:none}
+}
+</style>
+</head>
+<body>
+
+<div class="hub-gate" id="hubGate" role="dialog" aria-modal="true" aria-labelledby="hubGateTitle">
+  <div class="hub-gate-card">
+    <div class="hub-gate-logo">KP</div>
+    <div class="hub-gate-title" id="hubGateTitle">Work Place Hub</div>
+    <div class="hub-gate-sub">Knowledge Papers internal services, requests and meetings.<br>Enter the 4-digit access PIN to continue.</div>
+    <form onsubmit="unlockWorkPlaceHub(event)">
+      <input class="hub-pin" id="hubPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="one-time-code" aria-label="Work Place Hub PIN" placeholder="••••">
+      <div class="hub-gate-error" id="hubGateError" aria-live="polite"></div>
+      <button class="btn hub-gate-btn" type="submit">Open Work Place Hub</button>
+    </form>
+    <a class="hub-gate-back" href="https://knowledge-papers.web.app/" target="_top">← Back to Projects Dashboard</a>
+  </div>
+</div>
+
+<div class="appbar">
+  <div class="ab-logo">KP</div>
+  <div class="ab-title">Work Place Hub<small id="abSub">Internal requests &amp; meetings</small></div>
+  <div class="ab-spacer"></div>
+  <a class="ab-btn" href="https://knowledge-papers.web.app/" target="_top" title="Back to the main projects portal" style="text-decoration:none">← Main Portal</a>
+  <button class="ab-btn" id="adminAccessBtn" onclick="openAdminAccess()" title="Open Admin centre">Admin access</button>
+  <button class="ab-btn" onclick="openSync()" title="Connect this portal to your team">
+    <span class="sync-dot" id="syncDot"></span><span id="syncTxt">Offline</span>
+  </button>
+  <button class="ab-btn" onclick="exportAll()" title="Download every request as an Excel workbook">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Export
+  </button>
+  <button class="ab-who" onclick="openWho()" title="Change who you are">
+    <span class="ab-av" id="whoAv">?</span><span id="whoName">Sign in</span>
+  </button>
+</div>
+
+<div class="shell">
+  <nav class="side" id="side"></nav>
+  <main class="main" id="main"></main>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KNOWLEDGE PAPERS — SERVICES PORTAL
+   ───────────────────────────────────────────────────────────────────────────
+   A separate portal from the projects dashboard. It shares the visual system
+   and the sync approach, but NOT the data: this writes to its own Firebase
+   room and never touches portals/asimati-hub-v2.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+var SK='kp_services_v1';
+var ROOM_DEFAULT='asimati-services';
+var PORTAL_BUILD='2026.08.24.11';
+/* Meeting invitations must open the standalone hosted page. Loading the hub
+   through an iframe/srcdoc gives it an about: URL, which is confusing for
+   browser permission checks and makes troubleshooting microphone access much
+   harder. Keep the meeting on the real Firebase HTTPS origin instead. */
+var PUBLIC_PORTAL_URL='https://knowledge-papers.web.app/services_portal.html?v=11';
+var MAIN_PORTAL_URL='https://knowledge-papers.web.app/';
+var FIREBASE_DEFAULT={
+  databaseURL:'https://knowledge-papers-default-rtdb.firebaseio.com',
+  projectId:'knowledge-papers',
+  authDomain:'knowledge-papers.firebaseapp.com',
+  storageBucket:'knowledge-papers.firebasestorage.app',
+  messagingSenderId:'602139029671',
+  appId:'1:602139029671:web:9570a577b2a7302cc82b82'
+};
+/* Interface-level Admin access. The code is stored as a SHA-256 digest rather
+   than clear text. Firebase Authentication + database rules remain the proper
+   security boundary when the production database is locked down. */
+var ADMIN_ACCESS_HASH='5ec3fcc1e59062c83809dd9934245d1507fff6640033fb126958b3ba41c1187f';
+var ADMIN_SESSION_KEY='kp_services_admin_ok';
+var HUB_ACCESS_HASH='79f06f8fde333461739f220090a23cb2a79f6d714bee100d0e4b4af249294619';
+var HUB_SESSION_KEY='kp_workplace_hub_ok';
+
+/* ── State ───────────────────────────────────────────────────────────────── */
+var STORE=null, ME=null, VIEW='home', FILTER='open', SEARCH='';
+var TLDATE=todayISO();
+var PORTAL_LINK=null;
+var APPROVAL_TYPE_KEYS=['car','room','stationery','it','warehouse','custom'];
+var APPROVAL_TYPE_LABELS={car:'Vehicle requests',room:'Meeting rooms',stationery:'Stationery',it:'IT support',warehouse:'Warehouse',custom:'Additional services'};
+
+function normalisePersonPermissions(p){
+  if(!p.permissions||typeof p.permissions!=='object')p.permissions={};
+  if(p.permissions.canRequest==null)p.permissions.canRequest=true;
+  if(p.permissions.canCallMeetings==null)p.permissions.canCallMeetings=true;
+  /* Admin access and approval responsibility are separate. An Admin may
+     manage every route without being inserted into every request. */
+  if(p.permissions.canApprove==null)p.permissions.canApprove=(+p.approvalLevel||0)>0||p.role==='approver';
+  if(!Array.isArray(p.approvalTypes))p.approvalTypes=(+p.approvalLevel||0)>0?APPROVAL_TYPE_KEYS.slice():[];
+}
+function normaliseApproverTypes(p){
+  if(!Array.isArray(p.approvalTypes))p.approvalTypes=(+p.approvalLevel||0)>0?APPROVAL_TYPE_KEYS.slice():[];
+  p.approvalTypes=p.approvalTypes.filter(function(x){return APPROVAL_TYPE_KEYS.indexOf(x)>=0;});
+}
+
+function todayISO(){ var d=new Date(); return d.toISOString().slice(0,10); }
+function nowISO(){ return new Date().toISOString(); }
+function uid(p){ return (p||'x')+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function fmtDate(d){
+  if(!d) return '—';
+  try{ return new Intl.DateTimeFormat('en-GB',{day:'2-digit',month:'short',year:'numeric',
+    timeZone:'Asia/Baghdad'}).format(new Date(d)); }catch(e){ return d; }
+}
+function fmtTime(d){
+  if(!d) return '';
+  try{ return new Intl.DateTimeFormat('en-GB',{hour:'2-digit',minute:'2-digit',
+    timeZone:'Asia/Baghdad'}).format(new Date(d)); }catch(e){ return ''; }
+}
+function fmtWhen(d){ return d?(fmtDate(d)+' · '+fmtTime(d)):'—'; }
+function initials(n){
+  return String(n||'?').trim().split(/\s+/).slice(0,2).map(function(w){return w[0];}).join('').toUpperCase()||'?';
+}
+function toast(msg,ok){
+  var el=document.getElementById('toast');
+  el.textContent=msg;
+  el.className='toast show'+(ok===false?' err':'');
+  clearTimeout(el._t); el._t=setTimeout(function(){ el.className='toast'; },3600);
+}
+
+/* ── Seed: structure only, no fake request history ───────────────────────
+   Rooms, vehicles and catalogues are reference data the portal cannot work
+   without. Requests start empty — inventing a request history would put
+   fictional names and approvals in front of real staff. */
+function seed(){
+  return {
+    v:1,
+    settings:{turn:{urls:'',username:'',credential:''}},
+    people:[],
+    contacts:[],
+    services:[],
+    requests:[],
+    bookings:[],
+    vrooms:[],
+    rooms:[
+      {id:'rm1',name:'Board Room',      capacity:14,location:'Floor 3 · East',  features:['Projector','Video conference','Whiteboard']},
+      {id:'rm2',name:'Majlis Room',     capacity:8, location:'Floor 2 · West',  features:['TV screen','Whiteboard']},
+      {id:'rm3',name:'Training Room',   capacity:24,location:'Floor 1 · North', features:['Projector','Sound system']},
+      {id:'rm4',name:'Huddle 1',        capacity:4, location:'Floor 2 · East',  features:['TV screen']},
+      {id:'rm5',name:'Huddle 2',        capacity:4, location:'Floor 3 · West',  features:['TV screen']}
+    ],
+    fleet:[
+      {id:'v1',plate:'BGD 21473',model:'Toyota Land Cruiser',type:'SUV',   seats:7,driver:'Assigned on approval',status:'available'},
+      {id:'v2',plate:'BGD 30918',model:'Toyota Hilux',       type:'Pickup',seats:5,driver:'Assigned on approval',status:'available'},
+      {id:'v3',plate:'BGD 11256',model:'Hyundai Staria',     type:'Van',   seats:11,driver:'Assigned on approval',status:'available'},
+      {id:'v4',plate:'BGD 44802',model:'Toyota Corolla',     type:'Sedan', seats:5,driver:'Self-drive permitted',  status:'available'},
+      {id:'v5',plate:'BGD 55317',model:'Nissan Patrol',      type:'SUV',   seats:7,driver:'Assigned on approval',status:'maintenance'}
+    ],
+    catalog:{
+      stationery:[
+        {id:'s1',name:'A4 paper',unit:'ream'},{id:'s2',name:'Ballpoint pens',unit:'box of 12'},
+        {id:'s3',name:'Whiteboard markers',unit:'set of 4'},{id:'s4',name:'Notebooks A5',unit:'each'},
+        {id:'s5',name:'Box files',unit:'each'},{id:'s6',name:'Sticky notes',unit:'pack'},
+        {id:'s7',name:'Stapler + pins',unit:'set'},{id:'s8',name:'Document wallets',unit:'pack of 25'},
+        {id:'s9',name:'Printer toner',unit:'cartridge'},{id:'s10',name:'Desk organiser',unit:'each'}
+      ],
+      it:[
+        {id:'i1',name:'Laptop',unit:'unit'},{id:'i2',name:'Desktop workstation',unit:'unit'},
+        {id:'i3',name:'Monitor 24"',unit:'unit'},{id:'i4',name:'Keyboard + mouse',unit:'set'},
+        {id:'i5',name:'Headset',unit:'unit'},{id:'i6',name:'Docking station',unit:'unit'},
+        {id:'i7',name:'Network cable',unit:'each'},{id:'i8',name:'Tablet',unit:'unit'}
+      ],
+      warehouse:[
+        {id:'w1',name:'Network switch 24-port',unit:'unit'},{id:'w2',name:'Fibre patch cord',unit:'each'},
+        {id:'w3',name:'Rack shelf',unit:'each'},{id:'w4',name:'UPS 3kVA',unit:'unit'},
+        {id:'w5',name:'Cable tray 2m',unit:'length'},{id:'w6',name:'RJ45 connectors',unit:'bag of 100'},
+        {id:'w7',name:'Safety helmet',unit:'each'},{id:'w8',name:'Hi-vis vest',unit:'each'},
+        {id:'w9',name:'Tool kit',unit:'set'},{id:'w10',name:'Padlock',unit:'each'}
+      ]
+    }
+  };
+}
+
+/* ── Persistence ─────────────────────────────────────────────────────────── */
+function load(){
+  try{
+    var raw=localStorage.getItem(SK);
+    if(raw){
+      var o=JSON.parse(raw);
+      if(o&&o.v){ STORE=o; normalise(); return; }
+    }
+  }catch(e){ console.warn('local load failed',e); }
+  STORE=seed();
+}
+function normalise(){
+  var s=seed();
+  if(!STORE.settings||typeof STORE.settings!=='object') STORE.settings=s.settings;
+  if(!STORE.settings.turn||typeof STORE.settings.turn!=='object') STORE.settings.turn=s.settings.turn;
+  ['people','contacts','services','requests','bookings','vrooms','rooms','fleet'].forEach(function(k){
+    if(!Array.isArray(STORE[k])) STORE[k]=s[k];
+  });
+  if(!STORE.catalog) STORE.catalog=s.catalog;
+  ['stationery','it','warehouse'].forEach(function(k){
+    if(!Array.isArray(STORE.catalog[k])) STORE.catalog[k]=s.catalog[k];
+  });
+  STORE.people.forEach(function(p){
+    if(!p.role) p.role='requester';
+    if(p.email==null) p.email='';
+    if(p.phone==null) p.phone='';
+    if(p.approvalLevel==null) p.approvalLevel=(p.role==='approver'||p.role==='admin')?1:0;
+    p.approvalLevel=Math.max(0,Math.min(5,+p.approvalLevel||0));
+    normalisePersonPermissions(p);normaliseApproverTypes(p);
+  });
+  STORE.contacts.forEach(function(c){
+    if(c.email==null) c.email='';
+    if(c.phone==null) c.phone='';
+    if(c.dept==null) c.dept='';
+    if(c.title==null) c.title='';
+    if(c.approvalLevel==null) c.approvalLevel=c.canApprove?1:0;
+    c.approvalLevel=Math.max(0,Math.min(5,+c.approvalLevel||0));
+    c.canApprove=c.approvalLevel>0;
+    normaliseApproverTypes(c);
+  });
+  STORE.services.forEach(function(sv){
+    if(sv.name==null) sv.name='Service';
+    if(sv.description==null) sv.description='Submit a request to the responsible team.';
+    if(sv.active==null) sv.active=true;
+  });
+  STORE.requests.forEach(function(r){
+    if(!Array.isArray(r.approvals)) r.approvals=[];
+    r.approvals.forEach(function(a){if(!a.status)a.status='pending';if(a.level==null)a.level=1;a.level=Math.max(1,Math.min(5,+a.level||1));});
+  });
+  STORE.bookings.forEach(function(b){
+    if(!Array.isArray(b.attendees)) b.attendees=[];
+    if(!Array.isArray(b.emails)) b.emails=[];
+    if(!Array.isArray(b.phones)) b.phones=[];
+    if(!Array.isArray(b.directoryIds)) b.directoryIds=[];
+  });
+}
+function save(){
+  try{ localStorage.setItem(SK,JSON.stringify(STORE)); }
+  catch(e){ toast('Could not save locally — browser storage may be full',false); }
+  pushLeaves();
+}
+
+/* ── Identity and portal roles ─────────────────────────────────────────── */
+var DEPTS=['Projects','IT','Finance','HR','Procurement','Operations','Engineering','Administration'];
+function loadMe(){
+  try{ var m=localStorage.getItem('kp_services_me'); if(m) ME=JSON.parse(m); }catch(e){}
+}
+function saveMe(){
+  if(ME&&STORE){
+    var p=STORE.people.find(function(x){ return x.id===ME.id; })
+      ||STORE.people.find(function(x){return sameEmail(x.email,ME.email);});
+    if(!p){
+      p={id:ME.id,name:ME.name,dept:ME.dept,role:ME.role,email:ME.email||'',phone:ME.phone||'',
+         approvalLevel:(ME.role==='approver'||ME.role==='admin')?1:0};
+      STORE.people.push(p);
+    }else{
+      ME.id=p.id;p.name=ME.name;p.dept=ME.dept;p.role=ME.role;p.email=ME.email||'';p.phone=ME.phone||'';
+      if(p.approvalLevel==null)p.approvalLevel=(p.role==='approver'||p.role==='admin')?1:0;
+    }
+    normalisePersonPermissions(p);normaliseApproverTypes(p);
+    if(p.role==='admin'){p.permissions={canRequest:true,canCallMeetings:true,canApprove:true};p.approvalLevel=Math.max(1,+p.approvalLevel||1);if(!p.approvalTypes.length)p.approvalTypes=APPROVAL_TYPE_KEYS.slice();}
+    ME.approvalLevel=+p.approvalLevel||0;
+    try{ localStorage.setItem('kp_services_me',JSON.stringify(ME)); }catch(e){}
+    save();
+  }else try{ localStorage.setItem('kp_services_me',JSON.stringify(ME)); }catch(e){}
+  paintWho();
+}
+function paintWho(){
+  var level=ME&&currentUserApprovalLevel();
+  var role=ME?(ME.role==='admin'?'Admin':(level||ME.role==='approver'?'Approver':'Requester')):'';
+  document.getElementById('whoAv').textContent=ME?initials(ME.name):'?';
+  document.getElementById('whoName').textContent=ME?ME.name.split(' ')[0]:'Sign in';
+  document.getElementById('abSub').textContent=(ME?(ME.dept+' · '+role+(level?' · Approval L'+level:'')+(ME.role==='admin'&&!isAdmin()?' (locked)':'')):'Internal requests & meetings')+' · v7';
+  var ab=document.getElementById('adminAccessBtn');if(ab)ab.textContent=isAdmin()?'Admin centre':'Admin access';
+}
+function adminSessionOK(){
+  try{ return sessionStorage.getItem(ADMIN_SESSION_KEY)==='1'; }catch(e){ return false; }
+}
+function isAdmin(){ return !!(ME&&ME.role==='admin'&&adminSessionOK()); }
+function sameEmail(a,b){return !!(a&&b&&String(a).trim().toLowerCase()===String(b).trim().toLowerCase());}
+function currentUserProfile(){
+  if(!ME||!STORE)return null;
+  return (STORE.people||[]).find(function(p){return p.id===ME.id||sameEmail(p.email,ME.email);})||ME;
+}
+function userCan(permission){
+  if(isAdmin())return true;
+  var p=currentUserProfile();if(!p)return true;normalisePersonPermissions(p);
+  return p.permissions[permission]!==false;
+}
+function requireUserPermission(permission,message){
+  if(userCan(permission))return true;
+  toast(message||'Admin has not enabled this permission for your account',false);return false;
+}
+function currentUserApprovalLevel(){
+  if(!ME||!STORE)return 0;
+  var levels=[];
+  (STORE.people||[]).forEach(function(p){if(p.id===ME.id||sameEmail(p.email,ME.email))levels.push(+p.approvalLevel||0);});
+  (STORE.contacts||[]).forEach(function(c){if(sameEmail(c.email,ME.email))levels.push(+c.approvalLevel||0);});
+  return levels.length?Math.max.apply(Math,levels):(+ME.approvalLevel||0);
+}
+function isApprover(){
+  if(!ME) return false;
+  if(isAdmin()) return true;
+  var p=currentUserProfile();if(p){normalisePersonPermissions(p);if(p.permissions.canApprove===false)return false;}
+  return currentUserApprovalLevel()>0;
+}
+async function sha256Hex(s){
+  if(!(window.crypto&&crypto.subtle)) return '';
+  var b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(String(s||'')));
+  return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,'0');}).join('');
+}
+function openAdminAccess(){
+  if(isAdmin()){go('admin');return;}
+  if(!ME){openWho(true);toast('Enter your name first, then open Admin access',false);return;}
+  var m=document.createElement('div');m.className='mod';
+  m.innerHTML='<div class="mod-in"><div class="mod-h"><div><div class="mod-t">Admin access</div>'
+    +'<div class="mod-s">Enter the Admin access code to unlock every permission.</div></div><button class="mod-x" id="aax">&times;</button></div>'
+    +'<div class="mod-b"><div class="fld wide"><label>Admin access code</label><input id="aaCode" type="password" autocomplete="current-password" placeholder="Enter Admin code"></div></div>'
+    +'<div class="mod-f"><div class="grow"></div><button class="btn" id="aac">Cancel</button><button class="btn btn-p" id="aas">Unlock Admin</button></div></div>';
+  document.body.appendChild(m);var close=function(){m.remove();};m.querySelector('#aax').onclick=close;m.querySelector('#aac').onclick=close;
+  m.addEventListener('click',function(e){if(e.target===m)close();});m.querySelector('#aaCode').focus();
+  m.querySelector('#aas').onclick=async function(){
+    var digest=await sha256Hex(m.querySelector('#aaCode').value);
+    if(!digest||digest!==ADMIN_ACCESS_HASH){toast('The Admin access code is not correct',false);return;}
+    try{sessionStorage.setItem(ADMIN_SESSION_KEY,'1');}catch(e){}
+    ME.role='admin';ME.approvalLevel=Math.max(1,+ME.approvalLevel||1);saveMe();close();render();go('admin');toast('Admin full access unlocked',true);
+  };
+}
+function initWorkPlaceHubGate(){
+  var gate=document.getElementById('hubGate'),ok=false;
+  try{ok=sessionStorage.getItem(HUB_SESSION_KEY)==='1';}catch(e){}
+  if(ok){if(gate)gate.classList.add('hidden');return;}
+  var pin=document.getElementById('hubPin'),err=document.getElementById('hubGateError');
+  if(pin){
+    pin.addEventListener('input',function(){this.value=this.value.replace(/\D/g,'').slice(0,4);if(err)err.textContent='';});
+    setTimeout(function(){pin.focus();},120);
+  }
+}
+async function unlockWorkPlaceHub(ev){
+  if(ev)ev.preventDefault();
+  var gate=document.getElementById('hubGate'),pin=document.getElementById('hubPin'),err=document.getElementById('hubGateError');
+  var code=pin?pin.value.trim():'',digest=await sha256Hex(code);
+  if(!digest||digest!==HUB_ACCESS_HASH){
+    if(err)err.textContent='Incorrect PIN. Please try again.';
+    if(pin){pin.value='';pin.focus();}
+    return false;
+  }
+  try{sessionStorage.setItem(HUB_SESSION_KEY,'1');}catch(e){}
+  if(gate)gate.classList.add('hidden');
+  setTimeout(function(){toast('Work Place Hub unlocked',true);},80);
+  return false;
+}
+function needMe(){
+  if(ME) return true;
+  openWho(true);
+  return false;
+}
+function openWho(forced){
+  var m=document.createElement('div'); m.className='mod';
+  m.innerHTML='<div class="mod-in"><div class="mod-h"><div>'
+    +'<div class="mod-t">'+(ME?'Change your details':'Tell us who you are')+'</div>'
+    +'<div class="mod-s">Requests are recorded against this name so approvers know who to reply to</div>'
+    +'</div>'+(forced?'':'<button class="mod-x" id="wx">&times;</button>')+'</div>'
+    +'<div class="mod-b"><div class="form">'
+    +'<div class="fld wide"><label>Full name <span class="req">*</span></label>'
+      +'<input id="wn" value="'+esc(ME?ME.name:'')+'" placeholder="e.g. Ahmed Kareem" autocomplete="name"></div>'
+    +'<div class="fld"><label>Department</label><select id="wd">'
+      +DEPTS.map(function(d){return '<option'+((ME&&ME.dept===d)?' selected':'')+'>'+d+'</option>';}).join('')
+    +'</select></div>'
+    +'<div class="fld"><label>Email</label><input id="we" type="email" value="'+esc(ME&&ME.email||'')+'" placeholder="name@company.com" autocomplete="email"></div>'
+    +'<div class="fld"><label>Phone</label><input id="wp" type="tel" value="'+esc(ME&&ME.phone||'')+'" placeholder="07xxxxxxxxx" autocomplete="tel"></div>'
+    +'<div class="fld"><label>Role in this portal — managed by Admin</label><select id="wr" disabled>'
+      +'<option value="requester"'+((!ME||ME.role==='requester')?' selected':'')+'>Requester</option>'
+      +'<option value="approver"'+((ME&&ME.role==='approver')?' selected':'')+'>Approver</option>'
+      +'<option value="admin"'+((ME&&ME.role==='admin')?' selected':'')+'>Admin — full access</option>'
+    +'</select><div class="hint">Only Admin can change user roles, permissions and approval levels.</div></div>'
+    +'<div class="fld" id="f_wa" style="display:'+(ME&&ME.role==='admin'&&!isAdmin()?'block':'none')+'"><label>Admin access code</label>'
+      +'<input id="wa" type="password" placeholder="Required for Admin" autocomplete="current-password"></div>'
+    +'</div></div>'
+    +'<div class="mod-f"><div class="grow"></div>'
+    +(forced?'':'<button class="btn" id="wc">Cancel</button>')
+    +'<button class="btn btn-p" id="ws">Save</button></div></div>';
+  document.body.appendChild(m);
+  var close=function(){ m.remove(); };
+  if(!forced){
+    m.querySelector('#wx').onclick=close;
+    m.querySelector('#wc').onclick=close;
+    m.addEventListener('click',function(e){ if(e.target===m) close(); });
+  }
+  m.querySelector('#wn').focus();
+  var roleField=m.querySelector('#wr'), accessField=m.querySelector('#f_wa');
+  roleField.onchange=function(){ accessField.style.display=(roleField.value==='admin'&&!isAdmin())?'block':'none'; };
+  m.querySelector('#ws').onclick=async function(){
+    var n=m.querySelector('#wn').value.trim();
+    if(!n){ toast('Enter your name so requests can be traced back to you',false); return; }
+    var role=roleField.value;
+    if(role==='admin'&&!isAdmin()){
+      var digest=await sha256Hex(m.querySelector('#wa').value);
+      if(!digest||digest!==ADMIN_ACCESS_HASH){ toast('The Admin access code is not correct',false); return; }
+      try{ sessionStorage.setItem(ADMIN_SESSION_KEY,'1'); }catch(e){}
+    } else if(role!=='admin'){
+      try{ sessionStorage.removeItem(ADMIN_SESSION_KEY); }catch(e){}
+    }
+    ME={ id:(ME&&ME.id)||uid('u'), name:n, dept:m.querySelector('#wd').value, role:role,
+         email:m.querySelector('#we').value.trim(),phone:m.querySelector('#wp').value.trim() };
+    saveMe(); close(); render();
+    toast('Signed in as '+n+(role==='admin'?' with full Admin access':''),true);
+  };
+}
+
+/* ── Request pipeline ────────────────────────────────────────────────────
+   Every service writes into one requests[] array with a shared lifecycle, so
+   approvals, search and export work identically across all of them. */
+var TYPES={
+  car:       {label:'Vehicle',    ref:'CAR', ico:'car'},
+  room:      {label:'Meeting room',ref:'RM', ico:'door'},
+  stationery:{label:'Stationery', ref:'STN', ico:'pen'},
+  it:        {label:'IT support', ref:'IT',  ico:'chip'},
+  warehouse: {label:'Warehouse',  ref:'WH',  ico:'box'},
+  custom:    {label:'Service request',ref:'SRV',ico:'list'}
+};
+var STATUS={
+  submitted:{label:'Submitted',cls:'c-new'},
+  approved: {label:'Approved', cls:'c-ok'},
+  declined: {label:'Declined', cls:'c-no'},
+  fulfilled:{label:'Fulfilled',cls:'c-done'},
+  cancelled:{label:'Cancelled',cls:'c-done'}
+};
+var PRIO={high:{label:'High',cls:'c-hi'},medium:{label:'Medium',cls:'c-md'},low:{label:'Low',cls:'c-lo'}};
+
+function nextRef(type){
+  var pre=(TYPES[type]||TYPES.custom).ref;
+  var n=STORE.requests.filter(function(r){ return r.type===type; }).length+1;
+  return pre+'-'+String(n).padStart(4,'0');
+}
+function requestTypeMeta(r){
+  if(!r)return TYPES.custom;
+  if(r.type!=='custom')return TYPES[r.type]||TYPES.custom;
+  var d=r.details||{},sv=(STORE.services||[]).find(function(x){return x.id===d.serviceId;});
+  return {label:d.serviceName||(sv&&sv.name)||TYPES.custom.label,ref:'SRV',ico:'list'};
+}
+function requestTypeLabel(r){return requestTypeMeta(r).label;}
+function submitRequest(type,payload,priority,needed,note,approvals){
+  var r={
+    id:uid('r'), ref:nextRef(type), type:type,
+    by:ME.name, byId:ME.id, dept:ME.dept,
+    status:'submitted', priority:priority||'medium',
+    created:nowISO(), needed:needed||'', note:note||'',
+    approvals:(approvals||[]).map(function(a){return {id:a.id,name:a.name,email:a.email||'',level:Math.max(1,+a.level||1),status:'pending',decidedAt:'',decision:''};})
+      .sort(function(a,b){return a.level-b.level||a.name.localeCompare(b.name);}),
+    details:payload, history:[{at:nowISO(),who:ME.name,what:'Submitted'}]
+  };
+  STORE.requests.unshift(r);
+  save();
+  return r;
+}
+function activeApprovalLevel(r){
+  var pending=(r.approvals||[]).filter(function(a){return (a.status||'pending')==='pending';});
+  return pending.length?Math.min.apply(Math,pending.map(function(a){return Math.max(1,+a.level||1);})):0;
+}
+function decide(id,status,reason){
+  var r=STORE.requests.find(function(x){ return x.id===id; });
+  if(!r) return;
+  var chain=r.approvals||[], pending=chain.filter(function(a){return a.status==='pending';});
+  if((status==='approved'||status==='declined')&&chain.length){
+    var level=activeApprovalLevel(r),active=pending.filter(function(a){return Math.max(1,+a.level||1)===level;});
+    var mine=active.filter(function(a){return a.id===(ME&&ME.id)||sameEmail(a.email,ME&&ME.email);});
+    if(!isAdmin()&&!mine.length){toast('This request is waiting for Approval Level '+level,false);return;}
+    var targets=isAdmin()?active:[mine[0]];
+    targets.forEach(function(a){a.status=status;a.decidedAt=nowISO();a.decision=reason||'';a.decidedBy=ME?ME.name:'';});
+    if(status==='declined') r.status='declined';
+    else r.status=chain.every(function(a){return a.status==='approved';})?'approved':'submitted';
+  }else r.status=status;
+  r.decidedAt=nowISO(); r.decidedBy=ME?ME.name:'';
+  if(reason) r.decision=reason;
+  r.history.push({at:nowISO(),who:ME?ME.name:'',what:STATUS[status].label+((status==='approved'||status==='declined')&&chain.length?(' · Level '+(level||1)):'')+(reason?(' — '+reason):'')});
+  save(); render();
+  if(status==='approved'&&r.status==='submitted'){
+    var done=chain.filter(function(a){return a.status==='approved';}).length;
+    toast('Your approval was recorded · '+done+'/'+chain.length+' complete',true);
+  }else toast('Request '+r.ref+' '+STATUS[status].label.toLowerCase(),status!=='declined');
+}
+function openRequests(){ return STORE.requests.filter(function(r){ return r.status==='submitted'; }); }
+function canApproveRequest(r){
+  if(!ME||r.status!=='submitted') return false;
+  if(isAdmin()) return true;
+  var chain=r.approvals||[];
+  if(!chain.length) return isApprover();
+  var level=activeApprovalLevel(r);
+  return chain.some(function(a){return a.status==='pending'&&Math.max(1,+a.level||1)===level&&(a.id===ME.id||sameEmail(a.email,ME.email));});
+}
+function myApprovalRequests(){return openRequests().filter(canApproveRequest);}
+function myRequests(){ return ME?STORE.requests.filter(function(r){ return r.byId===ME.id; }):[]; }
+
+/* ── Icons ───────────────────────────────────────────────────────────────── */
+var I={
+  home:'<path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  car:'<path d="M5 17h14M6.5 17a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zM20.5 17a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/><path d="M4 17v-4l2-5h12l2 5v4"/><path d="M6 12h12"/>',
+  door:'<rect x="5" y="3" width="14" height="18" rx="1"/><circle cx="15" cy="12" r="1"/>',
+  cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  video:'<path d="M15 10.5 21 7v10l-6-3.5z"/><rect x="3" y="6" width="12" height="12" rx="2"/>',
+  pen:'<path d="M12 19l7-7-4-4-7 7-1 5 5-1z"/><path d="M4 21h6"/>',
+  chip:'<rect x="7" y="7" width="10" height="10" rx="1"/><path d="M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/>',
+  box:'<path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
+  check:'<polyline points="20 6 9 17 4 12"/>',
+  list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+  mic:'<path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/>',
+  micOff:'<path d="M1 1l22 22"/><path d="M9 9v2a3 3 0 0 0 5.1 2.1M15 9.3V5a3 3 0 0 0-5.9-.7"/><path d="M19 10v1a7 7 0 0 1-.6 2.8M12 18v4M8 22h8M5 10v1a7 7 0 0 0 11 5.7"/>',
+  screen:'<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  edit:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z"/>',
+  trash:'<path d="M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6M10 11v6M14 11v6"/>',
+  mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+  phone:'<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.8a2 2 0 0 1-.4 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1z"/>'
+};
+function ico(k){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(I[k]||'')+'</svg>'; }
+
+/* ── Navigation ──────────────────────────────────────────────────────────── */
+var NAV=[
+  {sec:'Overview'},
+  {id:'home',   n:'Dashboard',        i:'home'},
+  {sec:'Book'},
+  {id:'car',    n:'Request a vehicle',i:'car'},
+  {id:'rooms',  n:'Meeting rooms',    i:'door'},
+  {id:'meet',   n:'Call a meeting',   i:'cal'},
+  {id:'virtual',n:'Virtual room',     i:'video'},
+  {sec:'Supplies'},
+  {id:'stationery',n:'Stationery',    i:'pen'},
+  {id:'it',        n:'IT support',    i:'chip'},
+  {id:'warehouse', n:'Warehouse',     i:'box'},
+  {sec:'Track'},
+  {id:'approvals',n:'Approvals',      i:'check', badge:function(){ return isApprover()?myApprovalRequests().length:0; }},
+  {id:'all',      n:'All requests',   i:'list'},
+  {sec:'Manage',adminOnly:true},
+  {id:'directory',n:'Approval setup',i:'mail',adminOnly:true},
+  {id:'admin',    n:'Admin centre',   i:'gear',adminOnly:true}
+];
+function go(v){ VIEW=v; FILTER='open'; SEARCH=''; render(); window.scrollTo(0,0); }
+function portalNav(){
+  var active=(STORE&&STORE.services||[]).filter(function(s){return s.active!==false;});
+  if(!active.length)return NAV;
+  var at=NAV.findIndex(function(x){return x.sec==='Track';});if(at<0)at=NAV.length;
+  var extra=[{sec:'Other services'}].concat(active.map(function(s){return {id:'custom:'+s.id,n:s.name,i:'list'};}));
+  return NAV.slice(0,at).concat(extra,NAV.slice(at));
+}
+
+function renderNav(){
+  document.getElementById('side').innerHTML=portalNav().map(function(x){
+    if(x.adminOnly&&!isAdmin()) return '';
+    if(x.sec) return '<div class="side-lbl">'+x.sec+'</div>';
+    var b=x.badge?x.badge():0;
+    return '<button class="nav'+(VIEW===x.id?' on':'')+'" onclick="go(\''+x.id+'\')">'
+      +ico(x.i)+'<span class="lbl">'+x.n+'</span>'
+      +(b?('<span class="pill">'+b+'</span>'):'')+'</button>';
+  }).join('');
+}
+
+/* ── Shared bits ─────────────────────────────────────────────────────────── */
+function chip(kind,map){ var m=map[kind]; return m?('<span class="chip '+m.cls+'"><i></i>'+m.label+'</span>'):'—'; }
+function pageHead(t,s,actions){
+  return '<div class="page-h"><div><div class="page-t">'+t+'</div>'
+    +(s?('<div class="page-s">'+s+'</div>'):'')+'</div><div>'+(actions||'')+'</div></div>';
+}
+function emptyRow(cols,title,msg){
+  return '<tr><td colspan="'+cols+'"><div class="t-empty"><b>'+title+'</b>'+msg+'</div></td></tr>';
+}
+function fld(id,label,input,hint,wide){
+  return '<div class="fld'+(wide?' wide':'')+'" id="f_'+id+'"><label for="'+id+'">'+label+'</label>'
+    +input+(hint?('<div class="hint">'+hint+'</div>'):'')+'</div>';
+}
+function val(id){ var e=document.getElementById(id); return e?String(e.value||'').trim():''; }
+function bad(id,msg){
+  var f=document.getElementById('f_'+id);
+  if(f){ f.classList.add('bad'); if(!f.querySelector('.err')){
+    var d=document.createElement('div'); d.className='err'; d.textContent=msg; f.appendChild(d); } }
+}
+function clearBad(){
+  document.querySelectorAll('.fld.bad').forEach(function(f){
+    f.classList.remove('bad'); var e=f.querySelector('.err'); if(e) e.remove(); });
+}
+function prioSel(id){
+  return '<select id="'+id+'"><option value="low">Low — whenever convenient</option>'
+    +'<option value="medium" selected>Medium — within a few days</option>'
+    +'<option value="high">High — blocking work today</option></select>';
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   VIEWS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+function render(){
+  renderNav();
+  var m=document.getElementById('main');
+  var map={home:vHome,car:vCar,rooms:vRooms,meet:vMeet,virtual:vVirtual,
+          stationery:function(){return vSupply('stationery');},
+          it:vIT, warehouse:function(){return vSupply('warehouse');},
+          approvals:vApprovals, all:vAll, directory:vDirectory, admin:vAdmin};
+  var fn=map[VIEW];
+  if(!fn&&VIEW.indexOf('custom:')===0){var serviceId=VIEW.slice(7);fn=function(){return vCustomService(serviceId);};}
+  fn=fn||vHome;
+  m.innerHTML=fn();
+  if(VIEW==='virtual') vrMount();
+  paintWho();
+}
+
+/* ── Dashboard ───────────────────────────────────────────────────────────── */
+function vHome(){
+  var mine=myRequests(), open=myApprovalRequests();
+  var today=STORE.bookings.filter(function(b){ return b.date===todayISO(); })
+    .sort(function(a,b){ return a.start.localeCompare(b.start); });
+  var pendingMine=mine.filter(function(r){ return r.status==='submitted'; }).length;
+  var approvedMine=mine.filter(function(r){ return r.status==='approved'; }).length;
+
+  var svc=[
+    ['car','Request a vehicle','Book a car or van with a driver, for a trip on a set date and time.','car'],
+    ['rooms','Reserve a meeting room','See what is free today and take a slot in one tap.','door'],
+    ['meet','Call a meeting','Set an agenda, invite people, and reserve a room or go virtual.','cal'],
+    ['virtual','Open a virtual room','Talk over microphone and present your screen, in the browser.','video'],
+    ['stationery','Order stationery','Paper, pens, files and everything else from the store cupboard.','pen'],
+    ['it','Ask IT for help','Report a fault or request equipment, software or access.','chip'],
+    ['warehouse','Request from the warehouse','Draw equipment, cabling, tools or safety kit from stock.','box']
+  ].map(function(s){
+    return '<button class="svc" onclick="go(\''+s[0]+'\')">'
+      +'<div class="svc-ico">'+ico(s[3])+'</div>'
+      +'<div class="svc-n">'+s[1]+'</div><div class="svc-d">'+s[2]+'</div>'
+      +'<div class="svc-m">Open '+ico('plus')+'</div></button>';
+  }).join('')+(STORE.services||[]).filter(function(s){return s.active!==false;}).map(function(s){
+    return '<button class="svc" onclick="go(\'custom:'+esc(s.id)+'\')">'
+      +'<div class="svc-ico">'+ico('list')+'</div><div class="svc-n">'+esc(s.name)+'</div>'
+      +'<div class="svc-d">'+esc(s.description||'Submit a request to the responsible team.')+'</div>'
+      +'<div class="svc-m">Open '+ico('plus')+'</div></button>';
+  }).join('');
+
+  var rows=mine.slice(0,6).map(reqRow).join('');
+
+  return pageHead(
+      ME?('Welcome, '+esc(ME.name.split(' ')[0])):'Services Portal',
+      'Everything you need from the office in one place — vehicles, meeting rooms, supplies and IT.')
+    +'<div class="kpis">'
+      +'<div class="kpi"><b>'+mine.length+'</b><span>My requests</span></div>'
+      +'<div class="kpi k-warn"><b>'+pendingMine+'</b><span>Awaiting a decision</span></div>'
+      +'<div class="kpi k-good"><b>'+approvedMine+'</b><span>Approved</span></div>'
+      +'<div class="kpi k-info"><b>'+today.length+'</b><span>Meetings today</span></div>'
+      +(isApprover()?('<div class="kpi k-risk"><b>'+open.length+'</b><span>For me to approve</span></div>'):'')
+    +'</div>'
+    +'<div class="split"><div class="stack">'
+      +'<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('list')+'</span>What do you need?</div></div>'
+      +'<div class="card-b"><div class="svc-grid">'+svc+'</div></div></div>'
+      +'<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('list')+'</span>My recent requests</div>'
+        +'<button class="btn btn-sm" onclick="go(\'all\')">See all</button></div>'
+      +'<div class="tw" style="border:none;border-radius:0 0 12px 12px"><table class="t"><thead><tr>'
+        +'<th>Ref</th><th>Type</th><th>Summary</th><th>Status</th><th>Submitted</th></tr></thead><tbody>'
+        +(rows||emptyRow(5,'Nothing requested yet','Pick a service above and your requests will appear here.'))
+      +'</tbody></table></div></div>'
+    +'</div>'
+    +'<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('cal')+'</span>Today\u2019s meetings</div></div>'
+      +'<div class="card-b" style="padding:0">'
+      +(today.length?today.map(function(b){
+          var rm=STORE.rooms.find(function(r){return r.id===b.roomId;});
+          return '<div class="vp"><div class="vp-av">'+esc(b.start.slice(0,2))+'</div>'
+            +'<div style="min-width:0"><div class="vp-n">'+esc(b.title)+'</div>'
+            +'<div class="vp-r">'+esc(b.start)+'\u2013'+esc(b.end)+' \u00b7 '+esc(rm?rm.name:(b.virtual?'Virtual':'—'))+'</div></div>'
+            +(b.virtual?('<div class="vp-ico">'+ico('video')+'</div>'):'')+'</div>';
+        }).join('')
+        :'<div class="t-empty"><b>No meetings today</b>Use \u201cCall a meeting\u201d to set one up.</div>')
+      +'</div></div>'
+    +'</div>';
+}
+
+function reqRow(r){
+  return '<tr onclick="openReq(\''+r.id+'\')" style="cursor:pointer">'
+    +'<td class="ref">'+esc(r.ref)+'</td>'
+    +'<td>'+esc(requestTypeLabel(r))+'</td>'
+    +'<td>'+esc(summary(r))+'</td>'
+    +'<td>'+chip(r.status,STATUS)+'</td>'
+    +'<td style="white-space:nowrap;color:var(--muted)">'+fmtWhen(r.created)+'</td></tr>';
+}
+function summary(r){
+  var d=r.details||{};
+  if(r.type==='car')  return (d.destination||'Trip')+' · '+(d.date||'')+' '+(d.time||'');
+  if(r.type==='room') return (d.title||'Meeting')+' · '+(d.date||'');
+  if(r.type==='it')   return (d.category||'IT')+' — '+(d.subject||'');
+  if(r.type==='custom')return (d.serviceName||'Service')+' — '+(d.subject||'Request');
+  var items=d.items||[];
+  return items.length?(items.map(function(i){return i.qty+'\u00d7 '+i.name;}).join(', ')):'—';
+}
+
+/* ── Vehicle request ─────────────────────────────────────────────────────── */
+function vCar(){
+  var avail=STORE.fleet.filter(function(v){ return v.status==='available'; });
+  return pageHead('Request a vehicle',
+      'Tell us where you are going and when. A driver is assigned once the request is approved.',
+      isAdmin()?'<button class="btn btn-p" onclick="adminMaster(\'fleet\',\'\')">'+ico('plus')+'Add vehicle</button>':'')
+    +'<div class="split"><div class="card"><div class="card-h"><div class="card-t">'
+      +'<span class="ico">'+ico('car')+'</span>Trip details</div></div><div class="card-b">'
+    +'<div class="form">'
+      +fld('cDest','Destination <span class="req">*</span>','<input id="cDest" placeholder="e.g. Al-Mansour Municipality Department">','',true)
+      +fld('cDate','Date <span class="req">*</span>','<input id="cDate" type="date" min="'+todayISO()+'" value="'+todayISO()+'">')
+      +fld('cTime','Pick-up time <span class="req">*</span>','<input id="cTime" type="time" value="09:00">')
+      +fld('cBack','Expected return','<input id="cBack" type="time" value="13:00">','Helps the fleet desk plan the next trip.')
+      +fld('cPax','Passengers','<input id="cPax" type="number" min="1" max="20" value="1">')
+      +fld('cVeh','Preferred vehicle','<select id="cVeh"><option value="">No preference</option>'
+        +avail.map(function(v){ return '<option value="'+v.id+'">'+esc(v.model)+' \u00b7 '+esc(v.plate)+' \u00b7 '+v.seats+' seats</option>'; }).join('')
+        +'</select>','Subject to availability on the day.')
+      +fld('cPrio','Priority',prioSel('cPrio'))
+      +fld('cWhy','Purpose of the trip <span class="req">*</span>','<textarea id="cWhy" placeholder="What is this trip for?"></textarea>','',true)
+      +approvalRouteSummary('car')
+    +'</div>'
+    +'<div class="form-foot"><div class="grow"></div>'
+      +'<button class="btn" onclick="go(\'home\')">Cancel</button>'
+      +'<button class="btn btn-p" onclick="saveCar()">Submit request</button></div>'
+    +'</div></div>'
+    +'<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('car')+'</span>Fleet</div>'
+      +(isAdmin()?'<button class="btn btn-sm" onclick="go(\'admin\')">Manage fleet</button>':'')+'</div>'
+      +'<div class="card-b" style="padding:0">'
+      +STORE.fleet.map(function(v){
+        var ok=v.status==='available';
+        return '<div class="vp"><div class="vp-av">'+esc(v.type.slice(0,2).toUpperCase())+'</div>'
+          +'<div style="min-width:0"><div class="vp-n">'+esc(v.model)+'</div>'
+          +'<div class="vp-r">'+esc(v.plate)+' \u00b7 '+v.seats+' seats</div></div>'
+          +'<div style="margin-left:auto;display:flex;gap:6px;align-items:center">'+(ok?'<span class="chip c-ok"><i></i>Available</span>'
+              :'<span class="chip c-wait"><i></i>'+esc(v.status||'Unavailable')+'</span>')
+          +(isAdmin()?'<button class="btn btn-sm" onclick="adminMaster(\'fleet\',\''+v.id+'\')">'+ico('edit')+'</button>':'')+'</div></div>';
+      }).join('')+'</div></div></div>';
+}
+function saveCar(){
+  if(!needMe()) return;
+  if(!requireUserPermission('canRequest','Admin has not enabled service requests for your account'))return;
+  clearBad();
+  var dest=val('cDest'), date=val('cDate'), time=val('cTime'), why=val('cWhy');
+  var ok=true;
+  if(!dest){ bad('cDest','Where is the trip going?'); ok=false; }
+  if(!date){ bad('cDate','Pick a date'); ok=false; }
+  if(!time){ bad('cTime','Pick a time'); ok=false; }
+  if(!why){ bad('cWhy','A short reason helps the fleet desk prioritise'); ok=false; }
+  if(date && date<todayISO()){ bad('cDate','That date has passed'); ok=false; }
+  if(!ok){ toast('Check the highlighted fields',false); return; }
+  var approvals=requireAutomaticApprovers('car');if(!approvals)return;
+  var veh=STORE.fleet.find(function(v){ return v.id===val('cVeh'); });
+  var r=submitRequest('car',{
+    destination:dest,date:date,time:time,ret:val('cBack'),
+    passengers:+val('cPax')||1, vehicle:veh?(veh.model+' · '+veh.plate):'No preference',
+    purpose:why
+  },val('cPrio'),date+' '+time,why,approvals);
+  toast('Vehicle request '+r.ref+' submitted',true);
+  go('all');
+}
+
+/* ── Meeting rooms + timeline ────────────────────────────────────────────── */
+var TL_START=8, TL_END=19;
+function vRooms(){
+  var d=TLDATE;
+  var hrs=[]; for(var h=TL_START;h<=TL_END;h++) hrs.push(h);
+  var head='<div class="tl-hours"><div>Room</div><div class="tl-hrs" style="grid-template-columns:repeat('
+    +(TL_END-TL_START)+',1fr)">'
+    +hrs.slice(0,-1).map(function(h){ return '<span>'+String(h).padStart(2,'0')+':00</span>'; }).join('')
+    +'</div></div>';
+
+  var rows=STORE.rooms.map(function(rm){
+    var bs=STORE.bookings.filter(function(b){ return b.roomId===rm.id && b.date===d; });
+    var slots=bs.map(function(b){
+      var s=toMin(b.start), e=toMin(b.end);
+      var L=((s-TL_START*60)/((TL_END-TL_START)*60))*100;
+      var W=((e-s)/((TL_END-TL_START)*60))*100;
+      if(L<0){ W+=L; L=0; } if(L+W>100) W=100-L;
+      if(W<=0) return '';
+      return '<button class="tl-slot'+(b.by===(ME&&ME.name)?' mine':'')+(b.virtual?' virt':'')+'" '
+        +'style="left:'+L+'%;width:'+W+'%" onclick="openBooking(\''+b.id+'\')" '
+        +'title="'+esc(b.title)+' — '+esc(b.by)+'">'+esc(b.title)
+        +'<small>'+esc(b.start)+'\u2013'+esc(b.end)+' \u00b7 '+esc(b.by)+'</small></button>';
+    }).join('');
+    return '<div class="tl-row"><div class="tl-room"><b>'+esc(rm.name)+'</b>'
+      +'<span>'+rm.capacity+' seats \u00b7 '+esc(rm.location)+'</span></div>'
+      +'<div class="tl-track" onclick="quickBook(event,\''+rm.id+'\')" title="Click an empty slot to book this room">'
+      +(slots||'<div class="tl-free">Free all day \u2014 click to book</div>')+'</div></div>';
+  }).join('');
+
+  return pageHead('Meeting rooms',
+      'A live view of every room. Click any empty stretch to take that slot.',
+      '<button class="btn btn-p" onclick="go(\'meet\')">'+ico('plus')+'Call a meeting</button>')
+    +'<div class="tl"><div class="tl-head">'
+      +'<div class="tl-date">'+fmtDate(d)+'</div>'
+      +'<div class="tl-nav"><button class="btn btn-sm" onclick="shiftDay(-1)">\u2190 Previous</button>'
+      +'<button class="btn btn-sm" onclick="setDay(\''+todayISO()+'\')">Today</button>'
+      +'<button class="btn btn-sm" onclick="shiftDay(1)">Next \u2192</button></div>'
+      +'<input type="date" value="'+d+'" onchange="setDay(this.value)" '
+        +'style="border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px">'
+      +'<div style="margin-left:auto;font-size:11px;color:var(--muted)">'
+        +'<span class="chip c-done" style="background:var(--brand);color:#fff"><i></i>Booked</span> '
+        +'<span class="chip c-done" style="background:#41618A;color:#fff"><i></i>Has a virtual room</span></div>'
+    +'</div><div class="tl-body"><div class="tl-grid">'+head+rows+'</div></div></div>';
+}
+function toMin(t){ var p=String(t||'0:0').split(':'); return (+p[0]||0)*60+(+p[1]||0); }
+function toHHMM(m){ return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
+function setDay(d){ if(d){ TLDATE=d; render(); } }
+function shiftDay(n){
+  var d=new Date(TLDATE+'T00:00:00'); d.setDate(d.getDate()+n);
+  TLDATE=d.toISOString().slice(0,10); render();
+}
+function quickBook(ev,roomId){
+  if(ev.target.closest('.tl-slot')) return;
+  if(!needMe()) return;
+  var tr=ev.currentTarget.getBoundingClientRect();
+  var pct=(ev.clientX-tr.left)/tr.width;
+  var mins=TL_START*60+pct*(TL_END-TL_START)*60;
+  var start=Math.max(TL_START*60,Math.round(mins/30)*30);
+  MEET_PRE={roomId:roomId,date:TLDATE,start:toHHMM(start),end:toHHMM(Math.min(TL_END*60,start+60))};
+  go('meet');
+}
+var MEET_PRE=null;
+function splitList(s){
+  return String(s||'').split(/[\n,;]+/).map(function(x){return x.trim();}).filter(Boolean);
+}
+function uniqueList(a){
+  var seen={};return (a||[]).filter(function(x){var k=String(x||'').trim().toLowerCase();if(!k||seen[k])return false;seen[k]=1;return true;});
+}
+function directoryContacts(){
+  var out=(STORE.contacts||[]).map(function(c){return Object.assign({source:'directory'},c);}),seen={};
+  out.forEach(function(c){
+    c.approvalLevel=Math.max(0,+c.approvalLevel||(c.canApprove?1:0));c.canApprove=c.approvalLevel>0;
+    normaliseApproverTypes(c);
+    if(c.email)seen[c.email.toLowerCase()]=c;
+  });
+  (STORE.people||[]).forEach(function(p){
+    normalisePersonPermissions(p);normaliseApproverTypes(p);
+    var level=Math.max(0,+p.approvalLevel||0),assigned=p.permissions.canApprove!==false&&level>0&&(p.approvalTypes||[]).length>0,
+        existing=p.email&&seen[p.email.toLowerCase()];
+    if(existing){
+      if(assigned){
+        existing.approvalLevel=Math.max(existing.approvalLevel||0,level);existing.canApprove=true;
+        existing.approvalTypes=uniqueList((existing.approvalTypes||[]).concat(p.approvalTypes||[]));
+      }
+      if(!existing.phone)existing.phone=p.phone||'';if(!existing.title)existing.title=roleName(p.role);return;
+    }
+    out.push({id:p.id,name:p.name,email:p.email||'',phone:p.phone||'',dept:p.dept||'',title:roleName(p.role),
+      approvalLevel:level,canApprove:assigned,approvalTypes:(p.approvalTypes||[]).slice(),source:'user'});
+    if(p.email)seen[p.email.toLowerCase()]=out[out.length-1];
+  });
+  return out.sort(function(a,b){return String(a.name||'').localeCompare(String(b.name||''));});
+}
+function findDirectoryContact(id){return directoryContacts().find(function(c){return c.id===id;});}
+function directoryPicker(prefix,selected){
+  var all=directoryContacts(),sel={};(selected||[]).forEach(function(id){sel[id]=1;});
+  if(!all.length)return '<div class="dir-pick"><div class="t-empty" style="padding:18px"><b>Company Directory is empty</b>'
+    +(isAdmin()?'Add employees from Admin centre.':'Ask Admin to add company employees and emails.')+'</div></div>';
+  return '<div class="dir-pick"><div class="dir-select"><select onchange="chooseDirectoryContact(this,\''+prefix+'\')">'
+    +'<option value="">Choose an employee from the dropdown…</option>'
+    +all.map(function(c){return '<option value="'+esc(c.id)+'">'+esc(c.name)+(c.dept?' · '+esc(c.dept):'')+(c.email?' · '+esc(c.email):'')+'</option>';}).join('')
+    +'</select></div><div class="dir-search"><input placeholder="Or search company name, department or email" '
+    +'oninput="filterDirectory(this.value,\''+prefix+'\')"></div><div class="dir-list" id="'+prefix+'DirList">'
+    +all.map(function(c){return '<label class="dir-row" data-search="'+esc((c.name+' '+c.dept+' '+c.email).toLowerCase())+'">'
+      +'<input type="checkbox" class="dir-contact" data-prefix="'+prefix+'" value="'+esc(c.id)+'" '
+      +(sel[c.id]?'checked ':'')+'onchange="pickDirectoryContact(this,\''+prefix+'\')">'
+      +'<span><b>'+esc(c.name)+'</b><small>'+esc([c.dept,c.title,c.email].filter(Boolean).join(' · '))+'</small></span></label>';}).join('')
+    +'</div></div>';
+}
+function filterDirectory(q,prefix){
+  q=String(q||'').toLowerCase();var host=document.getElementById(prefix+'DirList');if(!host)return;
+  host.querySelectorAll('.dir-row').forEach(function(r){r.style.display=!q||r.dataset.search.indexOf(q)>=0?'flex':'none';});
+}
+function chooseDirectoryContact(sel,prefix){
+  var id=sel.value;if(!id)return;
+  var box=Array.from(document.querySelectorAll('.dir-contact[data-prefix="'+prefix+'"]')).find(function(x){return x.value===id;});
+  if(box&&!box.checked){box.checked=true;pickDirectoryContact(box,prefix);}
+  sel.value='';
+}
+function setListField(id,items){var e=document.getElementById(id);if(e)e.value=uniqueList(items).join(', ');}
+function pickDirectoryContact(inp,prefix){
+  var c=findDirectoryContact(inp.value);if(!c)return;
+  var ids={m:['mWho','mEmails','mPhones'],e:['eWho','eEmails','ePhones']}[prefix];if(!ids)return;
+  [[ids[0],c.name],[ids[1],c.email],[ids[2],c.phone]].forEach(function(x){
+    if(!x[1])return;var a=splitList(val(x[0]));if(inp.checked)a.push(x[1]);else a=a.filter(function(v){return v.toLowerCase()!==String(x[1]).toLowerCase();});setListField(x[0],a);
+  });
+}
+function selectedDirectoryIds(prefix){
+  return Array.from(document.querySelectorAll('.dir-contact[data-prefix="'+prefix+'"]:checked')).map(function(x){return x.value;});
+}
+function approvalContacts(){return directoryContacts().filter(function(c){return !!c.canApprove;}).sort(function(a,b){
+  return (+a.approvalLevel||1)-(+b.approvalLevel||1)||String(a.name||'').localeCompare(String(b.name||''));
+});}
+function automaticApprovers(type){
+  return approvalContacts().filter(function(c){return (c.approvalTypes||[]).indexOf(type)>=0;}).map(function(c){
+    return {id:c.id,name:c.name,email:c.email||'',level:Math.max(1,+c.approvalLevel||1)};
+  }).sort(function(a,b){return a.level-b.level||a.name.localeCompare(b.name);});
+}
+function approvalRouteSummary(type){
+  var all=automaticApprovers(type),label=APPROVAL_TYPE_LABELS[type]||'this service';
+  if(!all.length)return '<div class="appr-pick"><label>Approval owner — Admin controlled</label><div style="font-size:12px;color:var(--warn)"><b>No approver configured for '+esc(label)+'.</b> Admin must assign one from Approval setup.</div></div>';
+  return '<div class="appr-pick"><label>Approval owner — assigned automatically by Admin</label><div class="appr-options">'
+    +all.map(function(c){return '<div class="appr-option">Level '+c.level+' · '+esc(c.name)+'</div>';}).join('')+'</div>'
+    +'<div style="font-size:10.5px;color:var(--muted);margin-top:8px">No requester selection is needed. Admin controls the people, services and approval order.</div></div>';
+}
+function requireAutomaticApprovers(type){
+  var a=automaticApprovers(type);if(!a.length){toast('Admin must assign an approver for '+(APPROVAL_TYPE_LABELS[type]||'this service')+' in Approval setup',false);return null;}return a;
+}
+function approverPicker(prefix,selected){
+  var all=approvalContacts(),sel={};(selected||[]).forEach(function(a){sel[a.id]=1;});
+  var label='Required approvals'+(prefix==='m'?' for a physical room':'')+' <span class="req">*</span>';
+  if(!all.length)return '<div class="appr-pick"><label>'+label+'</label>'
+    +'<div style="font-size:12px;color:var(--warn)"><b>No approvers configured.</b> Admin must mark at least one employee as an Approver in Company Directory.</div></div>';
+  return '<div class="appr-pick"><label>'+label+'</label><div class="appr-options">'
+    +all.map(function(c){return '<label class="appr-option"><input type="checkbox" class="appr-'+prefix+'" value="'+esc(c.id)+'"'+(sel[c.id]?' checked':'')+'>'
+      +'Level '+Math.max(1,+c.approvalLevel||1)+' · '+esc(c.name)+(c.dept?' · '+esc(c.dept):'')+'</label>';}).join('')+'</div>'
+    +'<div style="font-size:10.5px;color:var(--warn);margin-top:8px">Approvals run in order: Level 1 first, then Level 2, and so on. Everyone selected at a level must approve.</div></div>';
+}
+function collectApprovers(prefix){
+  var all=approvalContacts();return Array.from(document.querySelectorAll('.appr-'+prefix+':checked')).map(function(x){
+    var c=all.find(function(a){return a.id===x.value;});return c?{id:c.id,name:c.name,email:c.email||'',level:Math.max(1,+c.approvalLevel||1)}:null;
+  }).filter(Boolean).sort(function(a,b){return a.level-b.level||a.name.localeCompare(b.name);});
+}
+function requireApprovers(prefix){
+  if(!approvalContacts().length){toast('Admin must add at least one approver in Company Directory first',false);return null;}
+  var a=collectApprovers(prefix);if(!a.length){toast('Select at least one required approver',false);return null;}return a;
+}
+
+/* ── Call a meeting ──────────────────────────────────────────────────────── */
+function vMeet(){
+  var pre=MEET_PRE||{}; MEET_PRE=null;
+  return pageHead('Call a meeting',
+      'Set the agenda and invite people. Reserve a room, open a virtual room, or both.')
+    +'<div class="split"><div class="card"><div class="card-h"><div class="card-t">'
+      +'<span class="ico">'+ico('cal')+'</span>Meeting details</div></div><div class="card-b">'
+    +'<div class="form">'
+      +fld('mT','Title <span class="req">*</span>','<input id="mT" placeholder="e.g. Weekly progress review" value="'+esc(pre.title||'')+'">','',true)
+      +fld('mDate','Date <span class="req">*</span>','<input id="mDate" type="date" min="'+todayISO()+'" value="'+(pre.date||TLDATE)+'">')
+      +fld('mRoom','Room','<select id="mRoom" onchange="meetConflict()"><option value="">No room — virtual only</option>'
+        +STORE.rooms.map(function(r){ return '<option value="'+r.id+'"'+(pre.roomId===r.id?' selected':'')+'>'
+          +esc(r.name)+' \u00b7 '+r.capacity+' seats</option>'; }).join('')+'</select>')
+      +fld('mFrom','From <span class="req">*</span>','<input id="mFrom" type="time" value="'+(pre.start||'09:00')+'" onchange="meetConflict()">')
+      +fld('mTo','To <span class="req">*</span>','<input id="mTo" type="time" value="'+(pre.end||'10:00')+'" onchange="meetConflict()">')
+      +'<div class="fld wide" id="f_conflict"></div>'
+      +'<div class="fld wide"><label>Invite employees — choose from dropdown</label>'+directoryPicker('m',[])+'</div>'
+      +fld('mWho','Invitee names','<input id="mWho" placeholder="Names separated by commas">',
+          'Selected company employees appear here automatically. You can also type an external guest.',true)
+      +fld('mEmails','Invite by email','<input id="mEmails" type="text" inputmode="email" placeholder="name@company.com, other@company.com">',
+          'Add one or more email addresses. The portal will prepare the invitation in your mail app.',true)
+      +fld('mPhones','Invite by phone','<input id="mPhones" type="text" inputmode="tel" placeholder="07xxxxxxxxx, +9647xxxxxxxxx">',
+          'Add one or more phone numbers. The portal will prepare the invitation in Messages/SMS.',true)
+      +fld('mAg','Agenda','<textarea id="mAg" placeholder="What will be covered?"></textarea>','',true)
+      +'<div class="fld wide"><label>Virtual room</label>'
+        +'<label style="display:flex;gap:9px;align-items:flex-start;background:#F4F6F9;border:1px solid var(--line-soft);'
+        +'border-radius:9px;padding:12px;cursor:pointer;font-size:12.5px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-2)">'
+        +'<input type="checkbox" id="mVirt" style="width:16px;height:16px;margin-top:1px;accent-color:var(--brand)">'
+        +'<span><b>Also open a virtual room</b><br><span style="font-size:11.5px;color:var(--ink-3)">'
+        +'Everyone invited can join from the browser, speak over microphone and present their screen.</span></span></label></div>'
+      +approvalRouteSummary('room')
+    +'</div>'
+    +'<div class="form-foot"><div class="grow"></div>'
+      +'<button class="btn" onclick="go(\'rooms\')">Cancel</button>'
+      +'<button class="btn btn-p" onclick="saveMeet()">Send invitation</button></div>'
+    +'</div></div>'
+    +'<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('door')+'</span>Rooms</div></div>'
+      +'<div class="card-b" style="padding:0">'+STORE.rooms.map(function(r){
+        return '<div class="vp"><div class="vp-av">'+r.capacity+'</div><div style="min-width:0">'
+          +'<div class="vp-n">'+esc(r.name)+'</div><div class="vp-r">'+esc(r.features.join(' \u00b7 '))+'</div></div></div>';
+      }).join('')+'</div></div></div>';
+}
+function overlaps(roomId,date,from,to,skipId){
+  if(!roomId) return null;
+  var s=toMin(from), e=toMin(to);
+  return STORE.bookings.find(function(b){
+    if(b.roomId!==roomId||b.date!==date) return false;
+    if(skipId&&b.id===skipId) return false;
+    return s<toMin(b.end) && e>toMin(b.start);
+  })||null;
+}
+function meetConflict(){
+  var box=document.getElementById('f_conflict'); if(!box) return;
+  var c=overlaps(val('mRoom'),val('mDate'),val('mFrom'),val('mTo'));
+  box.innerHTML=c?('<div style="background:var(--risk-bg);border:1px solid #E4B4BA;border-radius:9px;'
+    +'padding:11px 13px;font-size:12px;color:var(--risk);line-height:1.55">'
+    +'<b>That room is taken.</b> '+esc(c.title)+' runs '+esc(c.start)+'\u2013'+esc(c.end)
+    +' ('+esc(c.by)+'). Pick another time or room.</div>'):'';
+}
+function saveMeet(){
+  if(!needMe()) return;
+  if(!requireUserPermission('canCallMeetings','Admin has not enabled meeting requests for your account'))return;
+  clearBad();
+  var t=val('mT'), date=val('mDate'), from=val('mFrom'), to=val('mTo'), room=val('mRoom');
+  var virt=document.getElementById('mVirt').checked;
+  var ok=true;
+  if(!t){ bad('mT','Give the meeting a title'); ok=false; }
+  if(!date){ bad('mDate','Pick a date'); ok=false; }
+  if(!from||!to){ bad('mFrom','Set a start and end time'); ok=false; }
+  if(from&&to&&toMin(to)<=toMin(from)){ bad('mTo','The end time must be after the start'); ok=false; }
+  if(!room&&!virt){ bad('mRoom','Choose a room, or tick the virtual room'); ok=false; }
+  if(!ok){ toast('Check the highlighted fields',false); return; }
+  var approvals=room?requireAutomaticApprovers('room'):[];if(room&&!approvals)return;
+  var c=overlaps(room,date,from,to);
+  if(c){ meetConflict(); toast('That room is already booked at that time',false); return; }
+
+  var vr=null;
+  if(virt){
+    vr={id:uid('vr'),name:t,host:ME.name,created:nowISO(),open:true};
+    STORE.vrooms.unshift(vr);
+  }
+  var b={id:uid('b'),roomId:room||'',date:date,start:from,end:to,title:t,
+         by:ME.name,byId:ME.id,dept:ME.dept,
+         attendees:splitList(val('mWho')),emails:splitList(val('mEmails')),phones:splitList(val('mPhones')),
+         directoryIds:selectedDirectoryIds('m'),agenda:val('mAg'),virtual:!!virt,vroomId:vr?vr.id:''};
+  STORE.bookings.push(b);
+  if(room){
+    var rr=submitRequest('room',{title:t,date:date,from:from,to:to,
+    room:(STORE.rooms.find(function(r){return r.id===room;})||{}).name,
+    attendees:b.attendees.length,agenda:b.agenda,bookingId:b.id},'medium',date+' '+from,b.agenda,approvals);
+    b.requestId=rr.id;
+    save();
+  } else save();
+  toast('Meeting booked'+(virt?' with a virtual room':''),true);
+  openShareMeeting(b.id,true);
+}
+function openBooking(id){
+  var b=STORE.bookings.find(function(x){ return x.id===id; }); if(!b) return;
+  var rm=STORE.rooms.find(function(r){ return r.id===b.roomId; });
+  var mine=ME&&b.byId===ME.id;
+  var m=document.createElement('div'); m.className='mod';
+  m.innerHTML='<div class="mod-in"><div class="mod-h"><div><div class="mod-t">'+esc(b.title)+'</div>'
+    +'<div class="mod-s">'+fmtDate(b.date)+' \u00b7 '+esc(b.start)+'\u2013'+esc(b.end)+'</div></div>'
+    +'<button class="mod-x" id="bx">&times;</button></div><div class="mod-b"><dl class="dl">'
+    +'<dt>Room</dt><dd>'+esc(rm?(rm.name+' · '+rm.location):'Virtual only')+'</dd>'
+    +'<dt>Called by</dt><dd>'+esc(b.by)+' \u00b7 '+esc(b.dept||'')+'</dd>'
+    +'<dt>Invited</dt><dd>'+(b.attendees.length?esc(b.attendees.join(', ')):'No names listed')+'</dd>'
+    +'<dt>Email</dt><dd>'+((b.emails||[]).length?esc(b.emails.join(', ')):'No email listed')+'</dd>'
+    +'<dt>Phone</dt><dd>'+((b.phones||[]).length?esc(b.phones.join(', ')):'No phone listed')+'</dd>'
+    +'<dt>Meeting link</dt><dd><a href="'+esc(meetingDirectLink(b))+'" style="color:var(--info);word-break:break-all">'+esc(meetingDirectLink(b))+'</a></dd>'
+    +'<dt>Agenda</dt><dd>'+(b.agenda?esc(b.agenda):'None recorded')+'</dd>'
+    +'</dl></div><div class="mod-f">'
+    +(b.virtual?'<button class="btn btn-p" id="bj">'+ico('video')+'Join virtual room</button>':'')
+    +((mine||isAdmin())?'<button class="btn" id="bs">'+ico('mail')+'Send invitation</button>':'')
+    +((mine||isAdmin())?'<button class="btn" id="be">'+ico('edit')+'Edit</button>':'')
+    +'<div class="grow"></div>'
+    +((mine||isAdmin())?'<button class="btn btn-d" id="bd">Cancel meeting</button>':'')
+    +'<button class="btn" id="bc">Close</button></div></div>';
+  document.body.appendChild(m);
+  var close=function(){ m.remove(); };
+  m.querySelector('#bx').onclick=close; m.querySelector('#bc').onclick=close;
+  m.addEventListener('click',function(e){ if(e.target===m) close(); });
+  if(b.virtual) m.querySelector('#bj').onclick=function(){ CURVR=b.vroomId; close(); go('virtual'); };
+  if(mine||isAdmin()){
+    m.querySelector('#bs').onclick=function(){ close(); openShareMeeting(b.id,false); };
+    m.querySelector('#be').onclick=function(){ close(); editMeeting(b.id); };
+    m.querySelector('#bd').onclick=function(){ if(cancelMeeting(b.id)){ close(); } };
+  }
+}
+
+function meetingRoomName(b){
+  var rm=STORE.rooms.find(function(r){return r.id===b.roomId;});
+  return rm?(rm.name+' · '+rm.location):(b.virtual?'Virtual room':'No room');
+}
+function portalBaseURL(){
+  /* Invitations must always contain the deployed portal URL, even when Admin
+     opens this file locally, through a cached dashboard link, or with ?v=. */
+  return PUBLIC_PORTAL_URL;
+}
+function readPortalLink(){
+  var search=location.search||'',hash=location.hash||'';
+  try{if(window.parent&&window.parent!==window){search=window.parent.location.search||search;hash=window.parent.location.hash||hash;}}catch(e){}
+  var q=new URLSearchParams(search),h=new URLSearchParams(String(hash).replace(/^#/,''));
+  var virtual=q.get('virtual')||h.get('virtual')||'',booking=q.get('booking')||h.get('booking')||'';
+  return (virtual||booking)?{virtual:virtual,booking:booking,handled:false}:null;
+}
+function applyPortalLink(){
+  if(!PORTAL_LINK||PORTAL_LINK.handled)return;
+  if(PORTAL_LINK.virtual){
+    CURVR=PORTAL_LINK.virtual;VIEW='virtual';
+    if(STORE&&STORE.vrooms&&STORE.vrooms.some(function(v){return v.id===CURVR;}))PORTAL_LINK.handled=true;
+    return;
+  }
+  if(PORTAL_LINK.booking&&STORE&&STORE.bookings){
+    var b=STORE.bookings.find(function(x){return x.id===PORTAL_LINK.booking;});
+    if(b){VIEW='rooms';PORTAL_LINK.handled=true;setTimeout(function(){openBooking(b.id);},0);}
+  }
+}
+function meetingDirectLink(b){
+  if(b.virtual&&b.vroomId)return portalBaseURL()+'&virtual='+encodeURIComponent(b.vroomId);
+  return portalBaseURL()+'&booking='+encodeURIComponent(b.id);
+}
+function meetingInviteText(b){
+  var lines=[
+    'Meeting invitation: '+b.title,
+    'Date: '+fmtDate(b.date),
+    'Time: '+b.start+'–'+b.end+' (Baghdad time)',
+    'Location: '+meetingRoomName(b),
+    'Called by: '+b.by+(b.dept?' · '+b.dept:'')
+  ];
+  if(b.agenda) lines.push('Agenda: '+b.agenda);
+  lines.push('');
+  if(b.virtual) lines.push('JOIN THE MEETING:');
+  else lines.push('OPEN MEETING DETAILS:');
+  lines.push(meetingDirectLink(b));
+  lines.push('','Please confirm your attendance.');
+  return lines.join('\r\n');
+}
+function sendMeetingEmail(id){
+  var b=STORE.bookings.find(function(x){return x.id===id;}); if(!b) return;
+  var emails=(b.emails||[]).filter(Boolean);
+  if(!emails.length){ toast('Add at least one invitee email address first',false); return; }
+  var url='mailto:'+emails.map(encodeURIComponent).join(',')+'?subject='
+    +encodeURIComponent('Meeting invitation: '+b.title)+'&body='+encodeURIComponent(meetingInviteText(b));
+  window.location.href=url;
+}
+function sendMeetingSMS(id){
+  var b=STORE.bookings.find(function(x){return x.id===id;}); if(!b) return;
+  var phones=(b.phones||[]).map(function(p){return p.replace(/[^\d+]/g,'');}).filter(Boolean);
+  if(!phones.length){ toast('Add at least one invitee phone number first',false); return; }
+  var ios=/iPad|iPhone|iPod/.test(navigator.userAgent);
+  window.location.href='sms:'+phones.join(',')+(ios?'&':'?')+'body='+encodeURIComponent(meetingInviteText(b));
+}
+async function copyMeetingInvite(id){
+  var b=STORE.bookings.find(function(x){return x.id===id;}); if(!b) return;
+  var text=meetingInviteText(b), ok=false;
+  try{ await navigator.clipboard.writeText(text); ok=true; }catch(e){
+    var ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select(); try{ ok=document.execCommand('copy'); }catch(x){} ta.remove();
+  }
+  toast(ok?'Invitation copied':'Could not copy the invitation',ok);
+}
+async function copyMeetingLink(id){
+  var b=STORE.bookings.find(function(x){return x.id===id;});if(!b)return;var link=meetingDirectLink(b),ok=false;
+  try{await navigator.clipboard.writeText(link);ok=true;}catch(e){}
+  toast(ok?'Meeting link copied':'Could not copy the meeting link',ok);
+}
+function openShareMeeting(id,afterCreate){
+  var b=STORE.bookings.find(function(x){return x.id===id;}); if(!b) return;
+  var m=document.createElement('div'); m.className='mod';
+  var hasEmail=(b.emails||[]).length, hasPhone=(b.phones||[]).length;
+  m.innerHTML='<div class="mod-in"><div class="mod-h"><div><div class="mod-t">'
+    +(afterCreate?'Meeting booked — send the invitation':'Send meeting invitation')+'</div>'
+    +'<div class="mod-s">Choose email or phone. Your device opens the message ready for you to send.</div></div>'
+    +'<button class="mod-x" id="ix">&times;</button></div><div class="mod-b">'
+    +'<div class="card" style="box-shadow:none"><div class="card-b"><b>'+esc(b.title)+'</b>'
+    +'<div style="font-size:12px;color:var(--ink-3);line-height:1.7;margin-top:6px">'
+    +fmtDate(b.date)+' · '+esc(b.start)+'–'+esc(b.end)+'<br>'+esc(meetingRoomName(b))+'</div>'
+    +'<div style="font-size:10.5px;margin-top:8px;color:var(--good);font-weight:800">Direct link included · build '+esc(PORTAL_BUILD)+'</div>'
+    +'<div style="font-size:11px;margin-top:5px;word-break:break-all"><a href="'+esc(meetingDirectLink(b))+'" style="color:var(--info)">'+esc(meetingDirectLink(b))+'</a></div></div></div>'
+    +'<div class="form" style="margin-top:14px">'
+    +'<div class="fld"><label>Email recipients</label><div style="font-size:12.5px;line-height:1.6">'
+      +(hasEmail?esc(b.emails.join(', ')):'No email addresses added')+'</div></div>'
+    +'<div class="fld"><label>Phone recipients</label><div style="font-size:12.5px;line-height:1.6">'
+      +(hasPhone?esc(b.phones.join(', ')):'No phone numbers added')+'</div></div></div>'
+    +'</div><div class="mod-f">'
+    +'<button class="btn btn-p" id="im"'+(hasEmail?'':' disabled')+'>'+ico('mail')+'Email</button>'
+    +'<button class="btn" id="ip"'+(hasPhone?'':' disabled')+'>'+ico('phone')+'Phone / SMS</button>'
+    +'<button class="btn" id="il">Copy link</button><button class="btn" id="ic">Copy invitation</button><div class="grow"></div>'
+    +'<button class="btn" id="id">'+(afterCreate?'Continue':'Close')+'</button></div></div>';
+  document.body.appendChild(m);
+  var finish=function(){
+    m.remove();
+    if(afterCreate){ if(b.virtual){ CURVR=b.vroomId; go('virtual'); } else go('rooms'); }
+  };
+  m.querySelector('#ix').onclick=finish; m.querySelector('#id').onclick=finish;
+  m.addEventListener('click',function(e){if(e.target===m) finish();});
+  m.querySelector('#im').onclick=function(){sendMeetingEmail(b.id);};
+  m.querySelector('#ip').onclick=function(){sendMeetingSMS(b.id);};
+  m.querySelector('#il').onclick=function(){copyMeetingLink(b.id);};
+  m.querySelector('#ic').onclick=function(){copyMeetingInvite(b.id);};
+}
+function syncMeetingRequest(b){
+  var r=b.requestId?STORE.requests.find(function(x){return x.id===b.requestId;}):null;
+  if(!r&&b.roomId){
+    r={id:uid('r'),ref:nextRef('room'),type:'room',by:b.by,byId:b.byId,dept:b.dept||'',
+      status:'submitted',priority:'medium',created:nowISO(),needed:b.date+' '+b.start,note:b.agenda||'',
+      details:{},history:[{at:nowISO(),who:ME?ME.name:b.by,what:'Created from meeting booking'}]};
+    STORE.requests.unshift(r); b.requestId=r.id;
+  }
+  if(!r) return;
+  if(!b.roomId){
+    r.status='cancelled';
+    r.history=(r.history||[]).concat([{at:nowISO(),who:ME?ME.name:'',what:'Room removed from meeting'}]);
+    return;
+  }
+  r.by=b.by; r.byId=b.byId; r.dept=b.dept||''; r.needed=b.date+' '+b.start; r.note=b.agenda||'';
+  r.details={title:b.title,date:b.date,from:b.start,to:b.end,room:meetingRoomName(b).split(' · ')[0],
+    attendees:(b.attendees||[]).length,agenda:b.agenda||'',bookingId:b.id};
+  r.history=(r.history||[]).concat([{at:nowISO(),who:ME?ME.name:'',what:'Meeting details updated'}]);
+}
+function editMeeting(id){
+  var b=STORE.bookings.find(function(x){return x.id===id;}); if(!b) return;
+  if(!(isAdmin()||(ME&&b.byId===ME.id))){ toast('Only the organiser or Admin can edit this meeting',false); return; }
+  var m=document.createElement('div'); m.className='mod';
+  m.innerHTML='<div class="mod-in"><div class="mod-h"><div><div class="mod-t">Edit meeting</div>'
+    +'<div class="mod-s">Update the room, time, contacts or agenda</div></div><button class="mod-x" id="ex">&times;</button></div>'
+    +'<div class="mod-b"><div class="form">'
+    +fld('eT','Title <span class="req">*</span>','<input id="eT" value="'+esc(b.title)+'">','',true)
+    +fld('eDate','Date','<input id="eDate" type="date" value="'+esc(b.date)+'">')
+    +fld('eRoom','Room','<select id="eRoom"><option value="">No room — virtual only</option>'
+      +STORE.rooms.map(function(r){return '<option value="'+r.id+'"'+(b.roomId===r.id?' selected':'')+'>'+esc(r.name)+' · '+r.capacity+' seats</option>';}).join('')+'</select>')
+    +fld('eFrom','From','<input id="eFrom" type="time" value="'+esc(b.start)+'">')
+    +fld('eTo','To','<input id="eTo" type="time" value="'+esc(b.end)+'">')
+    +'<div class="fld wide"><label>Invite employees — choose from dropdown</label>'+directoryPicker('e',b.directoryIds||[])+'</div>'
+    +fld('eWho','Invitee names','<input id="eWho" value="'+esc((b.attendees||[]).join(', '))+'">','',true)
+    +fld('eEmails','Emails','<input id="eEmails" inputmode="email" value="'+esc((b.emails||[]).join(', '))+'">','',true)
+    +fld('ePhones','Phone numbers','<input id="ePhones" inputmode="tel" value="'+esc((b.phones||[]).join(', '))+'">','',true)
+    +fld('eAg','Agenda','<textarea id="eAg">'+esc(b.agenda||'')+'</textarea>','',true)
+    +'<div class="fld wide"><label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;color:var(--ink-2)">'
+      +'<input id="eVirt" type="checkbox" style="width:16px;height:16px"'+(b.virtual?' checked':'')+'> Virtual room</label></div>'
+    +'</div></div><div class="mod-f"><div class="grow"></div><button class="btn" id="ec">Cancel</button>'
+    +'<button class="btn btn-p" id="es">Save changes</button></div></div>';
+  document.body.appendChild(m);
+  var close=function(){m.remove();}; m.querySelector('#ex').onclick=close; m.querySelector('#ec').onclick=close;
+  m.addEventListener('click',function(e){if(e.target===m) close();});
+  m.querySelector('#es').onclick=function(){
+    var title=m.querySelector('#eT').value.trim(), date=m.querySelector('#eDate').value;
+    var from=m.querySelector('#eFrom').value,to=m.querySelector('#eTo').value,room=m.querySelector('#eRoom').value;
+    var virt=m.querySelector('#eVirt').checked;
+    if(!title||!date||!from||!to||toMin(to)<=toMin(from)){toast('Enter a valid title, date and time',false);return;}
+    if(!room&&!virt){toast('Choose a room or keep the virtual room enabled',false);return;}
+    var clash=overlaps(room,date,from,to,b.id);
+    if(clash){toast('That room is already booked for '+clash.start+'–'+clash.end,false);return;}
+    b.title=title;b.date=date;b.start=from;b.end=to;b.roomId=room;
+    b.attendees=splitList(m.querySelector('#eWho').value);b.emails=splitList(m.querySelector('#eEmails').value);
+    b.phones=splitList(m.querySelector('#ePhones').value);b.directoryIds=selectedDirectoryIds('e');b.agenda=m.querySelector('#eAg').value.trim();
+    if(virt&&!b.virtual){var vr={id:uid('vr'),name:title,host:b.by,created:nowISO(),open:true};STORE.vrooms.unshift(vr);b.vroomId=vr.id;}
+    if(!virt&&b.virtual){var old=STORE.vrooms.find(function(v){return v.id===b.vroomId;});if(old)old.open=false;b.vroomId='';}
+    b.virtual=virt;
+    var currentVr=STORE.vrooms.find(function(v){return v.id===b.vroomId;});if(currentVr)currentVr.name=title;
+    syncMeetingRequest(b); save(); close(); render(); toast('Meeting updated',true);
+  };
+}
+function cancelMeeting(id){
+  var b=STORE.bookings.find(function(x){return x.id===id;}); if(!b) return false;
+  if(!(isAdmin()||(ME&&b.byId===ME.id))){toast('Only the organiser or Admin can cancel this meeting',false);return false;}
+  if(!confirm('Cancel "'+b.title+'"? Everyone invited will lose the slot.')) return false;
+  var r=b.requestId?STORE.requests.find(function(x){return x.id===b.requestId;}):null;
+  if(r){r.status='cancelled';r.history=(r.history||[]).concat([{at:nowISO(),who:ME?ME.name:'',what:'Meeting cancelled'}]);}
+  var vr=STORE.vrooms.find(function(v){return v.id===b.vroomId;});if(vr)vr.open=false;
+  STORE.bookings=STORE.bookings.filter(function(x){return x.id!==b.id;});
+  save(); render(); toast('Meeting cancelled',true); return true;
+}
+
+/* ── Supplies (stationery / warehouse) ───────────────────────────────────── */
+var CART={};
+function vSupply(kind){
+  var meta={stationery:{t:'Order stationery',s:'Pick what you need from the store cupboard and set the quantity.',i:'pen'},
+            warehouse:{t:'Request from the warehouse',s:'Draw equipment, cabling, tools or safety kit from stock.',i:'box'}}[kind];
+  var list=STORE.catalog[kind]||[];
+  return pageHead(meta.t,meta.s,isAdmin()?'<button class="btn btn-p" onclick="adminMaster(\'item\',\'\',\''+kind+'\')">'+ico('plus')+'Add item</button>':'')
+    +'<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico(meta.i)+'</span>'
+      +'Available items</div><span style="font-size:11.5px;color:var(--muted)" id="cartN">Nothing selected</span></div>'
+    +'<div class="card-b"><div class="cat">'
+    +list.map(function(it){
+      return '<label class="cat-i" id="ci_'+it.id+'"><div><b>'+esc(it.name)+'</b><small>per '+esc(it.unit)+'</small></div>'
+        +'<input type="number" min="0" max="999" value="0" data-id="'+it.id+'" data-name="'+esc(it.name)
+        +'" data-unit="'+esc(it.unit)+'" oninput="cartTick(this)"></label>';
+    }).join('')
+    +'</div><div class="form" style="margin-top:18px">'
+      +fld('spWhen','Needed by','<input id="spWhen" type="date" min="'+todayISO()+'">')
+      +fld('spPrio','Priority',prioSel('spPrio'))
+      +fld('spNote','Note for the store keeper','<textarea id="spNote" placeholder="Where should it be delivered? Anything specific?"></textarea>','',true)
+      +approvalRouteSummary(kind)
+    +'</div>'
+    +'<div class="form-foot"><div class="grow"></div>'
+      +'<button class="btn" onclick="go(\'home\')">Cancel</button>'
+      +'<button class="btn btn-p" onclick="saveSupply(\''+kind+'\')">Submit request</button></div>'
+    +'</div></div>';
+}
+function cartTick(inp){
+  var n=Math.max(0,parseInt(inp.value,10)||0);
+  inp.value=n;
+  var box=document.getElementById('ci_'+inp.dataset.id);
+  if(box) box.classList.toggle('has',n>0);
+  var total=0;
+  document.querySelectorAll('.cat-i input').forEach(function(i){ total+=Math.max(0,parseInt(i.value,10)||0); });
+  var lbl=document.getElementById('cartN');
+  if(lbl) lbl.textContent=total?(total+' item'+(total===1?'':'s')+' selected'):'Nothing selected';
+}
+function collectCart(){
+  var out=[];
+  document.querySelectorAll('.cat-i input').forEach(function(i){
+    var q=Math.max(0,parseInt(i.value,10)||0);
+    if(q>0) out.push({id:i.dataset.id,name:i.dataset.name,unit:i.dataset.unit,qty:q});
+  });
+  return out;
+}
+function saveSupply(kind){
+  if(!needMe()) return;
+  if(!requireUserPermission('canRequest','Admin has not enabled service requests for your account'))return;
+  var items=collectCart();
+  if(!items.length){ toast('Set a quantity on at least one item',false); return; }
+  var approvals=requireAutomaticApprovers(kind);if(!approvals)return;
+  var r=submitRequest(kind,{items:items,deliverTo:ME.dept},val('spPrio'),val('spWhen'),val('spNote'),approvals);
+  toast('Request '+r.ref+' submitted \u00b7 '+items.length+' item'+(items.length===1?'':'s'),true);
+  go('all');
+}
+
+/* ── IT support ──────────────────────────────────────────────────────────── */
+var IT_CATS=['Hardware fault','Software problem','Network or internet','Email or account access',
+             'New equipment','Printer','Phone or extension','Security concern','Something else'];
+function vIT(){
+  return pageHead('Ask IT for help',
+      'Report a fault or request equipment, software or access. Urgent items are picked up first.',
+      isAdmin()?'<button class="btn btn-p" onclick="adminMaster(\'item\',\'\',\'it\')">'+ico('plus')+'Add IT item</button>':'')
+    +'<div class="split"><div class="card"><div class="card-h"><div class="card-t">'
+      +'<span class="ico">'+ico('chip')+'</span>What do you need?</div></div><div class="card-b">'
+    +'<div class="form">'
+      +fld('itCat','Category <span class="req">*</span>','<select id="itCat">'
+        +IT_CATS.map(function(c){ return '<option>'+c+'</option>'; }).join('')+'</select>')
+      +fld('itPrio','Priority',prioSel('itPrio'))
+      +fld('itSub','Subject <span class="req">*</span>','<input id="itSub" placeholder="One line — e.g. Laptop will not connect to the office Wi-Fi">','',true)
+      +fld('itDesc','What is happening? <span class="req">*</span>',
+        '<textarea id="itDesc" placeholder="What did you expect, and what happened instead? Include any error message."></textarea>',
+        'The more precise this is, the fewer times IT has to come back to you.',true)
+      +fld('itWhere','Where you are','<input id="itWhere" placeholder="e.g. Floor 2, desk 14">')
+      +fld('itAsset','Asset or tag number','<input id="itAsset" placeholder="If the device has a label">')
+      +approvalRouteSummary('it')
+    +'</div>'
+    +'<div class="form-foot"><div class="grow"></div>'
+      +'<button class="btn" onclick="go(\'home\')">Cancel</button>'
+      +'<button class="btn btn-p" onclick="saveIT()">Submit request</button></div>'
+    +'</div></div>'
+    +'<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('chip')+'</span>Equipment you can ask for</div></div>'
+      +'<div class="card-b" style="padding:0">'+(STORE.catalog.it||[]).map(function(i){
+        return '<div class="vp"><div class="vp-av">'+esc(initials(i.name))+'</div>'
+          +'<div><div class="vp-n">'+esc(i.name)+'</div><div class="vp-r">per '+esc(i.unit)+'</div></div></div>';
+      }).join('')+'</div></div></div>';
+}
+function saveIT(){
+  if(!needMe()) return;
+  if(!requireUserPermission('canRequest','Admin has not enabled service requests for your account'))return;
+  clearBad();
+  var sub=val('itSub'), desc=val('itDesc'), ok=true;
+  if(!sub){ bad('itSub','Summarise it in one line'); ok=false; }
+  if(!desc){ bad('itDesc','Describe what is happening'); ok=false; }
+  if(!ok){ toast('Check the highlighted fields',false); return; }
+  var approvals=requireAutomaticApprovers('it');if(!approvals)return;
+  var r=submitRequest('it',{category:val('itCat'),subject:sub,description:desc,
+    location:val('itWhere'),asset:val('itAsset')},val('itPrio'),'',desc,approvals);
+  toast('IT request '+r.ref+' submitted',true);
+  go('all');
+}
+
+/* ── Admin-created services ─────────────────────────────────────────────── */
+function vCustomService(id){
+  var sv=(STORE.services||[]).find(function(x){return x.id===id;});
+  if(!sv)return pageHead('Service not found','This service may have been removed by Admin.',
+    '<button class="btn" onclick="go(\'home\')">Back to dashboard</button>');
+  return pageHead(esc(sv.name),esc(sv.description||'Submit a request to the responsible team.'),
+      isAdmin()?'<button class="btn" onclick="adminMaster(\'services\',\''+esc(sv.id)+'\')">'+ico('edit')+'Edit service</button>':'')
+    +'<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('list')+'</span>Request details</div></div>'
+    +'<div class="card-b"><div class="form">'
+      +fld('csSub','Subject <span class="req">*</span>','<input id="csSub" placeholder="What do you need?">','',true)
+      +fld('csWhen','Needed by','<input id="csWhen" type="date" min="'+todayISO()+'">')
+      +fld('csPrio','Priority',prioSel('csPrio'))
+      +fld('csLoc','Location / department','<input id="csLoc" value="'+esc(ME&&ME.dept||'')+'" placeholder="Where is this needed?">')
+      +fld('csDesc','Details <span class="req">*</span>','<textarea id="csDesc" placeholder="Describe the request and any important requirements."></textarea>','',true)
+      +approvalRouteSummary('custom')
+    +'</div><div class="form-foot"><div class="grow"></div><button class="btn" onclick="go(\'home\')">Cancel</button>'
+      +'<button class="btn btn-p" onclick="saveCustomService(\''+esc(sv.id)+'\')">Submit request</button></div></div></div>';
+}
+function saveCustomService(id){
+  if(!needMe())return;clearBad();
+  if(!requireUserPermission('canRequest','Admin has not enabled service requests for your account'))return;
+  var sv=(STORE.services||[]).find(function(x){return x.id===id;}),sub=val('csSub'),desc=val('csDesc'),ok=true;
+  if(!sv){toast('This service is no longer available',false);return;}
+  if(!sub){bad('csSub','Enter a short subject');ok=false;}
+  if(!desc){bad('csDesc','Describe what you need');ok=false;}
+  if(!ok){toast('Check the highlighted fields',false);return;}
+  var approvals=requireAutomaticApprovers('custom');if(!approvals)return;
+  var r=submitRequest('custom',{serviceId:sv.id,serviceName:sv.name,subject:sub,description:desc,location:val('csLoc')},
+    val('csPrio'),val('csWhen'),desc,approvals);
+  toast(sv.name+' request '+r.ref+' submitted',true);go('all');
+}
+
+/* ── Approvals ───────────────────────────────────────────────────────────── */
+function vApprovals(){
+  if(!isApprover()){
+    return pageHead('Approvals','')
+      +'<div class="card"><div class="card-b"><div class="t-empty">'
+      +'<b>You are set up as a requester</b>'
+      +'Approvers can accept or decline other people\u2019s requests. '
+      +'If that should be you, change your role from the button in the top-right corner.'
+      +'</div></div></div>';
+  }
+  var open=myApprovalRequests();
+  var rows=open.map(function(r){
+    var chain=r.approvals||[],done=chain.filter(function(a){return a.status==='approved';}).length,level=activeApprovalLevel(r);
+    return '<tr><td class="ref">'+esc(r.ref)+'</td><td>'+esc(requestTypeLabel(r))+'</td>'
+      +'<td><b>'+esc(r.by)+'</b><br><span style="color:var(--muted);font-size:11px">'+esc(r.dept)+'</span></td>'
+      +'<td>'+esc(summary(r))+'</td>'
+      +'<td>'+chip(r.priority,PRIO)+'</td>'
+      +'<td>'+(chain.length?('Level '+level+' · '+done+'/'+chain.length+' approved'):'Single approval')+'</td>'
+      +'<td style="white-space:nowrap;color:var(--muted)">'+fmtWhen(r.created)+'</td>'
+      +'<td style="white-space:nowrap"><button class="btn btn-sm" onclick="openReq(\''+r.id+'\')">Review</button> '
+      +'<button class="btn btn-sm btn-p" onclick="decide(\''+r.id+'\',\'approved\')">Approve</button></td></tr>';
+  }).join('');
+  return pageHead('Approvals','Requests waiting on a decision from you.')
+    +'<div class="tw"><table class="t"><thead><tr><th>Ref</th><th>Type</th><th>From</th>'
+    +'<th>Summary</th><th>Priority</th><th>Approval progress</th><th>Submitted</th><th>Action</th></tr></thead><tbody>'
+    +(rows||emptyRow(8,'Nothing waiting','Every request assigned to you has been dealt with.'))+'</tbody></table></div>';
+}
+
+/* ── All requests ────────────────────────────────────────────────────────── */
+function vAll(){
+  var all=STORE.requests.slice();
+  if(FILTER==='open')  all=all.filter(function(r){ return r.status==='submitted'; });
+  else if(FILTER==='mine') all=all.filter(function(r){ return ME&&r.byId===ME.id; });
+  else if(FILTER!=='all') all=all.filter(function(r){ return r.status===FILTER; });
+  if(SEARCH){
+    var q=SEARCH.toLowerCase();
+    all=all.filter(function(r){
+      return (r.ref+' '+r.by+' '+r.dept+' '+requestTypeLabel(r)+' '+summary(r)).toLowerCase().indexOf(q)>=0;
+    });
+  }
+  var counts={open:STORE.requests.filter(function(r){return r.status==='submitted';}).length,
+              mine:myRequests().length, all:STORE.requests.length};
+  var f=[['open','Waiting ('+counts.open+')'],['mine','Mine ('+counts.mine+')'],
+         ['approved','Approved'],['declined','Declined'],['fulfilled','Fulfilled'],['all','Everything ('+counts.all+')']];
+  return pageHead('All requests','Every request raised through this portal.',
+      '<button class="btn" onclick="exportAll()">Export to Excel</button>')
+    +'<div class="fbar">'
+      +f.map(function(x){ return '<button class="fbtn'+(FILTER===x[0]?' on':'')+'" onclick="setFilter(\''+x[0]+'\')">'+x[1]+'</button>'; }).join('')
+      +'<div class="fsearch">'+ico('search')
+      +'<input placeholder="Search reference, name, item" value="'+esc(SEARCH)+'" oninput="setSearch(this.value)"></div>'
+    +'</div>'
+    +'<div class="tw"><table class="t"><thead><tr><th>Ref</th><th>Type</th><th>From</th><th>Summary</th>'
+    +'<th>Priority</th><th>Approvals</th><th>Status</th><th>Submitted</th></tr></thead><tbody>'
+    +(all.map(function(r){
+        var chain=r.approvals||[],done=chain.filter(function(a){return a.status==='approved';}).length;
+        return '<tr onclick="openReq(\''+r.id+'\')" style="cursor:pointer"><td class="ref">'+esc(r.ref)+'</td>'
+          +'<td>'+esc(requestTypeLabel(r))+'</td>'
+          +'<td><b>'+esc(r.by)+'</b><br><span style="color:var(--muted);font-size:11px">'+esc(r.dept)+'</span></td>'
+          +'<td>'+esc(summary(r))+'</td><td>'+chip(r.priority,PRIO)+'</td><td>'+(chain.length?(done+'/'+chain.length):'—')+'</td><td>'+chip(r.status,STATUS)+'</td>'
+          +'<td style="white-space:nowrap;color:var(--muted)">'+fmtWhen(r.created)+'</td></tr>';
+      }).join('')
+      ||emptyRow(8,'Nothing here',SEARCH?'No request matches that search.':'Requests will appear as they are raised.'))
+    +'</tbody></table></div>';
+}
+function setFilter(f){ FILTER=f; render(); }
+var _st=null;
+function setSearch(v){ SEARCH=v; clearTimeout(_st); _st=setTimeout(function(){
+  var m=document.getElementById('main'); m.innerHTML=vAll();
+  var i=m.querySelector('.fsearch input'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); }
+},220); }
+
+function openReq(id){
+  var r=STORE.requests.find(function(x){ return x.id===id; }); if(!r) return;
+  var d=r.details||{};
+  var body='';
+  if(r.type==='car'){
+    body='<dt>Destination</dt><dd>'+esc(d.destination)+'</dd>'
+      +'<dt>When</dt><dd>'+fmtDate(d.date)+' at '+esc(d.time)+(d.ret?(' · back by '+esc(d.ret)):'')+'</dd>'
+      +'<dt>Passengers</dt><dd>'+esc(d.passengers)+'</dd>'
+      +'<dt>Vehicle</dt><dd>'+esc(d.vehicle)+'</dd>'
+      +'<dt>Purpose</dt><dd>'+esc(d.purpose)+'</dd>';
+  } else if(r.type==='room'){
+    body='<dt>Meeting</dt><dd>'+esc(d.title)+'</dd>'
+      +'<dt>Room</dt><dd>'+esc(d.room||'—')+'</dd>'
+      +'<dt>When</dt><dd>'+fmtDate(d.date)+' · '+esc(d.from)+'\u2013'+esc(d.to)+'</dd>'
+      +'<dt>Invited</dt><dd>'+esc(d.attendees)+' people</dd>'
+      +(d.agenda?('<dt>Agenda</dt><dd>'+esc(d.agenda)+'</dd>'):'');
+  } else if(r.type==='it'){
+    body='<dt>Category</dt><dd>'+esc(d.category)+'</dd>'
+      +'<dt>Subject</dt><dd>'+esc(d.subject)+'</dd>'
+      +'<dt>Detail</dt><dd>'+esc(d.description)+'</dd>'
+      +(d.location?('<dt>Location</dt><dd>'+esc(d.location)+'</dd>'):'')
+      +(d.asset?('<dt>Asset</dt><dd>'+esc(d.asset)+'</dd>'):'');
+  } else if(r.type==='custom'){
+    body='<dt>Service</dt><dd>'+esc(d.serviceName||'Service request')+'</dd>'
+      +'<dt>Subject</dt><dd>'+esc(d.subject||'—')+'</dd>'
+      +'<dt>Details</dt><dd>'+esc(d.description||'—')+'</dd>'
+      +(d.location?('<dt>Location</dt><dd>'+esc(d.location)+'</dd>'):'');
+  } else {
+    body='<dt>Items</dt><dd>'+(d.items||[]).map(function(i){
+      return esc(i.qty)+' \u00d7 '+esc(i.name)+' <span style="color:var(--muted)">('+esc(i.unit)+')</span>';
+    }).join('<br>')+'</dd><dt>Deliver to</dt><dd>'+esc(d.deliverTo||'—')+'</dd>';
+  }
+  var hist=(r.history||[]).map(function(h){
+    return '<div style="display:flex;gap:10px;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--line-soft)">'
+      +'<span style="color:var(--muted);white-space:nowrap;font-family:var(--mono);font-size:10.5px">'+fmtWhen(h.at)+'</span>'
+      +'<span><b>'+esc(h.what)+'</b>'+(h.who?(' — '+esc(h.who)):'')+'</span></div>';
+  }).join('');
+  var activeLevel=activeApprovalLevel(r);
+  var approvals=(r.approvals||[]).map(function(a){
+    var st=a.status||'pending',meta=st==='approved'?{label:'Approved',cls:'c-ok'}:(st==='declined'?{label:'Declined',cls:'c-no'}:{label:'Pending',cls:'c-wait'});
+    return '<div class="approval-line"><div class="vp-av">L'+esc(Math.max(1,+a.level||1))+'</div><div style="min-width:0"><b>'+esc(a.name)+'</b>'
+      +'<div style="font-size:10.5px;color:var(--muted)">Level '+esc(Math.max(1,+a.level||1))+(a.status==='pending'&&activeLevel&&Math.max(1,+a.level||1)>activeLevel?' · waiting for earlier level':'')+(a.email?' · '+esc(a.email):'')+(a.decidedAt?' · '+fmtWhen(a.decidedAt):'')+'</div></div>'
+      +'<div style="margin-left:auto">'+chip(st,{pending:meta,approved:meta,declined:meta})+'</div></div>';
+  }).join('');
+  var canDecide=canApproveRequest(r);
+  var m=document.createElement('div'); m.className='mod';
+  m.innerHTML='<div class="mod-in"><div class="mod-h"><div>'
+    +'<div class="mod-t">'+esc(r.ref)+' \u00b7 '+esc(requestTypeLabel(r))+'</div>'
+    +'<div class="mod-s">'+esc(r.by)+' \u00b7 '+esc(r.dept)+' \u00b7 '+fmtWhen(r.created)+'</div></div>'
+    +'<button class="mod-x" id="rx">&times;</button></div><div class="mod-b">'
+    +'<div style="display:flex;gap:8px;margin-bottom:15px">'+chip(r.status,STATUS)+chip(r.priority,PRIO)
+    +(r.needed?('<span class="chip c-done"><i></i>Needed '+esc(r.needed)+'</span>'):'')+'</div>'
+    +'<dl class="dl">'+body+(r.note?('<dt>Note</dt><dd>'+esc(r.note)+'</dd>'):'')+'</dl>'
+    +(approvals?'<div style="margin-top:16px"><div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px">Approval chain</div>'+approvals+'</div>':'')
+    +'<div style="margin-top:16px"><div style="font-size:10.5px;font-weight:800;text-transform:uppercase;'
+    +'letter-spacing:.05em;color:var(--muted);margin-bottom:6px">History</div>'+hist+'</div>'
+    +'</div><div class="mod-f">'
+    +(canDecide?('<button class="btn btn-p" id="ra">Approve</button><button class="btn btn-d" id="rd">Decline</button>'):'')
+    +(isApprover()&&r.status==='approved'?'<button class="btn" id="rf">Mark fulfilled</button>':'')
+    +(isAdmin()?'<button class="btn" id="re">'+ico('edit')+'Edit</button><button class="btn btn-d" id="rz">'+ico('trash')+'Delete</button>':'')
+    +'<div class="grow"></div><button class="btn" id="rc">Close</button></div></div>';
+  document.body.appendChild(m);
+  var close=function(){ m.remove(); };
+  m.querySelector('#rx').onclick=close; m.querySelector('#rc').onclick=close;
+  m.addEventListener('click',function(e){ if(e.target===m) close(); });
+  if(canDecide){
+    m.querySelector('#ra').onclick=function(){ close(); decide(r.id,'approved'); };
+    m.querySelector('#rd').onclick=function(){
+      var why=prompt('Why is this being declined? The requester will see this.');
+      if(why===null) return;
+      close(); decide(r.id,'declined',why.trim());
+    };
+  }
+  if(isApprover()&&r.status==='approved') m.querySelector('#rf').onclick=function(){ close(); decide(r.id,'fulfilled'); };
+  if(isAdmin()){
+    m.querySelector('#re').onclick=function(){close();adminEditRequest(r.id);};
+    m.querySelector('#rz').onclick=function(){if(adminDeleteRequest(r.id))close();};
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ADMIN CENTRE — full portal editing
+   ═══════════════════════════════════════════════════════════════════════════ */
+function roleName(r){return r==='admin'?'Admin':(r==='approver'?'Approver':'Requester');}
+function approvalLevelOptions(selected){
+  selected=+selected||0;var out='<option value="0"'+(selected===0?' selected':'')+'>No approval authority</option>';
+  for(var i=1;i<=5;i++)out+='<option value="'+i+'"'+(selected===i?' selected':'')+'>Level '+i+'</option>';
+  return out;
+}
+function permissionEditor(o){
+  normalisePersonPermissions(o);
+  return '<div class="fld wide"><label>User permissions</label><div class="appr-options">'
+    +'<label class="appr-option"><input id="permRequest" type="checkbox"'+(o.permissions.canRequest!==false?' checked':'')+'> Create service requests</label>'
+    +'<label class="appr-option"><input id="permMeeting" type="checkbox"'+(o.permissions.canCallMeetings!==false?' checked':'')+'> Call meetings and reserve rooms</label>'
+    +'<label class="appr-option"><input id="permApprove" type="checkbox"'+(o.permissions.canApprove!==false?' checked':'')+'> Approve requests assigned by Admin</label>'
+    +'</div></div>';
+}
+function approvalTypesEditor(o){
+  normaliseApproverTypes(o);var selected=(o.approvalTypes||[]).slice();if(!o.id&&!selected.length)selected=APPROVAL_TYPE_KEYS.slice();
+  return '<div class="fld wide"><label>Can approve these services</label><div class="appr-options">'
+    +APPROVAL_TYPE_KEYS.map(function(k){return '<label class="appr-option"><input type="checkbox" class="adminApprovalType" value="'+k+'"'+(selected.indexOf(k)>=0?' checked':'')+'> '+APPROVAL_TYPE_LABELS[k]+'</label>';}).join('')
+    +'</div><div class="hint">Admin-only setting. Requesters cannot choose the approver or approval level; the route is inserted automatically.</div></div>';
+}
+function selectedAdminApprovalTypes(){return Array.from(document.querySelectorAll('.adminApprovalType:checked')).map(function(x){return x.value;});}
+function permissionSummary(p){normalisePersonPermissions(p);var a=[];if(p.permissions.canRequest!==false)a.push('Requests');if(p.permissions.canCallMeetings!==false)a.push('Meetings');if(p.permissions.canApprove!==false)a.push('Approvals');return a.join(', ')||'No access';}
+function approvalScopeSummary(p){normaliseApproverTypes(p);return (p.approvalTypes||[]).map(function(k){return APPROVAL_TYPE_LABELS[k]||k;}).join(', ')||'—';}
+function adminDenied(){
+  return pageHead('Admin centre','Full access is locked. Open your profile and enter the Admin access code.',
+    '<button class="btn btn-p" onclick="openAdminAccess()">Unlock Admin</button>');
+}
+function directoryAdminRows(){
+  return (STORE.contacts||[]).map(function(c){return '<tr data-directory-row data-search="'+esc((c.name+' '+c.dept+' '+c.title+' '+c.email+' '+c.phone).toLowerCase())+'">'
+    +'<td><b>'+esc(c.name)+'</b><br><span style="font-size:11px;color:var(--muted)">'+esc(c.title||'')+'</span></td>'
+    +'<td>'+esc(c.dept||'—')+'</td><td>'+esc(c.email||'—')+'</td><td>'+esc(c.phone||'—')+'</td>'
+    +'<td>'+(c.approvalLevel?'<span class="chip c-ok"><i></i>Level '+esc(c.approvalLevel)+'</span>':'—')+'</td><td>'+esc(approvalScopeSummary(c))+'</td>'
+    +'<td style="white-space:nowrap"><button class="btn btn-sm" onclick="adminMaster(\'contacts\',\''+c.id+'\')">'+ico('edit')+'Edit</button> '
+    +'<button class="btn btn-sm btn-d" onclick="adminRemove(\'contacts\',\''+c.id+'\')">'+ico('trash')+'</button></td></tr>';}).join('');
+}
+function filterDirectoryTable(q){
+  q=String(q||'').toLowerCase();document.querySelectorAll('[data-directory-row]').forEach(function(r){r.style.display=!q||r.dataset.search.indexOf(q)>=0?'':'none';});
+}
+function vDirectory(){
+  if(!isAdmin())return adminDenied();var rows=directoryAdminRows(),approvers=STORE.contacts.filter(function(c){return +c.approvalLevel>0;}).length;
+  return pageHead('Approval setup','Admin chooses who approves each service and in which level. Requesters cannot change this route.',
+      '<button class="btn btn-p" onclick="adminMaster(\'contacts\',\'\')">'+ico('plus')+'Add employee</button>')
+    +'<div class="kpis"><div class="kpi"><b>'+STORE.contacts.length+'</b><span>Employees</span></div><div class="kpi k-good"><b>'+approvers+'</b><span>Approvers</span></div></div>'
+    +'<div class="fbar"><div class="fsearch" style="margin-left:0">'+ico('search')+'<input placeholder="Search name, email or department" oninput="filterDirectoryTable(this.value)"></div></div>'
+    +'<div class="tw"><table class="t"><thead><tr><th>Name</th><th>Department</th><th>Email</th><th>Phone</th><th>Approval level</th><th>Approves</th><th>Actions</th></tr></thead><tbody>'
+    +(rows||emptyRow(7,'Company Directory is empty','Add your first company employee.'))+'</tbody></table></div>';
+}
+function vAdmin(){
+  if(!isAdmin()) return adminDenied();
+  var contacts=(STORE.contacts||[]).map(function(c){return '<tr><td><b>'+esc(c.name)+'</b><br><span style="font-size:11px;color:var(--muted)">'+esc(c.title||'')+'</span></td>'
+    +'<td>'+esc(c.dept||'—')+'</td><td>'+esc(c.email||'—')+'</td><td>'+esc(c.phone||'—')+'</td>'
+    +'<td>'+(c.approvalLevel?'<span class="chip c-ok"><i></i>Level '+esc(c.approvalLevel)+'</span>':'—')+'</td><td>'+esc(approvalScopeSummary(c))+'</td>'
+    +'<td style="white-space:nowrap"><button class="btn btn-sm" onclick="adminMaster(\'contacts\',\''+c.id+'\')">'+ico('edit')+'Edit</button> '
+    +'<button class="btn btn-sm btn-d" onclick="adminRemove(\'contacts\',\''+c.id+'\')">'+ico('trash')+'</button></td></tr>';}).join('');
+  var people=STORE.people.map(function(p){return '<tr><td><b>'+esc(p.name)+'</b></td><td>'+esc(p.dept||'—')+'</td>'
+    +'<td>'+esc(roleName(p.role))+'</td><td>'+esc(permissionSummary(p))+'</td><td>'+(p.approvalLevel?'<span class="chip c-ok"><i></i>Level '+esc(p.approvalLevel)+'</span>':'—')+'</td><td>'+esc(approvalScopeSummary(p))+'</td><td>'+esc(p.email||'—')+'</td><td>'+esc(p.phone||'—')+'</td>'
+    +'<td style="white-space:nowrap"><button class="btn btn-sm" onclick="adminMaster(\'people\',\''+p.id+'\')">'+ico('edit')+'Edit</button> '
+    +'<button class="btn btn-sm btn-d" onclick="adminRemove(\'people\',\''+p.id+'\')">'+ico('trash')+'</button></td></tr>';}).join('');
+  var services=(STORE.services||[]).map(function(s){return '<tr><td><b>'+esc(s.name)+'</b></td><td>'+esc(s.description||'—')+'</td>'
+    +'<td>'+(s.active!==false?'<span class="chip c-ok"><i></i>Active</span>':'<span class="chip c-done"><i></i>Hidden</span>')+'</td>'
+    +'<td style="white-space:nowrap"><button class="btn btn-sm" onclick="adminMaster(\'services\',\''+s.id+'\')">'+ico('edit')+'Edit</button> '
+    +'<button class="btn btn-sm btn-d" onclick="adminRemove(\'services\',\''+s.id+'\')">'+ico('trash')+'</button></td></tr>';}).join('');
+  var rooms=STORE.rooms.map(function(r){return '<tr><td><b>'+esc(r.name)+'</b></td><td>'+esc(r.location||'—')+'</td><td>'+esc(r.capacity)+'</td>'
+    +'<td>'+esc((r.features||[]).join(', ')||'—')+'</td><td style="white-space:nowrap"><button class="btn btn-sm" onclick="adminMaster(\'rooms\',\''+r.id+'\')">'+ico('edit')+'Edit</button> '
+    +'<button class="btn btn-sm btn-d" onclick="adminRemove(\'rooms\',\''+r.id+'\')">'+ico('trash')+'</button></td></tr>';}).join('');
+  var fleet=STORE.fleet.map(function(v){return '<tr><td><b>'+esc(v.model)+'</b><br><span style="font-size:11px;color:var(--muted)">'+esc(v.plate)+'</span></td>'
+    +'<td>'+esc(v.type||'—')+'</td><td>'+esc(v.seats)+'</td><td>'+esc(v.driver||'—')+'</td><td>'+esc(v.status||'—')+'</td>'
+    +'<td style="white-space:nowrap"><button class="btn btn-sm" onclick="adminMaster(\'fleet\',\''+v.id+'\')">'+ico('edit')+'Edit</button> '
+    +'<button class="btn btn-sm btn-d" onclick="adminRemove(\'fleet\',\''+v.id+'\')">'+ico('trash')+'</button></td></tr>';}).join('');
+  var catalog=['stationery','it','warehouse'].map(function(kind){
+    var title={stationery:'Stationery',it:'IT equipment',warehouse:'Warehouse'}[kind];
+    var rows=(STORE.catalog[kind]||[]).map(function(i){return '<tr><td><b>'+esc(i.name)+'</b></td><td>'+esc(i.unit)+'</td>'
+      +'<td style="white-space:nowrap"><button class="btn btn-sm" onclick="adminMaster(\'item\',\''+i.id+'\',\''+kind+'\')">'+ico('edit')+'Edit</button> '
+      +'<button class="btn btn-sm btn-d" onclick="adminRemove(\'item\',\''+i.id+'\',\''+kind+'\')">'+ico('trash')+'</button></td></tr>';}).join('');
+    return '<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('box')+'</span>'+title+'</div>'
+      +'<button class="btn btn-sm btn-p" onclick="adminMaster(\'item\',\'\',\''+kind+'\')">'+ico('plus')+'Add item</button></div>'
+      +'<div class="tw" style="border:0;border-radius:0;max-height:330px"><table class="t"><thead><tr><th>Item</th><th>Unit</th><th>Actions</th></tr></thead><tbody>'
+      +(rows||emptyRow(3,'No items','Add the first item.'))+'</tbody></table></div></div>';
+  }).join('');
+  return pageHead('Admin centre','Full control of portal users, master data, requests and meetings.',
+      '<button class="btn" onclick="go(\'all\')">Manage requests</button> <button class="btn" onclick="go(\'rooms\')">Manage meetings</button>')
+    +'<div class="kpis"><div class="kpi"><b>'+STORE.people.length+'</b><span>Portal users</span></div>'
+      +'<div class="kpi"><b>'+STORE.contacts.length+'</b><span>Company contacts</span></div>'
+      +'<div class="kpi"><b>'+STORE.services.length+'</b><span>Extra services</span></div>'
+      +'<div class="kpi k-info"><b>'+STORE.requests.length+'</b><span>Requests</span></div>'
+      +'<div class="kpi k-good"><b>'+STORE.bookings.length+'</b><span>Meetings</span></div>'
+      +'<div class="kpi k-warn"><b>'+STORE.fleet.length+'</b><span>Vehicles</span></div></div>'
+    +'<div class="stack">'
+    +'<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('check')+'</span>Approval routing — Admin only</div>'
+      +'<button class="btn btn-sm btn-p" onclick="go(\'directory\')">Configure approvers</button></div>'
+      +'<div class="card-b" style="font-size:12px;line-height:1.7;color:var(--ink-3)">Choose an employee, set the approval level and select the services they own. Every new request then receives that route automatically; requesters never select a person or level.</div></div>'
+    +'<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('mail')+'</span>Company Directory</div>'
+      +'<button class="btn btn-sm btn-p" onclick="adminMaster(\'contacts\',\'\')">'+ico('plus')+'Add employee</button></div>'
+      +'<div class="card-b" style="padding:10px 16px;font-size:11.5px;color:var(--ink-3)">Employees saved here appear automatically when selecting meeting invitees and request approvers.</div>'
+      +'<div class="tw" style="border:0;border-radius:0;max-height:420px"><table class="t"><thead><tr><th>Name</th><th>Department</th><th>Email</th><th>Phone</th><th>Approval level</th><th>Approves</th><th>Actions</th></tr></thead><tbody>'
+      +(contacts||emptyRow(7,'Company Directory is empty','Add employees, emails and approvers here.'))+'</tbody></table></div></div>'
+    +'<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('list')+'</span>Users</div>'
+      +'<button class="btn btn-sm btn-p" onclick="adminMaster(\'people\',\'\')">'+ico('plus')+'Add user</button></div>'
+      +'<div class="tw" style="border:0;border-radius:0;max-height:360px"><table class="t"><thead><tr><th>Name</th><th>Department</th><th>Role</th><th>Permissions</th><th>Approval level</th><th>Approves</th><th>Email</th><th>Phone</th><th>Actions</th></tr></thead><tbody>'
+      +(people||emptyRow(9,'No users','Add the first user.'))+'</tbody></table></div></div>'
+    +'<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('plus')+'</span>Additional services</div>'
+      +'<button class="btn btn-sm btn-p" onclick="adminMaster(\'services\',\'\')">'+ico('plus')+'Add service</button></div>'
+      +'<div class="card-b" style="padding:10px 16px;font-size:11.5px;color:var(--ink-3)">Create a new service request page. Active services appear on the dashboard and navigation automatically.</div>'
+      +'<div class="tw" style="border:0;border-radius:0;max-height:360px"><table class="t"><thead><tr><th>Service</th><th>Description</th><th>Status</th><th>Actions</th></tr></thead><tbody>'
+      +(services||emptyRow(4,'No additional services','Add a service and it will appear for every user.'))+'</tbody></table></div></div>'
+    +'<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('door')+'</span>Meeting rooms</div>'
+      +'<button class="btn btn-sm btn-p" onclick="adminMaster(\'rooms\',\'\')">'+ico('plus')+'Add room</button></div>'
+      +'<div class="tw" style="border:0;border-radius:0;max-height:360px"><table class="t"><thead><tr><th>Room</th><th>Location</th><th>Seats</th><th>Features</th><th>Actions</th></tr></thead><tbody>'
+      +(rooms||emptyRow(5,'No rooms','Add the first meeting room.'))+'</tbody></table></div></div>'
+    +'<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('car')+'</span>Fleet</div>'
+      +'<button class="btn btn-sm btn-p" onclick="adminMaster(\'fleet\',\'\')">'+ico('plus')+'Add vehicle</button></div>'
+      +'<div class="tw" style="border:0;border-radius:0;max-height:360px"><table class="t"><thead><tr><th>Vehicle</th><th>Type</th><th>Seats</th><th>Driver</th><th>Status</th><th>Actions</th></tr></thead><tbody>'
+      +(fleet||emptyRow(6,'No vehicles','Add the first vehicle.'))+'</tbody></table></div></div>'
+    +catalog+'</div>';
+}
+function adminMaster(kind,id,catKind){
+  if(!isAdmin()){toast('Admin access is required',false);return;}
+  var list=kind==='item'?(STORE.catalog[catKind]||[]):STORE[kind];
+  var o=list.find(function(x){return x.id===id;})||{};
+  var isNew=!o.id,title='',form='';
+  if(kind==='services'){
+    title=isNew?'Add service':'Edit service';
+    form=fld('aName','Service name <span class="req">*</span>','<input id="aName" value="'+esc(o.name||'')+'" placeholder="e.g. Maintenance request">','',true)
+      +fld('aDesc','Description','<textarea id="aDesc" placeholder="Explain when users should choose this service.">'+esc(o.description||'')+'</textarea>','',true)
+      +'<div class="fld wide"><label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;color:var(--ink-2)">'
+        +'<input id="aActive" type="checkbox" style="width:16px;height:16px"'+(o.active!==false?' checked':'')+'> Show this service to users</label></div>';
+  }else if(kind==='contacts'){
+    title=isNew?'Add company employee':'Edit company employee';
+    form=fld('aName','Full name <span class="req">*</span>','<input id="aName" value="'+esc(o.name||'')+'">','',true)
+      +fld('aDept','Department','<select id="aDept">'+DEPTS.map(function(d){return '<option'+(o.dept===d?' selected':'')+'>'+d+'</option>';}).join('')+'</select>')
+      +fld('aTitle','Job title','<input id="aTitle" value="'+esc(o.title||'')+'">')
+      +fld('aEmail','Company email <span class="req">*</span>','<input id="aEmail" type="email" value="'+esc(o.email||'')+'" placeholder="name@company.com">')
+      +fld('aPhone','Phone','<input id="aPhone" type="tel" value="'+esc(o.phone||'')+'">')
+      +fld('aLevel','Approval level','<select id="aLevel">'+approvalLevelOptions(o.approvalLevel||0)+'</select>',
+        'Level 1 approves first, followed by Level 2 and higher levels.')+approvalTypesEditor(o);
+  }else if(kind==='people'){
+    title=isNew?'Add user':'Edit user';
+    form=fld('aName','Full name','<input id="aName" value="'+esc(o.name||'')+'">','',true)
+      +fld('aDept','Department','<select id="aDept">'+DEPTS.map(function(d){return '<option'+(o.dept===d?' selected':'')+'>'+d+'</option>';}).join('')+'</select>')
+      +fld('aRole','Role','<select id="aRole"><option value="requester"'+(o.role==='requester'?' selected':'')+'>Requester</option>'
+        +'<option value="approver"'+(o.role==='approver'?' selected':'')+'>Approver</option><option value="admin"'+(o.role==='admin'?' selected':'')+'>Admin</option></select>')
+      +fld('aLevel','Approval level','<select id="aLevel">'+approvalLevelOptions(o.approvalLevel||0)+'</select>',
+        'Set the order for this user: Level 1, then Level 2, and so on.')
+      +fld('aEmail','Email','<input id="aEmail" type="email" value="'+esc(o.email||'')+'">')
+      +fld('aPhone','Phone','<input id="aPhone" type="tel" value="'+esc(o.phone||'')+'">');
+    form+=permissionEditor(o)+approvalTypesEditor(o);
+  }else if(kind==='rooms'){
+    title=isNew?'Add meeting room':'Edit meeting room';
+    form=fld('aName','Room name','<input id="aName" value="'+esc(o.name||'')+'">')
+      +fld('aCap','Capacity','<input id="aCap" type="number" min="1" value="'+esc(o.capacity||1)+'">')
+      +fld('aLoc','Location','<input id="aLoc" value="'+esc(o.location||'')+'">','',true)
+      +fld('aFeat','Features','<input id="aFeat" value="'+esc((o.features||[]).join(', '))+'">','Separated by commas',true);
+  }else if(kind==='fleet'){
+    title=isNew?'Add vehicle':'Edit vehicle';
+    form=fld('aModel','Model','<input id="aModel" value="'+esc(o.model||'')+'">')
+      +fld('aPlate','Plate number','<input id="aPlate" value="'+esc(o.plate||'')+'">')
+      +fld('aType','Type','<input id="aType" value="'+esc(o.type||'')+'">')
+      +fld('aSeats','Seats','<input id="aSeats" type="number" min="1" value="'+esc(o.seats||1)+'">')
+      +fld('aDriver','Driver / condition','<input id="aDriver" value="'+esc(o.driver||'')+'">','',true)
+      +fld('aStatus','Status','<select id="aStatus"><option value="available"'+(o.status==='available'?' selected':'')+'>Available</option>'
+        +'<option value="booked"'+(o.status==='booked'?' selected':'')+'>Booked</option><option value="maintenance"'+(o.status==='maintenance'?' selected':'')+'>Maintenance</option></select>');
+  }else{
+    title=isNew?'Add catalogue item':'Edit catalogue item';
+    form=fld('aName','Item name','<input id="aName" value="'+esc(o.name||'')+'">')
+      +fld('aUnit','Unit','<input id="aUnit" value="'+esc(o.unit||'')+'" placeholder="each, box, set...">');
+  }
+  var m=document.createElement('div');m.className='mod';
+  m.innerHTML='<div class="mod-in"><div class="mod-h"><div><div class="mod-t">'+title+'</div><div class="mod-s">Changes sync to every connected device.</div></div>'
+    +'<button class="mod-x" id="ax">&times;</button></div><div class="mod-b"><div class="form">'+form+'</div></div>'
+    +'<div class="mod-f"><div class="grow"></div><button class="btn" id="ac">Cancel</button><button class="btn btn-p" id="as">Save</button></div></div>';
+  document.body.appendChild(m);var close=function(){m.remove();};m.querySelector('#ax').onclick=close;m.querySelector('#ac').onclick=close;
+  m.addEventListener('click',function(e){if(e.target===m)close();});
+  m.querySelector('#as').onclick=function(){
+    var prefix=kind==='services'?'sv':(kind==='contacts'?'ct':(kind==='people'?'u':(kind==='rooms'?'rm':(kind==='fleet'?'v':(catKind==='stationery'?'s':(catKind==='it'?'i':'w'))))));
+    var n={id:o.id||uid(prefix)};
+    if(kind==='services'){
+      n.name=val('aName');n.description=val('aDesc');n.active=!!document.getElementById('aActive').checked;
+      if(!n.name){toast('Enter the service name',false);return;}
+    }else if(kind==='contacts'){
+      n.name=val('aName');n.dept=val('aDept');n.title=val('aTitle');n.email=val('aEmail');n.phone=val('aPhone');n.approvalLevel=Math.max(0,Math.min(5,+val('aLevel')||0));n.approvalTypes=selectedAdminApprovalTypes();n.canApprove=n.approvalLevel>0&&n.approvalTypes.length>0;
+      if(!n.name||!n.email||n.email.indexOf('@')<1){toast('Enter the employee name and a valid company email',false);return;}
+      var duplicate=STORE.contacts.find(function(c){return c.id!==n.id&&sameEmail(c.email,n.email);});
+      if(duplicate){toast('That company email already belongs to '+duplicate.name,false);return;}
+    }else if(kind==='people'){
+      n.name=val('aName');n.dept=val('aDept');n.role=val('aRole');n.approvalLevel=Math.max(0,Math.min(5,+val('aLevel')||0));n.email=val('aEmail');n.phone=val('aPhone');n.approvalTypes=selectedAdminApprovalTypes();n.permissions={canRequest:!!document.getElementById('permRequest').checked,canCallMeetings:!!document.getElementById('permMeeting').checked,canApprove:!!document.getElementById('permApprove').checked};
+      if(n.role==='admin'){
+        /* Admin can manage every route, but joins a route only when a level and
+           service scope were explicitly selected. */
+        n.permissions.canRequest=true;n.permissions.canCallMeetings=true;
+        n.permissions.canApprove=!!(n.permissions.canApprove&&n.approvalLevel>0&&n.approvalTypes.length);
+      }
+      if(!n.name){toast('Enter the user name',false);return;}
+    }else if(kind==='rooms'){
+      n.name=val('aName');n.capacity=Math.max(1,+val('aCap')||1);n.location=val('aLoc');n.features=splitList(val('aFeat'));
+      if(!n.name){toast('Enter the room name',false);return;}
+    }else if(kind==='fleet'){
+      n.model=val('aModel');n.plate=val('aPlate');n.type=val('aType');n.seats=Math.max(1,+val('aSeats')||1);n.driver=val('aDriver');n.status=val('aStatus');
+      if(!n.model||!n.plate){toast('Enter the vehicle model and plate number',false);return;}
+    }else{
+      n.name=val('aName');n.unit=val('aUnit');if(!n.name||!n.unit){toast('Enter the item name and unit',false);return;}
+    }
+    if(isNew)list.push(n);else Object.keys(n).forEach(function(k){o[k]=n[k];});
+    if(kind==='people'&&ME&&n.id===ME.id){ME=JSON.parse(JSON.stringify(n));try{localStorage.setItem('kp_services_me',JSON.stringify(ME));}catch(e){}
+      if(ME.role!=='admin')try{sessionStorage.removeItem(ADMIN_SESSION_KEY);}catch(e){}}
+    save();close();render();toast(title.replace('Add','Added').replace('Edit','Updated'),true);
+  };
+}
+function adminRemove(kind,id,catKind){
+  if(!isAdmin()){toast('Admin access is required',false);return false;}
+  if(kind==='people'&&ME&&ME.id===id){toast('You cannot delete the user currently signed in',false);return false;}
+  var list=kind==='item'?(STORE.catalog[catKind]||[]):STORE[kind];
+  var o=list.find(function(x){return x.id===id;});if(!o)return false;
+  var label=o.name||o.model||o.plate||id;
+  if(!confirm('Delete "'+label+'"? This change will sync to everyone.'))return false;
+  if(kind==='item')STORE.catalog[catKind]=list.filter(function(x){return x.id!==id;});else STORE[kind]=list.filter(function(x){return x.id!==id;});
+  save();render();toast(label+' deleted',true);return true;
+}
+function adminEditRequest(id){
+  if(!isAdmin()){toast('Admin access is required',false);return;}
+  var r=STORE.requests.find(function(x){return x.id===id;});if(!r)return;var d=r.details||{},detail='';
+  if(r.type==='car'){
+    detail=fld('qDest','Destination','<input id="qDest" value="'+esc(d.destination||'')+'">')+fld('qDate','Date','<input id="qDate" type="date" value="'+esc(d.date||'')+'">')
+      +fld('qTime','Time','<input id="qTime" type="time" value="'+esc(d.time||'')+'">')+fld('qBack','Return','<input id="qBack" type="time" value="'+esc(d.ret||'')+'">')
+      +fld('qPax','Passengers','<input id="qPax" type="number" min="1" value="'+esc(d.passengers||1)+'">')+fld('qVeh','Vehicle','<input id="qVeh" value="'+esc(d.vehicle||'')+'">')
+      +fld('qPurpose','Purpose','<textarea id="qPurpose">'+esc(d.purpose||'')+'</textarea>','',true);
+  }else if(r.type==='room'){
+    detail=fld('qTitle','Meeting title','<input id="qTitle" value="'+esc(d.title||'')+'">','',true)+fld('qDate','Date','<input id="qDate" type="date" value="'+esc(d.date||'')+'">')
+      +fld('qFrom','From','<input id="qFrom" type="time" value="'+esc(d.from||'')+'">')+fld('qTo','To','<input id="qTo" type="time" value="'+esc(d.to||'')+'">')
+      +fld('qRoom','Room','<input id="qRoom" value="'+esc(d.room||'')+'">')+fld('qAtt','Attendees','<input id="qAtt" type="number" min="0" value="'+esc(d.attendees||0)+'">')
+      +fld('qAgenda','Agenda','<textarea id="qAgenda">'+esc(d.agenda||'')+'</textarea>','',true);
+  }else if(r.type==='it'){
+    detail=fld('qCat','Category','<input id="qCat" value="'+esc(d.category||'')+'">')+fld('qSub','Subject','<input id="qSub" value="'+esc(d.subject||'')+'">')
+      +fld('qDesc','Description','<textarea id="qDesc">'+esc(d.description||'')+'</textarea>','',true)+fld('qLoc','Location','<input id="qLoc" value="'+esc(d.location||'')+'">')
+      +fld('qAsset','Asset','<input id="qAsset" value="'+esc(d.asset||'')+'">');
+  }else if(r.type==='custom'){
+    detail=fld('qService','Service','<input id="qService" value="'+esc(d.serviceName||'')+'">')
+      +fld('qSub','Subject','<input id="qSub" value="'+esc(d.subject||'')+'">')
+      +fld('qDesc','Description','<textarea id="qDesc">'+esc(d.description||'')+'</textarea>','',true)
+      +fld('qLoc','Location','<input id="qLoc" value="'+esc(d.location||'')+'">');
+  }else{
+    detail=fld('qItems','Items','<textarea id="qItems" style="min-height:120px">'+esc((d.items||[]).map(function(i){return i.qty+' | '+i.name+' | '+i.unit;}).join('\n'))+'</textarea>',
+      'One item per line: quantity | item name | unit',true)+fld('qDeliver','Deliver to','<input id="qDeliver" value="'+esc(d.deliverTo||'')+'">','',true);
+  }
+  var m=document.createElement('div');m.className='mod';
+  m.innerHTML='<div class="mod-in"><div class="mod-h"><div><div class="mod-t">Edit '+esc(r.ref)+'</div><div class="mod-s">Admin can update every recorded field.</div></div><button class="mod-x" id="qx">&times;</button></div>'
+    +'<div class="mod-b"><div class="form">'+fld('qBy','Requested by','<input id="qBy" value="'+esc(r.by)+'">')
+    +fld('qDept','Department','<select id="qDept">'+DEPTS.map(function(x){return '<option'+(r.dept===x?' selected':'')+'>'+x+'</option>';}).join('')+'</select>')
+    +fld('qPrio','Priority','<select id="qPrio">'+Object.keys(PRIO).map(function(x){return '<option value="'+x+'"'+(r.priority===x?' selected':'')+'>'+PRIO[x].label+'</option>';}).join('')+'</select>')
+    +fld('qStatus','Status','<select id="qStatus">'+Object.keys(STATUS).map(function(x){return '<option value="'+x+'"'+(r.status===x?' selected':'')+'>'+STATUS[x].label+'</option>';}).join('')+'</select>')
+    +fld('qNeeded','Needed by','<input id="qNeeded" value="'+esc(r.needed||'')+'">','',true)+fld('qNote','Note','<textarea id="qNote">'+esc(r.note||'')+'</textarea>','',true)
+    +approverPicker('q',r.approvals||[])+detail+'</div></div><div class="mod-f"><div class="grow"></div><button class="btn" id="qc">Cancel</button><button class="btn btn-p" id="qs">Save changes</button></div></div>';
+  document.body.appendChild(m);var close=function(){m.remove();};m.querySelector('#qx').onclick=close;m.querySelector('#qc').onclick=close;
+  m.addEventListener('click',function(e){if(e.target===m)close();});
+  m.querySelector('#qs').onclick=function(){
+    r.by=val('qBy');r.dept=val('qDept');r.priority=val('qPrio');r.status=val('qStatus');r.needed=val('qNeeded');r.note=val('qNote');
+    var old=r.approvals||[],chosen=collectApprovers('q');
+    if(!chosen.length){toast('Select at least one required approver',false);return;}
+    r.approvals=chosen.map(function(a){var prev=old.find(function(x){return x.id===a.id;});
+      if(prev){prev.name=a.name;prev.email=a.email||'';prev.level=a.level;return prev;}
+      return {id:a.id,name:a.name,email:a.email||'',level:a.level,status:'pending',decidedAt:'',decision:''};
+    }).sort(function(a,b){return (+a.level||1)-(+b.level||1)||a.name.localeCompare(b.name);});
+    if(r.type==='car')r.details={destination:val('qDest'),date:val('qDate'),time:val('qTime'),ret:val('qBack'),passengers:+val('qPax')||1,vehicle:val('qVeh'),purpose:val('qPurpose')};
+    else if(r.type==='room')r.details=Object.assign({},d,{title:val('qTitle'),date:val('qDate'),from:val('qFrom'),to:val('qTo'),room:val('qRoom'),attendees:+val('qAtt')||0,agenda:val('qAgenda')});
+    else if(r.type==='it')r.details={category:val('qCat'),subject:val('qSub'),description:val('qDesc'),location:val('qLoc'),asset:val('qAsset')};
+    else if(r.type==='custom')r.details=Object.assign({},d,{serviceName:val('qService'),subject:val('qSub'),description:val('qDesc'),location:val('qLoc')});
+    else r.details={items:val('qItems').split(/\n+/).map(function(line){var p=line.split('|');return {qty:+(p[0]||0)||0,name:(p[1]||'').trim(),unit:(p[2]||'').trim()};}).filter(function(i){return i.name&&i.qty>0;}),deliverTo:val('qDeliver')};
+    r.history=(r.history||[]).concat([{at:nowISO(),who:ME.name,what:'Edited by Admin'}]);save();close();render();toast(r.ref+' updated',true);
+  };
+}
+function adminDeleteRequest(id){
+  if(!isAdmin()){toast('Admin access is required',false);return false;}
+  var r=STORE.requests.find(function(x){return x.id===id;});if(!r)return false;
+  if(!confirm('Permanently delete request '+r.ref+'?'))return false;
+  STORE.requests=STORE.requests.filter(function(x){return x.id!==id;});save();render();toast(r.ref+' deleted',true);return true;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VIRTUAL MEETING ROOM
+   ───────────────────────────────────────────────────────────────────────────
+   Real WebRTC, not a mock. Audio and screen sharing run peer-to-peer between
+   browsers; Firebase carries only the signalling (offers, answers, ICE
+   candidates), which is a few kilobytes per participant.
+
+   HONEST LIMITS, stated in the interface as well as here:
+     • The page must be served over HTTPS (or localhost). Browsers refuse
+       microphone and screen capture on plain http:// or file://.
+     • This is a MESH: every participant connects to every other. Fine to
+       about six people; beyond that the uplink cost grows with the square of
+       the group and an SFU would be needed instead.
+     • STUN alone gets through most home and office networks. Some corporate
+       firewalls need a TURN relay — there is a field for TURN credentials in
+       Sync settings, and without one those participants will fail to connect.
+     • Sync must be connected. Two browsers cannot find each other otherwise.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+var CURVR=null;
+var VR={ pc:{}, local:null, screen:null, muted:false, joined:false,
+         peers:{}, pendingIce:{}, retried:{}, retryTimers:{}, heartbeat:null,
+         ref:null, meRef:null, id:null, analyser:null, talkTimer:null,
+         iceServers:null, turnReady:false };
+
+var VR_PEER_TTL=75000;
+
+function vrPeerFresh(p){
+  return !!(p&&p.at&&Date.now()-Number(p.at)<VR_PEER_TTL);
+}
+
+function iceURLList(value){
+  if(Array.isArray(value))return value.map(function(x){return String(x||'').trim();}).filter(Boolean);
+  return String(value||'').split(/[\s,;]+/).map(function(x){return x.trim();}).filter(Boolean);
+}
+function configuredTurn(){
+  var t=null;
+  try{
+    t=(STORE&&STORE.settings&&STORE.settings.turn)||JSON.parse(localStorage.getItem('kp_services_turn')||'null');
+  }catch(e){}
+  var urls=iceURLList(t&&t.urls);
+  if(!urls.length||!t||!String(t.username||'').trim()||!String(t.credential||'').trim())return null;
+  return {urls:urls,username:String(t.username).trim(),credential:String(t.credential)};
+}
+async function openRelayTurn(){
+  /* Metered Open Relay publishes a static-auth endpoint for time-limited TURN
+     credentials. Media remains DTLS-SRTP encrypted; the relay only forwards
+     packets when a direct connection is blocked. Custom Admin credentials,
+     when present, always take priority over this fallback. */
+  if(!(window.crypto&&crypto.subtle&&window.TextEncoder&&window.btoa))return null;
+  try{
+    var username=(Math.floor(Date.now()/1000)+86400)+':knowledge-papers';
+    var enc=new TextEncoder();
+    var key=await crypto.subtle.importKey('raw',enc.encode('openrelayprojectsecret'),
+      {name:'HMAC',hash:'SHA-1'},false,['sign']);
+    var sig=await crypto.subtle.sign('HMAC',key,enc.encode(username));
+    var bin='';new Uint8Array(sig).forEach(function(b){bin+=String.fromCharCode(b);});
+    return {urls:[
+      'turn:staticauth.openrelay.metered.ca:80',
+      'turn:staticauth.openrelay.metered.ca:443',
+      'turns:staticauth.openrelay.metered.ca:443?transport=tcp'
+    ],username:username,credential:btoa(bin)};
+  }catch(e){console.warn('[vr] TURN fallback credentials unavailable',e);return null;}
+}
+function iceServers(){
+  var list=[{urls:[
+    'stun:stun.l.google.com:19302',
+    'stun:stun1.l.google.com:19302',
+    'stun:stun2.l.google.com:19302',
+    'stun:stun.cloudflare.com:3478'
+  ]}];
+  var t=configuredTurn();
+  if(t)list.push(t);
+  return list;
+}
+async function prepareIceServers(){
+  var list=iceServers(),custom=!!configuredTurn();
+  if(!custom){var fallback=await openRelayTurn();if(fallback)list.push(fallback);}
+  VR.turnReady=list.some(function(s){return iceURLList(s&&s.urls).some(function(u){return /^turns?:/i.test(u);});});
+  return list;
+}
+
+function vVirtual(){
+  var rooms=STORE.vrooms.filter(function(v){ return v.open!==false; });
+  var cur=CURVR?STORE.vrooms.find(function(v){ return v.id===CURVR; }):null;
+  if(!cur){
+    return pageHead('Virtual room',
+        'Talk over microphone and present your screen, straight from the browser. No install.')
+      +'<div class="split"><div class="card"><div class="card-h"><div class="card-t">'
+        +'<span class="ico">'+ico('video')+'</span>Open a room</div></div><div class="card-b">'
+      +'<div class="form">'
+        +fld('vrName','Room name <span class="req">*</span>',
+          '<input id="vrName" placeholder="e.g. Data centre design review">','',true)
+      +'</div><div class="form-foot"><div class="grow"></div>'
+      +'<button class="btn btn-p" onclick="vrCreate()">'+ico('video')+'Create and join</button></div>'
+      +'</div></div>'
+      +'<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('list')+'</span>Open rooms</div></div>'
+      +'<div class="card-b" style="padding:0">'
+      +(rooms.length?rooms.map(function(v){
+          return '<div class="vp"><div class="vp-av">'+esc(initials(v.name))+'</div>'
+            +'<div style="min-width:0"><div class="vp-n">'+esc(v.name)+'</div>'
+            +'<div class="vp-r">Opened by '+esc(v.host)+' \u00b7 '+fmtWhen(v.created)+'</div></div>'
+            +'<button class="btn btn-sm btn-p" style="margin-left:auto" onclick="vrJoin(\''+v.id+'\')">Join</button></div>';
+        }).join('')
+        :'<div class="t-empty"><b>No rooms open</b>Create one on the left, or tick \u201cvirtual room\u201d when you call a meeting.</div>')
+      +'</div></div></div>';
+  }
+
+  /* about:srcdoc inherits the secure context of its HTTPS parent. Checking the
+     protocol alone produced the false red warning shown in the user's screen. */
+  var secure=(window.isSecureContext===true||location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1');
+  var synced=!!(SY&&SY.ref);
+  var customTurn=!!configuredTurn();
+  var automaticTurn=!!(window.crypto&&crypto.subtle&&window.TextEncoder&&window.btoa);
+  var hasTurn=customTurn||automaticTurn;
+  return pageHead(esc(cur.name),'Opened by '+esc(cur.host)+' · '+fmtWhen(cur.created),
+      '<button class="btn" onclick="vrLeave(true)">Leave room</button>')
+    +'<div class="vr"><div>'
+      +'<div class="vr-stage">'
+        +'<video id="vrScreen" class="vr-share" autoplay playsinline muted style="display:none"></video>'
+        +'<div class="vr-empty" id="vrEmpty"><b>Nobody is presenting</b>'
+        +'<p>Use <b>Share screen</b> to present a window, a tab, or your whole desktop. '
+        +'Everyone in the room sees it here.</p></div>'
+      +'</div>'
+      +'<div class="vr-bar">'
+        +'<button class="vr-btn" id="vrJoinBtn" onclick="vrToggleJoin()">'+ico('mic')+'<span>Join with microphone</span></button>'
+        +'<button class="vr-btn" id="vrMute" onclick="vrToggleMute()" disabled>'+ico('mic')+'<span>Mute</span></button>'
+        +'<button class="vr-btn" id="vrShare" onclick="vrToggleShare()" disabled>'+ico('screen')+'<span>Share screen</span></button>'
+        +'<div style="flex:1"></div>'
+        +'<span id="vrState" style="font-size:11.5px;color:#9AA7B5;font-weight:700">Not connected</span>'
+      +'</div>'
+      +'<audio id="vrAudio" autoplay></audio>'
+    +'</div>'
+    +'<div class="vr-side">'
+      +'<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('mic')+'</span>In the room</div>'
+        +'<span id="vrCount" style="font-size:11px;color:var(--muted);font-weight:700">0</span></div>'
+        +'<div class="vr-people" id="vrPeople"><div class="t-empty" style="padding:20px">'
+        +'<b>Empty</b>Join with your microphone to appear here.</div></div></div>'
+      +(!secure?('<div class="vr-note" style="background:var(--risk-bg);border-color:#E4B4BA;color:var(--risk)">'
+        +'<b>Microphone and screen sharing are blocked.</b> Browsers only allow them over <b>https://</b> '
+        +'(or on localhost). This page is on <b>'+esc(location.protocol)+'</b>, so joining will fail until '
+        +'the portal is served over HTTPS.</div>'):'')
+      +(!synced?('<div class="vr-note" style="background:var(--warn-bg);border-color:#DFC98F;color:var(--warn)">'
+        +'<b>Sync is not connected.</b> Two browsers cannot find each other without it. '
+        +'Connect from the button in the top-right, then rejoin.</div>'):'')
+      +(!hasTurn?('<div class="vr-note" style="background:var(--warn-bg);border-color:#DFC98F;color:var(--warn)">'
+        +'<b>No TURN relay is configured.</b> Direct calls can still work, but restricted company or mobile networks '
+        +'may block them. Admin can add TURN URL, username and password in Sync settings.</div>'):'')
+      +(!customTurn&&automaticTurn?('<div class="vr-note" style="background:var(--good-bg);border-color:#A9D6C0;color:var(--good)">'
+        +'<b>Secure TURN fallback is ready.</b> It is used automatically only when the two browsers cannot connect directly.</div>'):'')
+      +'<div class="vr-note"><b>How this works.</b> Audio and screen go directly between browsers; '
+      +'only the connection handshake passes through your database. Best for about six people at once. '
+      +'Some corporate networks need a TURN relay \u2014 add one in Sync settings if a colleague cannot connect.</div>'
+    +'</div></div>';
+}
+
+function vrCreate(){
+  if(!needMe()) return;
+  var n=val('vrName');
+  if(!n){ toast('Give the room a name so people know what they are joining',false); return; }
+  var v={id:uid('vr'),name:n,host:ME.name,created:nowISO(),open:true};
+  STORE.vrooms.unshift(v); save();
+  CURVR=v.id; render();
+}
+function vrJoin(id){ if(!needMe()) return; CURVR=id; render(); }
+
+function vrMount(){
+  var v=CURVR?STORE.vrooms.find(function(x){ return x.id===CURVR; }):null;
+  if(!v) return;
+  vrPaintPeople();
+}
+function vrState(t,cls){
+  var e=document.getElementById('vrState');
+  if(e){ e.textContent=t; e.style.color=cls==='ok'?'#7BD9A8':cls==='err'?'#FFB4B4':'#9AA7B5'; }
+}
+
+/* ── Join / leave ────────────────────────────────────────────────────────── */
+async function vrToggleJoin(){
+  if(VR.joined){ vrLeave(); return; }
+  if(!needMe()) return;
+  if(!(SY&&SY.ref)){ toast('Connect sync first — browsers cannot find each other without it',false); return; }
+  if(window.isSecureContext===false){
+    toast('Open this meeting from the secure https:// portal link, then try again.',false); return;
+  }
+  vrState('Preparing secure connection…');
+  VR.iceServers=await prepareIceServers();
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+    toast('This browser cannot capture a microphone. Try Chrome, Edge or Safari over https://',false); return;
+  }
+  try{
+    vrState('Requesting microphone…');
+    VR.local=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true},video:false});
+  }catch(e){
+    var why=(e&&e.name==='NotAllowedError')
+      ? 'Microphone permission was refused. Allow it in the browser address bar and try again.'
+      : (e&&e.name==='NotFoundError') ? 'No microphone was found on this device.'
+      : ('Could not open the microphone: '+(e&&e.message||e));
+    vrState('Microphone unavailable','err');
+    toast(why,false);
+    return;
+  }
+  VR.id=uid('p');
+  VR.joined=true;
+  vrMeter();
+
+  var base=SY.ref.child('vroomLive/'+CURVR);
+  VR.ref=base;
+  VR.meRef=base.child('peers/'+VR.id);
+  VR.meRef.set({name:ME.name,dept:ME.dept,muted:false,sharing:false,at:Date.now()});
+  try{ VR.meRef.onDisconnect().remove(); }catch(e){}
+
+  /* A closed mobile browser can leave a presence row behind for a while.
+     Remove expired rows and keep this participant fresh while the room is open. */
+  base.child('peers').once('value').then(function(s){
+    s.forEach(function(ch){
+      if(ch.key!==VR.id&&!vrPeerFresh(ch.val())) ch.ref.remove();
+    });
+  }).catch(function(){});
+  clearInterval(VR.heartbeat);
+  VR.heartbeat=setInterval(function(){
+    if(VR.joined&&VR.meRef) VR.meRef.update({at:Date.now()});
+  },15000);
+
+  /* Anyone already here, plus anyone who arrives later. */
+  base.child('peers').on('child_added',function(s){
+    if(s.key===VR.id) return;
+    if(!vrPeerFresh(s.val())){ s.ref.remove(); return; }
+    VR.peers[s.key]=s.val();
+    vrPaintPeople();
+    /* Deterministic offerer: the lexically smaller id calls, so two browsers
+       never both create an offer for the same pair. */
+    if(VR.id<s.key) vrCall(s.key);
+  });
+  base.child('peers').on('child_changed',function(s){
+    if(s.key===VR.id) return;
+    if(!vrPeerFresh(s.val())){ s.ref.remove(); return; }
+    VR.peers[s.key]=s.val(); vrPaintPeople();
+  });
+  base.child('peers').on('child_removed',function(s){
+    delete VR.peers[s.key];
+    delete VR.pendingIce[s.key]; delete VR.retried[s.key];
+    if(VR.retryTimers[s.key]){ clearTimeout(VR.retryTimers[s.key]); delete VR.retryTimers[s.key]; }
+    if(VR.pc[s.key]){ try{ VR.pc[s.key].close(); }catch(e){} delete VR.pc[s.key]; }
+    vrPaintPeople();
+  });
+  /* Signals addressed to me. */
+  base.child('signals/'+VR.id).on('child_added',function(s){
+    var msg=s.val(); s.ref.remove();
+    if(msg) vrSignal(msg);
+  });
+
+  document.getElementById('vrJoinBtn').innerHTML=ico('micOff')+'<span>Leave</span>';
+  document.getElementById('vrJoinBtn').classList.add('off');
+  document.getElementById('vrMute').disabled=false;
+  document.getElementById('vrShare').disabled=false;
+  vrState('Connected','ok');
+  vrPaintPeople();
+  toast('You are in the room — others will hear you now',true);
+}
+
+function vrPeer(id){
+  if(VR.pc[id]) return VR.pc[id];
+  var pc=new RTCPeerConnection({iceServers:VR.iceServers||iceServers(),iceCandidatePoolSize:10});
+  VR.pc[id]=pc;
+  if(VR.local) VR.local.getTracks().forEach(function(t){ pc.addTrack(t,VR.local); });
+  if(VR.screen) VR.screen.getTracks().forEach(function(t){ pc.addTrack(t,VR.screen); });
+  pc.onicecandidate=function(e){
+    if(e.candidate) vrSend(id,{t:'ice',from:VR.id,c:e.candidate.toJSON()});
+  };
+  pc.ontrack=function(e){
+    var st=e.streams[0];
+    if(e.track.kind==='audio'){
+      var a=document.getElementById('vrAudio');
+      if(a && a.srcObject!==st) a.srcObject=st;
+    } else {
+      var vid=document.getElementById('vrScreen');
+      if(vid){ vid.srcObject=st; vid.style.display='block';
+        var em=document.getElementById('vrEmpty'); if(em) em.style.display='none'; }
+    }
+  };
+  pc.onconnectionstatechange=function(){
+    if(VR.pc[id]!==pc) return;
+    if(pc.connectionState==='connected'){
+      delete VR.retried[id];
+      vrState('Connected','ok');
+    } else if(pc.connectionState==='disconnected'){
+      vrState('Reconnecting…');
+      if(VR.retryTimers[id]) clearTimeout(VR.retryTimers[id]);
+      VR.retryTimers[id]=setTimeout(function(){
+        if(VR.pc[id]===pc&&pc.connectionState==='disconnected'&&VR.id<id) vrCall(id,true);
+      },3500);
+    } else if(pc.connectionState==='failed'){
+      if(!VR.retried[id]&&VR.id<id&&vrPeerFresh(VR.peers[id])){
+        VR.retried[id]=true;
+        vrState('Retrying connection…');
+        VR.retryTimers[id]=setTimeout(function(){ vrCall(id,true); },900);
+      }else{
+        var hasTurn=!!(VR.turnReady||configuredTurn());
+        vrState(hasTurn?'Connection failed — check TURN settings':'Network blocked — TURN required','err');
+        console.warn('[vr] connection failed for',id,hasTurn?'— verify TURN credentials':'— add a TURN relay in Admin > Sync settings');
+      }
+    }
+  };
+  return pc;
+}
+function vrSend(to,msg){ try{ VR.ref.child('signals/'+to).push(msg); }catch(e){} }
+
+async function vrCall(id,restart){
+  try{
+    var pc=vrPeer(id);
+    var offer=await pc.createOffer({offerToReceiveAudio:true,offerToReceiveVideo:true,iceRestart:!!restart});
+    await pc.setLocalDescription(offer);
+    vrSend(id,{t:'offer',from:VR.id,sdp:pc.localDescription.toJSON?pc.localDescription.toJSON():{type:offer.type,sdp:offer.sdp}});
+  }catch(e){ console.warn('[vr] call failed',e); }
+}
+function vrQueueIce(id,c){
+  (VR.pendingIce[id]||(VR.pendingIce[id]=[])).push(c);
+}
+async function vrFlushIce(id,pc){
+  var q=VR.pendingIce[id]||[];
+  VR.pendingIce[id]=[];
+  for(var i=0;i<q.length;i++){
+    try{ await pc.addIceCandidate(new RTCIceCandidate(q[i])); }
+    catch(e){ console.warn('[vr] queued ICE failed',e); }
+  }
+}
+async function vrSignal(m){
+  try{
+    var pc=vrPeer(m.from);
+    if(m.t==='offer'){
+      await pc.setRemoteDescription(new RTCSessionDescription(m.sdp));
+      await vrFlushIce(m.from,pc);
+      var ans=await pc.createAnswer();
+      await pc.setLocalDescription(ans);
+      vrSend(m.from,{t:'answer',from:VR.id,sdp:{type:ans.type,sdp:ans.sdp}});
+    } else if(m.t==='answer'){
+      await pc.setRemoteDescription(new RTCSessionDescription(m.sdp));
+      await vrFlushIce(m.from,pc);
+    } else if(m.t==='ice'){
+      if(pc.remoteDescription&&pc.remoteDescription.type)
+        await pc.addIceCandidate(new RTCIceCandidate(m.c));
+      else vrQueueIce(m.from,m.c);
+    }
+  }catch(e){ console.warn('[vr] signal failed',m.t,e); }
+}
+
+function vrToggleMute(){
+  if(!VR.local) return;
+  VR.muted=!VR.muted;
+  VR.local.getAudioTracks().forEach(function(t){ t.enabled=!VR.muted; });
+  var b=document.getElementById('vrMute');
+  b.innerHTML=(VR.muted?ico('micOff'):ico('mic'))+'<span>'+(VR.muted?'Unmute':'Mute')+'</span>';
+  b.classList.toggle('off',VR.muted);
+  if(VR.meRef) VR.meRef.update({muted:VR.muted});
+  vrPaintPeople();
+}
+
+async function vrToggleShare(){
+  if(VR.screen){ vrStopShare(); return; }
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia){
+    toast('This browser cannot share a screen. Chrome, Edge or Safari over https:// can.',false); return;
+  }
+  try{
+    VR.screen=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:12},audio:false});
+  }catch(e){
+    if(e&&e.name==='NotAllowedError'){ toast('Screen sharing was cancelled',false); }
+    else toast('Could not start sharing: '+(e&&e.message||e),false);
+    return;
+  }
+  var track=VR.screen.getVideoTracks()[0];
+  track.onended=vrStopShare;
+  Object.keys(VR.pc).forEach(function(id){
+    try{ VR.pc[id].addTrack(track,VR.screen); }catch(e){}
+    vrRenegotiate(id);
+  });
+  var v=document.getElementById('vrScreen');
+  v.srcObject=VR.screen; v.style.display='block';
+  document.getElementById('vrEmpty').style.display='none';
+  var b=document.getElementById('vrShare');
+  b.classList.add('live'); b.innerHTML=ico('screen')+'<span>Stop sharing</span>';
+  if(VR.meRef) VR.meRef.update({sharing:true});
+  vrPaintPeople();
+  toast('You are presenting — everyone in the room can see this',true);
+}
+function vrStopShare(){
+  if(VR.screen){ VR.screen.getTracks().forEach(function(t){ try{t.stop();}catch(e){} }); VR.screen=null; }
+  var v=document.getElementById('vrScreen');
+  if(v){ v.srcObject=null; v.style.display='none'; }
+  var em=document.getElementById('vrEmpty'); if(em) em.style.display='grid';
+  var b=document.getElementById('vrShare');
+  if(b){ b.classList.remove('live'); b.innerHTML=ico('screen')+'<span>Share screen</span>'; }
+  if(VR.meRef) VR.meRef.update({sharing:false});
+  Object.keys(VR.pc).forEach(vrRenegotiate);
+  vrPaintPeople();
+}
+async function vrRenegotiate(id){
+  try{
+    var pc=VR.pc[id]; if(!pc) return;
+    if(VR.id>=id) return;                    /* only the designated offerer renegotiates */
+    var o=await pc.createOffer();
+    await pc.setLocalDescription(o);
+    vrSend(id,{t:'offer',from:VR.id,sdp:{type:o.type,sdp:o.sdp}});
+  }catch(e){ console.warn('[vr] renegotiate failed',e); }
+}
+
+/* Simple speaking indicator from the local mic level. */
+function vrMeter(){
+  try{
+    var Ctx=window.AudioContext||window.webkitAudioContext;
+    if(!Ctx||!VR.local) return;
+    var ctx=new Ctx(), src=ctx.createMediaStreamSource(VR.local), an=ctx.createAnalyser();
+    an.fftSize=512; src.connect(an);
+    VR.analyser=an;
+    var data=new Uint8Array(an.frequencyBinCount);
+    clearInterval(VR.talkTimer);
+    VR.talkTimer=setInterval(function(){
+      if(!VR.joined) return;
+      an.getByteFrequencyData(data);
+      var sum=0; for(var i=0;i<data.length;i++) sum+=data[i];
+      var loud=(sum/data.length)>14 && !VR.muted;
+      var el=document.getElementById('vp_me');
+      if(el) el.classList.toggle('talk',loud);
+    },220);
+  }catch(e){}
+}
+
+function vrPaintPeople(){
+  var host=document.getElementById('vrPeople');
+  if(!host) return;
+  var list=[];
+  if(VR.joined&&ME) list.push({id:'me',name:ME.name+' (you)',dept:ME.dept,muted:VR.muted,sharing:!!VR.screen});
+  Object.keys(VR.peers).forEach(function(k){
+    var p=VR.peers[k]||{};
+    if(!vrPeerFresh(p)) return;
+    list.push({id:k,name:p.name||'Guest',dept:p.dept||'',muted:!!p.muted,sharing:!!p.sharing});
+  });
+  var n=document.getElementById('vrCount'); if(n) n.textContent=list.length;
+  if(!list.length){
+    host.innerHTML='<div class="t-empty" style="padding:20px"><b>Empty</b>Join with your microphone to appear here.</div>';
+    return;
+  }
+  host.innerHTML=list.map(function(p){
+    return '<div class="vp"><div class="vp-av'+(p.id==='me'?'':'')+'" '+(p.id==='me'?'id="vp_me"':'')+'>'
+      +esc(initials(p.name))+'</div>'
+      +'<div style="min-width:0"><div class="vp-n">'+esc(p.name)+'</div>'
+      +'<div class="vp-r">'+esc(p.dept||'')+'</div></div>'
+      +'<div class="vp-ico">'+(p.sharing?ico('screen'):'')
+      +'<span class="'+(p.muted?'mute':'')+'">'+(p.muted?ico('micOff'):ico('mic'))+'</span></div></div>';
+  }).join('');
+}
+
+function vrLeave(goBack){
+  if(VR.meRef){ try{ VR.meRef.remove(); }catch(e){} }
+  if(VR.ref){ try{ VR.ref.child('peers').off(); VR.ref.child('signals/'+VR.id).off(); }catch(e){} }
+  Object.keys(VR.pc).forEach(function(k){ try{ VR.pc[k].close(); }catch(e){} });
+  if(VR.local) VR.local.getTracks().forEach(function(t){ try{t.stop();}catch(e){} });
+  if(VR.screen) VR.screen.getTracks().forEach(function(t){ try{t.stop();}catch(e){} });
+  clearInterval(VR.talkTimer);
+  clearInterval(VR.heartbeat);
+  Object.keys(VR.retryTimers||{}).forEach(function(k){ clearTimeout(VR.retryTimers[k]); });
+  VR={pc:{},local:null,screen:null,muted:false,joined:false,peers:{},pendingIce:{},retried:{},retryTimers:{},heartbeat:null,ref:null,meRef:null,id:null,analyser:null,talkTimer:null,iceServers:null,turnReady:false};
+  if(goBack){
+    CURVR=null;PORTAL_LINK=null;
+    try{history.replaceState(null,'',portalBaseURL());}catch(e){}
+    render();
+  }
+  else{
+    var b=document.getElementById('vrJoinBtn');
+    if(b){ b.innerHTML=ico('mic')+'<span>Join with microphone</span>'; b.classList.remove('off'); }
+    ['vrMute','vrShare'].forEach(function(id){ var e=document.getElementById(id); if(e) e.disabled=true; });
+    vrStopShare(); vrState('Not connected'); vrPaintPeople();
+  }
+}
+window.addEventListener('beforeunload',function(){ if(VR.joined) vrLeave(); });
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SYNC — its own room, never the projects room
+   ═══════════════════════════════════════════════════════════════════════════ */
+var SY={ cfg:null, room:null, ref:null, on:false, base:null, writable:false };
+
+function loadSync(){
+  var c=null;
+  try{
+    c=JSON.parse(localStorage.getItem('kp_services_sync')||'null');
+  }catch(e){}
+  c=c||{};
+  SY.cfg=Object.assign({},FIREBASE_DEFAULT,{databaseURL:c.databaseURL||FIREBASE_DEFAULT.databaseURL});
+  SY.room=(c.room&&c.room!=='asimati-hub-v2')?c.room:ROOM_DEFAULT;
+  initSync();
+}
+function paintSync(){
+  var d=document.getElementById('syncDot'), t=document.getElementById('syncTxt');
+  d.className='sync-dot'+(SY.writable?' on':(SY.on?' err':''));
+  t.textContent=SY.writable?'Live':(SY.on?'Sync error':'Offline');
+}
+function openSync(){
+  var cur={},canEdit=isAdmin();
+  try{ cur=JSON.parse(localStorage.getItem('kp_services_sync')||'{}'); }catch(e){}
+  var turn={};
+  try{ turn=(STORE&&STORE.settings&&STORE.settings.turn)||JSON.parse(localStorage.getItem('kp_services_turn')||'{}'); }catch(e){}
+  var m=document.createElement('div'); m.className='mod';
+  m.innerHTML='<div class="mod-in"><div class="mod-h"><div><div class="mod-t">Sync settings</div>'
+    +'<div class="mod-s">Knowledge Papers Firebase · portals/'+ROOM_DEFAULT+(canEdit?'':' · Admin-only settings')+'</div></div>'
+    +'<button class="mod-x" id="sx">&times;</button></div><div class="mod-b"><div class="form">'
+    +'<div class="fld wide"><label>Firebase database URL</label>'
+      +'<input id="sUrl" placeholder="https://your-project-default-rtdb.firebaseio.com" value="'+esc(cur.databaseURL||FIREBASE_DEFAULT.databaseURL)+'"'+(canEdit?'':' disabled')+'></div>'
+    +'<div class="fld wide"><label>Room</label><input id="sRoom" value="'+esc(cur.room||ROOM_DEFAULT)+'"'+(canEdit?'':' disabled')+'>'
+      +'<div class="hint">This portal keeps its own room. Do not point it at the projects room '
+      +'(<code>asimati-hub-v2</code>) \u2014 the two hold different shapes of data and would overwrite each other.</div></div>'
+    +'<div class="fld wide"><label>Company TURN relay (optional override)</label>'
+      +'<input id="tUrl" placeholder="turns:turn.example.com:443?transport=tcp" value="'+esc(Array.isArray(turn.urls)?turn.urls.join(', '):(turn.urls||''))+'"'+(canEdit?'':' disabled')+'></div>'
+    +'<div class="fld"><label>TURN username</label><input id="tUser" value="'+esc(turn.username||'')+'"'+(canEdit?'':' disabled')+'></div>'
+    +'<div class="fld"><label>TURN password</label><input id="tPass" type="password" value="'+esc(canEdit?(turn.credential||''):'')+'"'+(canEdit?'':' disabled')+'></div>'
+    +'<div class="fld wide"><div class="hint">The portal includes an encrypted TURN fallback for restricted networks. '
+    +'Add company TURN credentials here only when you want to replace that fallback. '
+    +'The admin saves these credentials once and they apply automatically to all portal users.</div></div>'
+    +'</div></div><div class="mod-f"><div class="grow"></div>'
+    +'<button class="btn" id="sc">'+(canEdit?'Cancel':'Close')+'</button>'
+    +(canEdit?'<button class="btn btn-p" id="ss">Save and connect</button>':'')+'</div></div>';
+  document.body.appendChild(m);
+  var close=function(){ m.remove(); };
+  m.querySelector('#sx').onclick=close; m.querySelector('#sc').onclick=close;
+  m.addEventListener('click',function(e){ if(e.target===m) close(); });
+  if(!canEdit)return;
+  m.querySelector('#ss').onclick=function(){
+    var url=m.querySelector('#sUrl').value.trim(), room=m.querySelector('#sRoom').value.trim()||ROOM_DEFAULT;
+    if(room==='asimati-hub-v2'){
+      toast('That is the projects room. Pick a different room name for this portal.',false); return;
+    }
+    var turnCfg={
+      urls:m.querySelector('#tUrl').value.trim(),
+      username:m.querySelector('#tUser').value.trim(),
+      credential:m.querySelector('#tPass').value.trim()};
+    if(turnCfg.urls&&(!turnCfg.username||!turnCfg.credential)){
+      toast('TURN username and password are required with the TURN URL.',false); return;
+    }
+    try{
+      localStorage.setItem('kp_services_sync',JSON.stringify({databaseURL:url,room:room}));
+      localStorage.setItem('kp_services_turn',JSON.stringify(turnCfg));
+    }catch(e){}
+    STORE.settings=STORE.settings||{};
+    STORE.settings.turn=turnCfg;
+    save();
+    close();
+    if(url){ SY.cfg=Object.assign({},FIREBASE_DEFAULT,{databaseURL:url}); SY.room=room; initSync(); }
+    else { toast('Saved. Add a database URL to sync with your team.',true); }
+  };
+}
+function loadScript(src){
+  return new Promise(function(res,rej){
+    var s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=function(){rej(new Error('load failed'));};
+    document.head.appendChild(s);
+  });
+}
+async function initSync(){
+  if(!SY.cfg) return;
+  try{
+    if(!window.firebase||!firebase.database){
+      await loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
+      await loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js');
+    }
+    if(!firebase.apps.length) firebase.initializeApp(SY.cfg);
+    SY.ref=firebase.database().ref('portals/'+SY.room);
+    SY.on=true; paintSync();
+    bootstrapSync();
+  }catch(e){
+    SY.on=false; SY.writable=false; paintSync();
+    toast('Could not reach the database: '+(e&&e.message||e),false);
+  }
+}
+/* One authoritative read, then targeted listeners — never a permanent root
+   subscription, which is what made the projects portal expensive. */
+function bootstrapSync(){
+  var settled=false;
+  var timer=setTimeout(function(){
+    if(settled) return; settled=true;
+    SY.writable=false; paintSync();
+    toast('The database did not respond. Working offline; your changes stay on this device.',false);
+  },12000);
+  SY.ref.once('value').then(function(snap){
+    if(settled) return; settled=true; clearTimeout(timer);
+    var d=snap&&snap.val();
+    if(d&&d.v){
+      STORE=d; normalise();
+      try{ localStorage.setItem(SK,JSON.stringify(STORE)); }catch(e){}
+    }
+    applyPortalLink();
+    SY.base=JSON.parse(JSON.stringify(strip(STORE)));
+    SY.writable=true; paintSync();
+    if(!d||!d.v) pushLeaves();      /* first use of an empty room */
+    watchLive();
+    render();
+    toast('Connected to '+SY.room,true);
+  }).catch(function(e){
+    if(settled) return; settled=true; clearTimeout(timer);
+    SY.writable=false; paintSync();
+    toast('Sync failed: '+(e&&e.message||e),false);
+  });
+}
+function strip(o){
+  var c=JSON.parse(JSON.stringify(o||{}));
+  delete c.vroomLive;
+  return c;
+}
+/* Watch shared operational and Admin-managed branches. */
+function watchLive(){
+  ['people','contacts','services','requests','bookings','vrooms','rooms','fleet','catalog'].forEach(function(k){
+    SY.ref.child(k).on('value',function(s){
+      var v=s.val();
+      if(k==='catalog'){ if(!v||typeof v!=='object') return; }
+      else {if(v==null)v=[];if(!Array.isArray(v)) return;}
+      if(JSON.stringify(STORE[k])===JSON.stringify(v)) return;
+      STORE[k]=v;
+      SY.base=JSON.parse(JSON.stringify(strip(STORE)));
+      try{ localStorage.setItem(SK,JSON.stringify(STORE)); }catch(e){}
+      if(PORTAL_LINK&&!PORTAL_LINK.handled){applyPortalLink();render();}
+      else if(VIEW!=='virtual') render();
+    });
+  });
+}
+function diffLeaves(base,next,prefix,out,depth){
+  out=out||{}; prefix=prefix||''; depth=depth||0;
+  if(depth>10){ out[prefix]=next; return out; }
+  var bA=Array.isArray(base), nA=Array.isArray(next);
+  if(bA||nA){
+    if(!bA||!nA||base.length!==next.length){
+      if(JSON.stringify(base)!==JSON.stringify(next)) out[prefix]=next;
+      return out;
+    }
+    for(var i=0;i<next.length;i++) diffLeaves(base[i],next[i],prefix+'/'+i,out,depth+1);
+    return out;
+  }
+  var bO=base&&typeof base==='object', nO=next&&typeof next==='object';
+  if(bO&&nO){
+    var keys={},k;
+    for(k in base) keys[k]=1;
+    for(k in next) keys[k]=1;
+    for(k in keys){
+      var p=prefix?(prefix+'/'+k):k;
+      if(!(k in next)){ out[p]=null; continue; }
+      if(!(k in base)){ out[p]=next[k]; continue; }
+      diffLeaves(base[k],next[k],p,out,depth+1);
+    }
+    return out;
+  }
+  if(base!==next) out[prefix]=(next===undefined?null:next);
+  return out;
+}
+function pushLeaves(){
+  if(!SY.ref||!SY.writable) return;
+  var cur=strip(STORE);
+  if(!SY.base){ SY.base={}; }
+  var raw=diffLeaves(SY.base,cur,'',{},0);
+  var map={},n=0;
+  for(var k in raw){
+    if(!k) continue;
+    if(/[.#$\[\]]/.test(k)) continue;
+    map[k]=raw[k]; n++;
+  }
+  if(!n) return;
+  SY.ref.update(map).then(function(){
+    SY.base=JSON.parse(JSON.stringify(cur));
+  },function(e){
+    toast('Your change was saved on this device but not shared: '+(e&&e.message||e),false);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EXPORT
+   ═══════════════════════════════════════════════════════════════════════════ */
+function exportAll(){
+  var go=function(){
+    try{
+      var wb=XLSX.utils.book_new();
+      var head=['Ref','Type','Requested by','Department','Summary','Priority','Status',
+                'Approval chain','Submitted','Needed by','Decided by','Decided at','Note'];
+      var rows=[head].concat(STORE.requests.map(function(r){
+        return [r.ref,requestTypeLabel(r),r.by,r.dept,summary(r),
+                (PRIO[r.priority]||{}).label||'',(STATUS[r.status]||{}).label||'',
+                (r.approvals||[]).map(function(a){return 'L'+(a.level||1)+' '+a.name+' ('+(a.status||'pending')+')';}).join(', '),
+                r.created,r.needed||'',r.decidedBy||'',r.decidedAt||'',r.note||''];
+      }));
+      var ws=XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols']=[{wch:11},{wch:14},{wch:20},{wch:15},{wch:44},{wch:10},{wch:12},{wch:38},{wch:22},{wch:16},{wch:18},{wch:22},{wch:40}];
+      ws['!freeze']={xSplit:1,ySplit:1};
+      XLSX.utils.book_append_sheet(wb,ws,'Requests');
+
+      var bh=[['Title','Date','From','To','Room','Called by','Department','Invited','Emails','Phones','Virtual','Agenda']];
+      STORE.bookings.forEach(function(b){
+        var rm=STORE.rooms.find(function(r){ return r.id===b.roomId; });
+        bh.push([b.title,b.date,b.start,b.end,rm?rm.name:'Virtual only',b.by,b.dept||'',
+                 (b.attendees||[]).join(', '),(b.emails||[]).join(', '),(b.phones||[]).join(', '),b.virtual?'Yes':'No',b.agenda||'']);
+      });
+      var wb2=XLSX.utils.aoa_to_sheet(bh);
+      wb2['!cols']=[{wch:34},{wch:12},{wch:8},{wch:8},{wch:18},{wch:20},{wch:14},{wch:34},{wch:32},{wch:24},{wch:9},{wch:44}];
+      XLSX.utils.book_append_sheet(wb,wb2,'Meetings');
+
+      var ih=[['Item','Unit','Total requested','Times requested']];
+      var tally={};
+      STORE.requests.forEach(function(r){
+        ((r.details||{}).items||[]).forEach(function(i){
+          var k=i.name+'|'+i.unit;
+          if(!tally[k]) tally[k]={name:i.name,unit:i.unit,qty:0,n:0};
+          tally[k].qty+=+i.qty||0; tally[k].n++;
+        });
+      });
+      Object.keys(tally).forEach(function(k){ ih.push([tally[k].name,tally[k].unit,tally[k].qty,tally[k].n]); });
+      var wb3=XLSX.utils.aoa_to_sheet(ih);
+      wb3['!cols']=[{wch:30},{wch:16},{wch:16},{wch:16}];
+      XLSX.utils.book_append_sheet(wb,wb3,'Items ordered');
+
+      var dh=[['Name','Job title','Department','Email','Phone','Approval level']];
+      (STORE.contacts||[]).forEach(function(c){dh.push([c.name,c.title||'',c.dept||'',c.email||'',c.phone||'',c.approvalLevel||0]);});
+      var wd=XLSX.utils.aoa_to_sheet(dh);wd['!cols']=[{wch:24},{wch:24},{wch:18},{wch:34},{wch:20},{wch:14}];
+      XLSX.utils.book_append_sheet(wb,wd,'Company Directory');
+
+      var sh=[['Service','Description','Status']];
+      (STORE.services||[]).forEach(function(s){sh.push([s.name,s.description||'',s.active!==false?'Active':'Hidden']);});
+      var ws4=XLSX.utils.aoa_to_sheet(sh);ws4['!cols']=[{wch:28},{wch:54},{wch:12}];
+      XLSX.utils.book_append_sheet(wb,ws4,'Services');
+
+      XLSX.writeFile(wb,'Services_Portal_'+todayISO()+'.xlsx');
+      toast('Exported '+STORE.requests.length+' request(s) and '+STORE.bookings.length+' meeting(s)',true);
+    }catch(e){ toast('Export failed: '+(e&&e.message||e),false); }
+  };
+  if(window.XLSX) return go();
+  loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js')
+    .then(go).catch(function(){ toast('Could not load the Excel library — check the network',false); });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BOOT
+   ═══════════════════════════════════════════════════════════════════════════ */
+initWorkPlaceHubGate();
+PORTAL_LINK=readPortalLink();
+load(); loadMe(); applyPortalLink(); paintWho(); paintSync(); render(); loadSync();
+if(!ME) setTimeout(function(){ openWho(true); },500);
+
+</script>
+</body>
+</html>
