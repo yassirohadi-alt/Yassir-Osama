@@ -36,8 +36,9 @@ button{cursor:pointer}
 .appbar{position:sticky;top:0;z-index:60;background:var(--brand);color:#fff;
   display:flex;align-items:center;gap:14px;padding:0 18px;height:58px;
   box-shadow:0 2px 14px -6px rgba(16,24,40,.5)}
-.ab-logo{width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,.16);
-  display:grid;place-items:center;font-weight:800;font-size:13px;flex:0 0 auto;letter-spacing:-.5px}
+.ab-logo{width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.12);
+  display:grid;place-items:center;flex:0 0 auto;padding:5px}
+.ab-logo img{display:block;width:100%;height:100%;object-fit:contain}
 .ab-title{font-family:var(--disp);font-weight:800;font-size:16px;letter-spacing:.2px;white-space:nowrap}
 .ab-title small{display:block;font-size:10.5px;font-weight:600;opacity:.78;letter-spacing:.3px}
 .ab-spacer{flex:1}
@@ -331,8 +332,9 @@ table.t .ref{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--
 .hub-gate.hidden{display:none}
 .hub-gate-card{width:min(410px,94vw);background:#fff;color:var(--ink);border-radius:18px;padding:30px 28px 26px;
   box-shadow:0 30px 80px rgba(28,8,12,.45);text-align:center;border:1px solid rgba(255,255,255,.45)}
-.hub-gate-logo{width:62px;height:62px;border-radius:17px;margin:0 auto 15px;display:grid;place-items:center;
-  background:linear-gradient(135deg,var(--brand-deep),var(--brand-2));color:#fff;font-family:var(--disp);font-weight:900;font-size:20px}
+.hub-gate-logo{width:76px;height:76px;border-radius:19px;margin:0 auto 15px;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--brand-deep),var(--brand-2));padding:10px;box-shadow:0 8px 20px rgba(138,30,42,.18)}
+.hub-gate-logo img{display:block;width:100%;height:100%;object-fit:contain}
 .hub-gate-title{font-family:var(--disp);font-size:22px;font-weight:900;color:var(--brand-deep)}
 .hub-gate-sub{font-size:12.5px;color:var(--ink-3);line-height:1.55;margin:6px auto 19px}
 .hub-pin{width:100%;height:50px;border:1.5px solid var(--line);border-radius:11px;text-align:center;font-family:var(--mono);
@@ -365,7 +367,7 @@ table.t .ref{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--
 
 <div class="hub-gate" id="hubGate" role="dialog" aria-modal="true" aria-labelledby="hubGateTitle">
   <div class="hub-gate-card">
-    <div class="hub-gate-logo">KP</div>
+    <div class="hub-gate-logo"><img src="kp-logo-white.png" alt="Knowledge Papers company logo"></div>
     <div class="hub-gate-title" id="hubGateTitle">Work Place Hub</div>
     <div class="hub-gate-sub">Knowledge Papers internal services, requests and meetings.<br>Enter the 4-digit access PIN to continue.</div>
     <form onsubmit="unlockWorkPlaceHub(event)">
@@ -380,7 +382,7 @@ table.t .ref{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--
 </div>
 
 <div class="appbar">
-  <div class="ab-logo">KP</div>
+  <div class="ab-logo"><img src="kp-logo-white.png" alt="Knowledge Papers company logo"></div>
   <div class="ab-title">Work Place Hub<small id="abSub">Internal requests &amp; meetings</small></div>
   <div class="ab-spacer"></div>
   <a class="ab-btn" href="https://knowledge-papers.web.app/" target="_top" title="Back to the main projects portal" style="text-decoration:none">← Main Portal</a>
@@ -415,12 +417,12 @@ table.t .ref{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--
 
 var SK='kp_services_v1';
 var ROOM_DEFAULT='asimati-services';
-var PORTAL_BUILD='2026.08.25.15';
+var PORTAL_BUILD='2026.08.25.16';
 /* Meeting invitations must open the standalone hosted page. Loading the hub
    through an iframe/srcdoc gives it an about: URL, which is confusing for
    browser permission checks and makes troubleshooting microphone access much
    harder. Keep the meeting on the real Firebase HTTPS origin instead. */
-var PUBLIC_PORTAL_URL='https://knowledge-papers.web.app/services_portal.html?v=15';
+var PUBLIC_PORTAL_URL='https://knowledge-papers.web.app/services_portal.html?v=16';
 var MAIN_PORTAL_URL='https://knowledge-papers.web.app/';
 var GOOGLE_OAUTH_CLIENT_ID='602139029671-81nqjdon7ek9f5vlsbjmff1d2pqd5nq9.apps.googleusercontent.com';
 var GOOGLE_MEET_SCOPE='https://www.googleapis.com/auth/meetings.space.created';
@@ -642,7 +644,7 @@ function paintWho(){
   var role=ME?(ME.role==='admin'?'Admin':(level||ME.role==='approver'?'Approver':'Requester')):'';
   document.getElementById('whoAv').textContent=ME?initials(ME.name):'?';
   document.getElementById('whoName').textContent=ME?ME.name.split(' ')[0]:'Sign in';
-  document.getElementById('abSub').textContent=(ME?(ME.dept+' · '+role+(level?' · Approval L'+level:'')+(ME.role==='admin'&&!isAdmin()?' (locked)':'')):'Internal requests & meetings')+' · v15';
+  document.getElementById('abSub').textContent=(ME?(ME.dept+' · '+role+(level?' · Approval L'+level:'')+(ME.role==='admin'&&!isAdmin()?' (locked)':'')):'Internal requests & meetings')+' · v16';
   var ab=document.getElementById('adminAccessBtn');if(ab)ab.textContent=isAdmin()?'Admin centre':'Admin access';
 }
 function adminSessionOK(){
