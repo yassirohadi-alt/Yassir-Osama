@@ -5002,6 +5002,219 @@ body{
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',openFromInvitation);else openFromInvitation();
 })();
+/* ═══════════════════════════════════════════════════════════════════════════
+   v515 — AUTHORITATIVE EXCEL ROUND-TRIP + PERMANENT DEVELOPER DELETIONS
+
+   An imported tracker is the source of truth.  Row additions/deletions,
+   column additions/deletions, header renames and cell edits are all committed
+   to Firebase.  Empty imported tables are intentional, not a signal to seed
+   demo data again.  The same tombstone is used by Developer Console deletes.
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function(){
+document.addEventListener('DOMContentLoaded',function(){
+if(window.__v515) return; window.__v515=true;
+
+function S(v){ return String(v==null?'':v).trim(); }
+function N(v){ return S(v).toLowerCase().replace(/[\s_\-./()]+/g,' ').trim(); }
+function K(v,i){ var k=N(v).replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'').slice(0,28); return 'xl_'+(k||('column_'+i))+'_'+Math.random().toString(36).slice(2,6); }
+function num(v){ var n=parseFloat(S(v).replace(/[^0-9.\-]/g,'')); return isNaN(n)?0:n; }
+function date(v){ var m=S(v).match(/\d{4}-\d{2}-\d{2}/); return m?m[0]:S(v); }
+function stat(v){ var x=N(v); if(/not done|not started|pending|^n$|^no$|لم|غير/.test(x))return 'n'; if(/hold|معلق|توقف/.test(x))return 'h'; if(/progress|^p$|قيد|جاري/.test(x))return 'p'; if(/done|complete|paid|^d$|منجز|مكتمل/.test(x))return 'd'; return S(v); }
+function payStat(v){ var x=N(v); if(/progress|partial|قيد|جاري/.test(x))return 'In Progress'; if(/done|complete|paid|منجز|مدفوع/.test(x))return 'Done'; return 'Pending'; }
+function mark(p,ctx){ p.meta=p.meta||{}; p.meta.userManagedTables=p.meta.userManagedTables||{}; p.meta.userManagedTables[ctx]=true; p.meta.lastExcelImport=new Date().toISOString(); }
+function schemas(p){ return p._excelSchemas||(p._excelSchemas={}); }
+
+function defs(ctx){
+  if(ctx==='payments') return [
+    ['order','Order','text'],['poNo','PO No.','text'],['paymentNo','Payment No.','text'],['value','Value','number'],
+    ['currency','Currency','text'],['description','Description','text'],['status','Status','status'],['totalPo','Total PO Value','number']];
+  if(ctx==='survey') return [
+    ['code','MUM Code','text'],['name','Building Name','text'],['assignees','Assignees (اعداد المكلفين)','number'],
+    ['start','Start Time','date'],['update','Update Time','date'],['daily','Daily Number','number'],['tablet','Tablet No.','text'],['completion','Completion %','number']];
+  if(ctx==='resources') return [
+    ['empId','Employee ID','text'],['name','Employee Full Name (EN)','text'],['nameAr','Employee Full Name (AR)','text'],
+    ['position','Job Title (EN)','text'],['positionAr','Job Title (AR)','text'],['dept','Department','text'],['company','Company','text'],
+    ['project','Assigned Project','text'],['manager','Direct Manager','text'],['managerTitle','Manager Job Title','text'],
+    ['status','Status','text'],['resType','Type','text'],['empType','Employment','text'],['joinDate','Starting Date','date']];
+  if(ctx==='training'){
+    var a=[['name','Training Field','text']];
+    try{ (TR_STEPS||[]).forEach(function(x){a.push([x[0],x[2]||x[1]||x[0],'status']);}); }catch(e){}
+    a.push(['trainers','Trainers','number'],['notes','Notes','text']); return a;
+  }
+  if(ctx==='offices') return [
+    ['name','Service Office / Department','text'],['steps.corr','Correspondence','status'],['dates.corr','Corr Date','date'],
+    ['steps.resp','Response','status'],['dates.resp','Resp Date','date'],['responseType','Response Type','text'],
+    ['steps.visit1','First Visit','status'],['dates.visit1','Visit Date','date'],['steps.land','Land Allocation','status'],
+    ['steps.design','Designs','status'],['dates.design','Design Date','date'],['area','Land Area','text'],
+    ['steps.appOffice','Office Approval','status'],['steps.appBenef','Beneficiary Approval','status'],['steps.demarc','Demarcation','status'],
+    ['steps.workStart','Work Start','status'],['dates.workStart','Work Start Date','date'],['steps.workEnd','Completion','status'],
+    ['progress','Progress%','number'],['notes','Notes','text']];
+  if(ctx==='items') return [['group','Category','text'],['name','Item','text'],['status','Status','status'],['start','Start Date','date'],['end','End Date','date'],['notes','Notes','text']];
+  if(ctx==='milestones') return [['name','Name (English)','text'],['nameAr','Name (Arabic)','text'],['planPct','Plan%','number'],['actualPct','Actual%','number'],['variance','Variance','number'],['planStart','Plan Start','date'],['planEnd','Plan End','date'],['duration','Duration(days)','number'],['status','Status','status'],['actualLaunch','Launch','date'],['notes','Notes','text']];
+  if(ctx==='qa') return [['item','Inspection Item','text'],['standard','Standard','text'],['status','Status','status'],['notes','Notes','text']];
+  if(ctx==='risks') return [['risk','Risk / Issue','text'],['impact','Impact','text'],['prob','Probability','text'],['status','Status','text'],['owner','Owner','text'],['mitigation','Mitigation','text']];
+  if(ctx==='team') return [['name','Member','text'],['tasks.done','Done','number'],['tasks.prog','Active','number'],['tasks.pend','Pending','number'],['progress','Progress%','number']];
+  if(ctx==='phases') return [['name','Phase (English)','text'],['nameAr','Phase (Arabic)','text'],['planPct','Plan%','number'],['actualPct','Actual%','number']];
+  return [];
+}
+function baseSchema(p,ctx){
+  var saved=schemas(p)[ctx]; if(Array.isArray(saved)&&saved.length) return saved.map(function(c){return Object.assign({},c);});
+  var out=defs(ctx).map(function(d){return {key:d[0],label:d[1],type:d[2],builtin:true};});
+  var ck={payments:'payColumns',survey:'surveyColumns',resources:'customCols',training:'trainingColumns',offices:'soColumns',items:'itemColumns',milestones:'msColumns',qa:'qaColumns',risks:'riskColumns',team:'teamColumns',phases:'phaseColumns'}[ctx];
+  (p[ck]||[]).forEach(function(c){ if(c&&c.key)out.push({key:c.key,label:c.label||c.key,type:c.type||'text',builtin:false}); });
+  return out;
+}
+function reconcile(existing,headers,keyTags){
+  /* New exports carry a hidden stable-key row.  It makes simultaneous add,
+     delete and rename operations unambiguous: Excel moves the key with the
+     column, while a newly inserted column has no key. */
+  if(Array.isArray(keyTags)){
+    var known={};existing.forEach(function(c){known[c.key]=c;});var used={},out=[],added=[],renamed=[];
+    headers.forEach(function(h,i){var tag=S(keyTags[i]),hit=tag&&known[tag]&&!used[tag]?known[tag]:null;if(!hit){hit={key:K(h,i),label:h,type:'text',builtin:false};added.push(h);}else if(N(hit.label||hit.key)!==N(h))renamed.push((hit.label||hit.key)+' → '+h);used[hit.key]=1;out.push({key:hit.key,label:h,type:hit.type||'text',builtin:!!hit.builtin});});
+    return {cols:out,added:added,renamed:renamed,removed:existing.filter(function(c){return !used[c.key];}).map(function(c){return c.label||c.key;})};
+  }
+  var by={},present={}; existing.forEach(function(c){by[N(c.label||c.key)]=c;}); headers.forEach(function(h){present[N(h)]=1;});
+  var used={},out=[],added=[],renamed=[];
+  headers.forEach(function(h,i){
+    var hit=by[N(h)];
+    if(hit&&used[hit.key]) hit=null;
+    if(!hit){ var at=existing[i]; if(at&&!used[at.key]&&!present[N(at.label||at.key)]){ hit=at; renamed.push((at.label||at.key)+' → '+h); } }
+    if(!hit){ hit={key:K(h,i),label:h,type:'text',builtin:false}; added.push(h); }
+    used[hit.key]=1; out.push({key:hit.key,label:h,type:hit.type||'text',builtin:!!hit.builtin});
+  });
+  var removed=existing.filter(function(c){return !used[c.key];}).map(function(c){return c.label||c.key;});
+  return {cols:out,added:added,renamed:renamed,removed:removed};
+}
+function setv(o,key,v){
+  if(key.indexOf('.')<0){o[key]=v;return;}
+  var z=key.split('.'); o[z[0]]=o[z[0]]||{}; o[z[0]][z[1]]=v;
+}
+function getv(o,key){ if(key.indexOf('.')<0)return o[key]; var z=key.split('.'); return o[z[0]]&&o[z[0]][z[1]]; }
+function convert(ctx,c,v){
+  if(c.type==='number')return num(v); if(c.type==='date')return date(v);
+  if(c.type==='status') return ctx==='payments'?payStat(v):stat(v); return S(v);
+}
+function headerAt(rows,existing){
+  var labels={}; existing.forEach(function(c){labels[N(c.label||c.key)]=1;}); var best=-1,score=-1;
+  for(var i=0;i<Math.min(rows.length,20);i++){
+    var r=rows[i]||[], s=0, non=0; r.forEach(function(x){if(S(x)){non++;if(labels[N(x)])s+=3;}});
+    if(non>=2 && s+Math.min(non,4)>score){best=i;score=s+Math.min(non,4);}
+  }
+  return best;
+}
+function commitCustomStore(p,ctx,cols){
+  var ck={payments:'payColumns',survey:'surveyColumns',resources:'customCols',training:'trainingColumns',offices:'soColumns',items:'itemColumns',milestones:'msColumns',qa:'qaColumns',risks:'riskColumns',team:'teamColumns',phases:'phaseColumns'}[ctx]; if(!ck)return;
+  p[ck]=cols.filter(function(c){return !c.builtin;}).map(function(c){return {key:c.key,label:c.label,type:c.type||'text'};});
+}
+function importTable(p,ctx,rows){
+  var existing=baseSchema(p,ctx), hr=headerAt(rows,existing); if(hr<0)return {ok:false,reason:'header not found'};
+  var heads=(rows[hr]||[]).map(S), start=/^(#|no\.?|رقم)$/i.test(heads[0])?1:0;
+  var metaRow=(rows[hr+1]||[]),hasKeys=S(metaRow[0])==='__kp_keys__',keyTags=hasKeys?metaRow.slice(start):null,dataStart=hr+(hasKeys?2:1);
+  heads=heads.slice(start).filter(function(x){return x!=='';}); if(keyTags)keyTags=keyTags.slice(0,heads.length);
+  if(!heads.length)return {ok:false,reason:'no columns'};
+  var rec=reconcile(existing,heads,keyTags), listKey={payments:'payments',survey:'survey',resources:'resources',training:'training',offices:'sites',items:'items',milestones:'milestones',qa:'qa',risks:'risks',team:'team',phases:'phases'}[ctx];
+  var out=[];
+  for(var i=dataStart;i<rows.length;i++){
+    var src=rows[i]||[], vals=src.slice(start,start+heads.length); if(!vals.some(function(x){return S(x)!=='';}))continue;
+    var o={id:ctx.slice(0,2)+Date.now()+'_'+i}; if(ctx==='offices'){o.steps={};o.dates={};} if(ctx==='team')o.tasks={};
+    rec.cols.forEach(function(c,j){ var v=convert(ctx,c,vals[j]); if(ctx==='resources'&&!c.builtin){o.custom=o.custom||{};o.custom[c.key]=v;}else setv(o,c.key,v); });
+    /* Do not recreate a deleted Excel column with defaults.  Missing fields
+       are allowed; the visual tracker already renders them as blank. */
+    if(ctx==='survey')o.nameAr=o.nameAr||'';
+    if(ctx==='resources'){o.workload=40;o.overtime=0;}
+    out.push(o);
+  }
+  var before=Array.isArray(p[listKey])?p[listKey].length:0; p[listKey]=out; schemas(p)[ctx]=rec.cols; commitCustomStore(p,ctx,rec.cols); mark(p,ctx==='offices'?'sites':ctx);
+  if(ctx==='training')try{trRecompute(p);}catch(e){}
+  if(ctx==='offices')try{recomputeOfficePhases(p);p.progress=soOverall(p);}catch(e){}
+  return {ok:true,ctx:ctx,rows:out.length,deleted:Math.max(0,before-out.length),added:rec.added,removed:rec.removed,renamed:rec.renamed};
+}
+function exportRows(p,ctx){
+  var cols=baseSchema(p,ctx), listKey={payments:'payments',survey:'survey',resources:'resources',training:'training',offices:'sites',items:'items',milestones:'milestones',qa:'qa',risks:'risks',team:'team',phases:'phases'}[ctx], list=p[listKey]||[];
+  var rows=[['#'].concat(cols.map(function(c){return c.label;})),['__kp_keys__'].concat(cols.map(function(c){return c.key;}))];
+  list.forEach(function(o,i){ rows.push([i+1].concat(cols.map(function(c){ var v=(ctx==='resources'&&!c.builtin)?(o.custom&&o.custom[c.key]):getv(o,c.key); if(c.key==='completion')v=(typeof svPct==='function'?svPct(o):v); if(c.key==='progress'&&typeof soPct==='function')v=soPct(o); if(c.key==='totalPo')v=''; if(c.type==='status'&&ctx!=='payments')v=v==='d'?'Done':v==='p'?'In Progress':v==='h'?'On Hold':'Not Done'; return v==null?'':v; }))); });
+  return rows;
+}
+window.__kpImportTable=importTable; window.__kpExportRows=exportRows;
+
+function ctxFor(p){ if(typeof hasResourceModel==='function'&&hasResourceModel(p))return 'resources'; if(typeof hasPaymentModel==='function'&&hasPaymentModel(p))return 'payments'; if(typeof hasSurveyModel==='function'&&hasSurveyModel(p))return 'survey'; if(p&&p.meta&&p.meta.trainingModel)return 'training'; if(typeof hasServiceOffices==='function'&&hasServiceOffices(p))return 'offices'; if(typeof hasDataCenterModel==='function'&&hasDataCenterModel(p))return 'items'; return ''; }
+function sheetRows(wb,ctx){
+  var re={resources:/resource|staff|employee/i,payments:/payment|finance|دفع/i,survey:/survey|المسح|ميدان/i,training:/training|site tracker/i,offices:/service office|department|مكاتب|الخدمة/i,items:/data center|مركز البيانات/i}[ctx];
+  var sn=wb.SheetNames.find(function(n){return re.test(n);})||wb.SheetNames[0];
+  return XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,blankrows:true,raw:false,defval:''});
+}
+function importFile(file,p,ctx){
+  loadXLSX(function(){ var rd=new FileReader(); rd.onload=function(ev){try{
+    var wb=XLSX.read(ev.target.result,{type:'array',raw:false}), res=importTable(p,ctx,sheetRows(wb,ctx));
+    if(!res.ok){toast('Import failed: '+res.reason,false);return;} p.meta.sourceFile=file.name; persist(p.id); try{renderProjectView(p.id);}catch(e){}
+    var bits=[res.rows+' row(s)']; if(res.added.length)bits.push(res.added.length+' column(s) added'); if(res.renamed.length)bits.push(res.renamed.length+' renamed'); if(res.removed.length)bits.push(res.removed.length+' removed'); if(res.deleted)bits.push(res.deleted+' row(s) deleted');
+    toast('Excel applied permanently · '+bits.join(' · '),true);
+  }catch(e){console.error(e);toast('Could not read workbook: '+e.message,false);}}; rd.readAsArrayBuffer(file); });
+}
+var oldHandle=window.handleExcelUpload;
+function genericImport(file,p){
+  loadXLSX(function(){var rd=new FileReader();rd.onload=function(ev){try{
+    var wb=XLSX.read(ev.target.result,{type:'array',raw:false}),reports=[];
+    function rows(sn){return XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,blankrows:true,raw:false,defval:''});}
+    var map=[[/^milestones$/i,'milestones'],[/^qa[ -]?qc$/i,'qa'],[/^risks?$/i,'risks'],[/^team$/i,'team'],[/^(progress|phase progress)$/i,'phases']];
+    map.forEach(function(m){var sn=wb.SheetNames.find(function(n){return m[0].test(n);});if(sn){var z=importTable(p,m[1],rows(sn));if(z.ok)reports.push(z);}});
+    var st=wb.SheetNames.find(function(n){return /^site tracker$/i.test(n);});if(st&&typeof importTrackerSheet==='function'){var z=importTrackerSheet(p,rows(st));if(z&&z.ok){mark(p,'sites');reports.push({rows:z.sites||0,added:z.added||[],removed:z.removed||[],renamed:z.renamed||[],deleted:(z.deletedRows||[]).length});}}
+    var sm=wb.SheetNames.find(function(n){return /^summary$/i.test(n);});if(sm){rows(sm).forEach(function(r){var k=N(r[0]),v=S(r[1]);if(!v)return;if(/project name arabic|الاسم عرب/.test(k))p.name=v;if(/project name english|الاسم انج/.test(k))p.nameEn=v;});}
+    if(!reports.length){oldHandle(file);return;} persist(p.id);try{renderProjectView(p.id);renderHub();}catch(e){}
+    var rr=reports.reduce(function(a,x){a.rows+=x.rows||0;a.added+=(x.added||[]).length;a.removed+=(x.removed||[]).length;a.renamed+=(x.renamed||[]).length;a.deleted+=x.deleted||0;return a;},{rows:0,added:0,removed:0,renamed:0,deleted:0});
+    toast('Workbook applied permanently · '+rr.rows+' row(s) · '+rr.added+' added column(s) · '+rr.renamed+' renamed · '+rr.removed+' removed',true);
+  }catch(e){console.error(e);toast('Could not read workbook: '+e.message,false);}};rd.readAsArrayBuffer(file);});
+}
+window.handleExcelUpload=function(file){ var p=projByID(CUR_PROJ),ctx=ctxFor(p); if(ctx){importFile(file,p,ctx);return;} if(p&&!(typeof isPhaseModel==='function'&&isPhaseModel(p))){genericImport(file,p);return;} return oldHandle.apply(this,arguments); };
+window.trImport=function(file){ var p=(typeof trProj==='function'?trProj():projByID('p6')); if(p)importFile(file,p,'training'); };
+
+var oldExport=window.exportExcel;
+function exportOne(p,ctx){ loadXLSX(function(){var wb=XLSX.utils.book_new(),data=exportRows(p,ctx),ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=(data[0]||[]).map(function(h){return {wch:Math.min(45,Math.max(12,S(h).length+4))};});ws['!rows']=[{}, {hidden:true}];var nm={resources:'Resources',payments:'Payments',survey:'Field Survey',training:'Training',offices:'Service Offices',items:'Data Center'}[ctx];XLSX.utils.book_append_sheet(wb,ws,nm);XLSX.writeFile(wb,(p.nameEn||p.name||nm).replace(/[\\/:*?"<>|]/g,' ').slice(0,40)+'.xlsx');toast('Excel exported · this file can add, rename or delete any row/column',true);}); }
+function genericExport(p){loadXLSX(function(){var wb=XLSX.utils.book_new();function add(data,n){var ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=(data[0]||[]).map(function(h){return {wch:Math.min(45,Math.max(12,S(h).length+4))};});if(data[1]&&data[1][0]==='__kp_keys__')ws['!rows']=[{}, {hidden:true}];XLSX.utils.book_append_sheet(wb,ws,n);}add([['Field','Value'],['Project Name (Arabic)',p.name||''],['Project Name (English)',p.nameEn||'']], 'Summary');if((p.phases||[]).length)add(exportRows(p,'phases'),'Progress');if((p.sites||[]).length&&typeof siteTrackerExportRows==='function')add(siteTrackerExportRows(p),'Site Tracker');add(exportRows(p,'milestones'),'Milestones');add(exportRows(p,'qa'),'QA-QC');add(exportRows(p,'risks'),'Risks');add(exportRows(p,'team'),'Team');XLSX.writeFile(wb,(p.nameEn||p.name||'Project').replace(/[\\/:*?"<>|]/g,' ').slice(0,40)+'.xlsx');toast('Workbook exported · every data sheet is authoritative on import',true);});}
+window.exportExcel=function(){var p=projByID(CUR_PROJ),ctx=ctxFor(p);if(ctx){exportOne(p,ctx);return;}if(p&&!(typeof isPhaseModel==='function'&&isPhaseModel(p))){genericExport(p);return;}return oldExport.apply(this,arguments);};
+window.trExport=function(){var p=(typeof trProj==='function'?trProj():projByID('p6'));if(p)exportOne(p,'training');};
+
+/* Developer Console: permanent row deletion and no self-healing afterwards. */
+function listKey(ctx){return {payments:'payments',offices:'sites',survey:'survey',training:'training',sites:'sites',milestones:'milestones',risks:'risks',items:'items',resources:'resources',qa:'qa',team:'team',phases:'phases'}[ctx];}
+var oldAdd=window.devAddRow;
+window.devAddRow=function(ctx){var r=oldAdd.apply(this,arguments),p=(typeof _devCurProj==='function'?_devCurProj():null);if(p){mark(p,ctx==='offices'||ctx==='sites'?'sites':ctx);persist(p.id);}return r;};
+window.devDeleteRow=function(ctx,i){if(!isEditor())return;var p=_devCurProj(),k=listKey(ctx),a=p&&p[k];if(!Array.isArray(a)||!a[i])return;if(!confirm('Delete this row permanently?'))return;a.splice(i,1);mark(p,ctx==='offices'||ctx==='sites'?'sites':ctx);_devApply(p.id,'row','delete ('+ctx+')');};
+window.devClearRows=function(ctx){if(!isEditor())return;var p=_devCurProj(),k=listKey(ctx);if(!p||!k)return;if(!confirm('Clear ALL rows permanently? The empty table will stay empty after refresh.'))return;p[k]=[];mark(p,ctx==='offices'||ctx==='sites'?'sites':ctx);_devApply(p.id,'row','clear ('+ctx+')');};
+function rowButtons(ctx,p){var k=listKey(ctx),a=(p&&p[k])||[];if(!a.length)return '<div class="dev-empty">No rows. This empty table will remain empty.</div>';return '<div class="dev-col-list">'+a.map(function(r,i){var nm=r.name||r.order||r.code||r.item||r.risk||('Row '+(i+1));return '<div class="dev-col-row"><span class="dev-col-hd">#'+(i+1)+'</span><span>'+esc(String(nm))+'</span><span class="dev-col-badge">ROW</span><button class="dev-btn dev-btn-danger" onclick="devDeleteRow(\''+ctx+'\','+i+')">✕</button></div>';}).join('')+'</div>';}
+/* Column changes in Developer use the same schema as Excel, including
+   built-in columns.  Delete means delete, not "hide until refresh". */
+window.devAddCol=function(ctx){
+  if(!isEditor())return; if(ctx==='sites'){addSiteColumn(_devCurProj().id);renderDevConsole();return;}
+  var p=_devCurProj(); if(!p||!defs(ctx).length)return; var label=prompt('New column name:','');if(!label)return;
+  var type=(prompt('Column type: text / number / date / status','text')||'text').toLowerCase();
+  var a=baseSchema(p,ctx),c={key:K(label,a.length),label:S(label),type:type,builtin:false};a.push(c);schemas(p)[ctx]=a;commitCustomStore(p,ctx,a);mark(p,ctx==='offices'?'sites':ctx);_devApply(p.id,'column','add ('+ctx+') '+label);
+};
+window.devRenameCol=function(ctx,key,label){
+  if(!isEditor()||!S(label))return;if(ctx==='sites'){renameSiteCol(_devCurProj().id,key,S(label));_devApply(_devCurProj().id,'column','rename (sites)');return;}
+  var p=_devCurProj();if(!p)return;var a=baseSchema(p,ctx),c=a.find(function(x){return x.key===key;});if(!c)return;c.label=S(label);schemas(p)[ctx]=a;commitCustomStore(p,ctx,a);mark(p,ctx==='offices'?'sites':ctx);_devApply(p.id,'column','rename ('+ctx+') '+label);
+};
+window.devDelCol=function(ctx,key){
+  if(!isEditor())return;if(ctx==='sites'){delSiteCol(_devCurProj().id,key);renderDevConsole();return;}
+  var p=_devCurProj();if(!p)return;var a=baseSchema(p,ctx),i=a.findIndex(function(x){return x.key===key;});if(i<0)return;
+  if(!confirm('Delete column "'+(a[i].label||key)+'" permanently?'))return;a.splice(i,1);schemas(p)[ctx]=a;commitCustomStore(p,ctx,a);
+  var lk=listKey(ctx);(p[lk]||[]).forEach(function(r){if(!r)return;if(ctx==='resources'&&r.custom)delete r.custom[key];else if(key.indexOf('.')<0)delete r[key];else{var z=key.split('.');if(r[z[0]])delete r[z[0]][z[1]];}});
+  mark(p,ctx==='offices'?'sites':ctx);_devApply(p.id,'column','delete ('+ctx+') '+key);
+};
+function fullDevPanel(ctx,p,title){
+  var a=baseSchema(p,ctx),n=((p&&p[listKey(ctx)])||[]).length;
+  return '<div class="dev-stat-grid"><div class="dev-stat"><div class="dev-stat-v">'+n+'</div><div class="dev-stat-k">Rows</div></div><div class="dev-stat"><div class="dev-stat-v">'+a.length+'</div><div class="dev-stat-k">Columns</div></div></div>'+
+    '<div class="dev-sec"><div class="dev-sec-h"><div class="dev-sec-t">'+esc(title)+' columns</div><div class="dev-actions"><button class="dev-btn" onclick="devAddCol(\''+ctx+'\')">＋ Add Column</button></div></div>'+_devColList(a,ctx)+'</div>'+
+    '<div class="dev-sec"><div class="dev-sec-h"><div class="dev-sec-t">Permanent row control</div><div class="dev-actions"><button class="dev-btn" onclick="devAddRow(\''+ctx+'\')">＋ Add Row</button><button class="dev-btn dev-btn-danger" onclick="devClearRows(\''+ctx+'\')">Clear All</button></div></div>'+rowButtons(ctx,p)+'</div>';
+}
+window._devPanelPayments=function(p){return fullDevPanel('payments',p,'Payments');};
+window._devPanelOffices=function(p){return fullDevPanel('offices',p,'Service Offices');};
+window._devPanelSurvey=function(p){return fullDevPanel('survey',p,'Field Survey');};
+window._devPanelTraining=function(p){return fullDevPanel('training',p,'Training');};
+function wrapPanel(name,ctx){var o=window[name];if(typeof o!=='function')return;window[name]=function(p){var h=o.apply(this,arguments);return h+'<div class="dev-sec"><div class="dev-sec-h"><div class="dev-sec-t">Permanent row control</div></div>'+rowButtons(ctx,p)+'</div>';};}
+['Sites:sites','Milestones:milestones','Risks:risks'].forEach(function(x){var a=x.split(':');wrapPanel('_devPanel'+a[0],a[1]);});
+});
+})();
+
 </script>
 
 </body>
@@ -5160,6 +5373,9 @@ function ensureInfraData(){
     const seed=PROJECTS_SEED.find(x=>x.id==='p4');
     if(!seed||!seed.sites||!seed.sites.length) return false;
     const cur=mp.find(x=>x.id==='p4');
+    /* An empty tracker can be a deliberate Excel/Developer result. In that
+       case it is authoritative and must never be silently refilled. */
+    if(cur&&cur.meta&&cur.meta.userManagedTables&&cur.meta.userManagedTables.sites) return false;
     const isEmpty=!cur || ((!cur.sites||!cur.sites.length) && (!cur.milestones||!cur.milestones.length));
     if(!isEmpty) return false;
     const filled=JSON.parse(JSON.stringify(seed));
@@ -6963,6 +7179,7 @@ function isBuiltProject(p){
 /* Fill an empty Systems project with the 22-system seed so it's never blank. */
 function ensureSystemsData(p){
   if(!p) return;
+  if(p.meta&&p.meta.userManagedTables&&p.meta.userManagedTables.milestones) return;
   if(Array.isArray(p.milestones) && p.milestones.length>0) return; // already has data
   if(!looksLikeSystemsProject(p)) return;
   const seed=PROJECTS_SEED.find(x=>x.id==='p1');
@@ -7130,6 +7347,7 @@ function ensureResourceData(){
     if(!Array.isArray(mp)) return false;
     var p=mp.find(function(x){return x&&x.id==='p9';});
     if(!p) return false;
+    if(p.meta&&p.meta.userManagedTables&&p.meta.userManagedTables.resources) return false;
     if(p.meta&&p.meta.resDataVer==='kp-excel-v1') return false;
     // Real staff roster — sourced from Database_Mr_Yasir.xlsx (Knowledge Papers · Project Management)
     var R=[
@@ -7773,6 +7991,7 @@ function ensurePaymentData(){
     } else if(legacy&&legacy.length&&(!eq.payments||!eq.payments.length)){
       eq.payments=legacy; changed=true;
     }
+    if(eq.meta&&eq.meta.userManagedTables&&eq.meta.userManagedTables.payments) return changed;
     if(!Array.isArray(eq.payments)||!eq.payments.length){ eq.payments=PAY_SEED(); changed=true; }
     return changed;
   }catch(e){ return false; }
@@ -7979,6 +8198,7 @@ function ensureFieldSurvey(){
     if(!target){ target={id:'p11',name:'المسح الميداني',nameEn:'Field Survey',icon:'survey',progress:0,phases:[],milestones:[],qa:[],budget:[],risks:[],team:[],sites:[],documents:[],meta:{}}; arr.push(target); changed=true; }
     target.meta=target.meta||{};
     if(!target.meta.surveyModel){ target.survey=(Array.isArray(target.survey)&&target.survey.length)?target.survey:SURVEY_SEED(); target.meta.surveyModel=true; if(!target.nameEn||/^\s*$/.test(target.nameEn)){target.nameEn='Field Survey';} changed=true; }
+    if(target.meta&&target.meta.userManagedTables&&target.meta.userManagedTables.survey) return changed;
     if(!Array.isArray(target.survey)||!target.survey.length){ target.survey=SURVEY_SEED(); changed=true; }
     return changed;
   }catch(e){ return false; }
@@ -14031,6 +14251,7 @@ function ensureTrainingData(){
     if(typeof PROJECTS_SEED==='undefined'||!STORE||!Array.isArray(STORE.projects))return false;
     var seed=PROJECTS_SEED.find(function(x){return x&&x.id===TR_PID;}); if(!seed)return false;
     var cur=STORE.projects.find(function(x){return x&&x.id===TR_PID;});
+    if(cur&&cur.meta&&cur.meta.userManagedTables&&cur.meta.userManagedTables.training) return false;
     if(!cur){ STORE.projects.push(JSON.parse(JSON.stringify(seed))); return true; }
     if(Array.isArray(cur.training)&&cur.training.length)return false;   // user data present → leave alone
     var fresh=JSON.parse(JSON.stringify(seed));
