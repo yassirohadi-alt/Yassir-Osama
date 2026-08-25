@@ -9,6 +9,7 @@
 <title>Knowledge Papers — Work Place Hub</title>
 <link rel="icon" type="image/png" href="/Logo%20PNG.png">
 <link rel="apple-touch-icon" href="/Logo%20PNG.png">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root{
   --brand:#B12836; --brand-2:#CB2E28; --brand-deep:#8A1E2A; --brand-soft:#F7E3E5; --brand-light:rgba(177,40,54,.08);
@@ -234,6 +235,19 @@ table.t .ref{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--
 .vr-btn:disabled{opacity:.45;cursor:not-allowed}
 .vr-side{display:flex;flex-direction:column;gap:12px}
 .vr-people{max-height:330px;overflow-y:auto}
+.vr-files{max-height:250px;overflow-y:auto}
+.vf{display:flex;align-items:center;gap:9px;padding:10px 12px;border-bottom:1px solid var(--line-soft)}
+.vf:last-child{border-bottom:none}
+.vf-icon{width:30px;height:30px;border-radius:8px;background:#EEF3FA;color:#41618A;
+  display:grid;place-items:center;flex:0 0 auto}
+.vf-icon svg{width:15px;height:15px}
+.vf-main{min-width:0;flex:1}
+.vf-name{font-size:11.5px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vf-meta{font-size:9.5px;color:var(--muted);font-weight:650;margin-top:2px}
+.vf-get{border:1px solid var(--line);background:#fff;color:var(--ink-2);border-radius:7px;
+  padding:5px 7px;display:grid;place-items:center}
+.vf-get:hover{border-color:var(--brand);color:var(--brand)}
+.vf-get svg{width:14px;height:14px}
 .vp{display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid var(--line-soft)}
 .vp:last-child{border-bottom:none}
 .vp-av{width:30px;height:30px;border-radius:99px;background:var(--brand-soft);color:var(--brand-deep);
@@ -356,6 +370,8 @@ table.t .ref{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--
       <button class="btn hub-gate-btn" type="submit">Open Work Place Hub</button>
     </form>
     <a class="hub-gate-back" href="https://knowledge-papers.web.app/" target="_top">← Back to Projects Dashboard</a>
+    <span style="color:var(--line);margin:0 7px">·</span>
+    <a class="hub-gate-back" href="/privacy.html" target="_blank" rel="noopener">Privacy</a>
   </div>
 </div>
 
@@ -395,13 +411,25 @@ table.t .ref{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--
 
 var SK='kp_services_v1';
 var ROOM_DEFAULT='asimati-services';
-var PORTAL_BUILD='2026.08.24.11';
+var PORTAL_BUILD='2026.08.25.14';
 /* Meeting invitations must open the standalone hosted page. Loading the hub
    through an iframe/srcdoc gives it an about: URL, which is confusing for
    browser permission checks and makes troubleshooting microphone access much
    harder. Keep the meeting on the real Firebase HTTPS origin instead. */
-var PUBLIC_PORTAL_URL='https://knowledge-papers.web.app/services_portal.html?v=11';
+var PUBLIC_PORTAL_URL='https://knowledge-papers.web.app/services_portal.html?v=14';
 var MAIN_PORTAL_URL='https://knowledge-papers.web.app/';
+var GOOGLE_OAUTH_CLIENT_ID='602139029671-81nqjdon7ek9f5vlsbjmff1d2pqd5nq9.apps.googleusercontent.com';
+var GOOGLE_MEET_SCOPE='https://www.googleapis.com/auth/meetings.space.created';
+var GOOGLE_MEET_API_URL='https://meet.googleapis.com/v2/spaces';
+/* Google access tokens are deliberately kept only in page memory. They are
+   never written to Firebase, localStorage or the meeting booking record. */
+var GOOGLE_MEET_TOKEN='';
+var GOOGLE_MEET_TOKEN_EXPIRES=0;
+/* LiveKit handles meeting media through an SFU instead of the old browser
+   mesh. The token endpoint returns a short-lived participant token and the
+   project WebSocket URL. LiveKit API secrets stay inside Cloud Functions. */
+var LIVEKIT_TOKEN_ENDPOINT='https://me-central1-knowledge-papers.cloudfunctions.net/livekitToken';
+var LIVEKIT_SDK_URL='https://cdn.jsdelivr.net/npm/livekit-client@2.22.0/dist/livekit-client.umd.min.js';
 var FIREBASE_DEFAULT={
   databaseURL:'https://knowledge-papers-default-rtdb.firebaseio.com',
   projectId:'knowledge-papers',
@@ -610,7 +638,7 @@ function paintWho(){
   var role=ME?(ME.role==='admin'?'Admin':(level||ME.role==='approver'?'Approver':'Requester')):'';
   document.getElementById('whoAv').textContent=ME?initials(ME.name):'?';
   document.getElementById('whoName').textContent=ME?ME.name.split(' ')[0]:'Sign in';
-  document.getElementById('abSub').textContent=(ME?(ME.dept+' · '+role+(level?' · Approval L'+level:'')+(ME.role==='admin'&&!isAdmin()?' (locked)':'')):'Internal requests & meetings')+' · v7';
+  document.getElementById('abSub').textContent=(ME?(ME.dept+' · '+role+(level?' · Approval L'+level:'')+(ME.role==='admin'&&!isAdmin()?' (locked)':'')):'Internal requests & meetings')+' · v14';
   var ab=document.getElementById('adminAccessBtn');if(ab)ab.textContent=isAdmin()?'Admin centre':'Admin access';
 }
 function adminSessionOK(){
@@ -741,6 +769,9 @@ function openWho(forced){
     } else if(role!=='admin'){
       try{ sessionStorage.removeItem(ADMIN_SESSION_KEY); }catch(e){}
     }
+    /* A portal identity change must never inherit another organiser's Google
+       token, even when multiple employees share one workstation. */
+    GOOGLE_MEET_TOKEN='';GOOGLE_MEET_TOKEN_EXPIRES=0;
     ME={ id:(ME&&ME.id)||uid('u'), name:n, dept:m.querySelector('#wd').value, role:role,
          email:m.querySelector('#we').value.trim(),phone:m.querySelector('#wp').value.trim() };
     saveMe(); close(); render();
@@ -847,6 +878,8 @@ var I={
   mic:'<path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/>',
   micOff:'<path d="M1 1l22 22"/><path d="M9 9v2a3 3 0 0 0 5.1 2.1M15 9.3V5a3 3 0 0 0-5.9-.7"/><path d="M19 10v1a7 7 0 0 1-.6 2.8M12 18v4M8 22h8M5 10v1a7 7 0 0 0 11 5.7"/>',
   screen:'<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>',
+  file:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h6"/>',
+  download:'<path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/>',
   search:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
   plus:'<path d="M12 5v14M5 12h14"/>',
   edit:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z"/>',
@@ -865,7 +898,7 @@ var NAV=[
   {id:'car',    n:'Request a vehicle',i:'car'},
   {id:'rooms',  n:'Meeting rooms',    i:'door'},
   {id:'meet',   n:'Call a meeting',   i:'cal'},
-  {id:'virtual',n:'Virtual room',     i:'video'},
+  {id:'virtual',n:'Backup room',      i:'video'},
   {sec:'Supplies'},
   {id:'stationery',n:'Stationery',    i:'pen'},
   {id:'it',        n:'IT support',    i:'chip'},
@@ -957,8 +990,8 @@ function vHome(){
   var svc=[
     ['car','Request a vehicle','Book a car or van with a driver, for a trip on a set date and time.','car'],
     ['rooms','Reserve a meeting room','See what is free today and take a slot in one tap.','door'],
-    ['meet','Call a meeting','Set an agenda, invite people, and reserve a room or go virtual.','cal'],
-    ['virtual','Open a virtual room','Talk over microphone and present your screen, in the browser.','video'],
+    ['meet','Call a meeting','Set an agenda, invite people, and create a Google Meet invitation.','cal'],
+    ['virtual','Open a backup room','LiveKit fallback for an internal call if Google Meet is unavailable.','video'],
     ['stationery','Order stationery','Paper, pens, files and everything else from the store cupboard.','pen'],
     ['it','Ask IT for help','Report a fault or request equipment, software or access.','chip'],
     ['warehouse','Request from the warehouse','Draw equipment, cabling, tools or safety kit from stock.','box']
@@ -1130,7 +1163,7 @@ function vRooms(){
         +'style="border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px">'
       +'<div style="margin-left:auto;font-size:11px;color:var(--muted)">'
         +'<span class="chip c-done" style="background:var(--brand);color:#fff"><i></i>Booked</span> '
-        +'<span class="chip c-done" style="background:#41618A;color:#fff"><i></i>Has a virtual room</span></div>'
+        +'<span class="chip c-done" style="background:#41618A;color:#fff"><i></i>Has an online room</span></div>'
     +'</div><div class="tl-body"><div class="tl-grid">'+head+rows+'</div></div></div>';
 }
 function toMin(t){ var p=String(t||'0:0').split(':'); return (+p[0]||0)*60+(+p[1]||0); }
@@ -1256,11 +1289,82 @@ function requireApprovers(prefix){
   var a=collectApprovers(prefix);if(!a.length){toast('Select at least one required approver',false);return null;}return a;
 }
 
+/* ── Google Meet OAuth (per organiser) ──────────────────────────────────── */
+function requestGoogleMeetAccessToken(){
+  if(GOOGLE_MEET_TOKEN&&Date.now()<GOOGLE_MEET_TOKEN_EXPIRES-60000){
+    return Promise.resolve(GOOGLE_MEET_TOKEN);
+  }
+  return new Promise(function(resolve,reject){
+    if(!window.google||!google.accounts||!google.accounts.oauth2){
+      reject(new Error('Google sign-in is still loading. Check the internet connection and try again.'));
+      return;
+    }
+    var settled=false;
+    var timer=setTimeout(function(){
+      if(!settled){settled=true;reject(new Error('Google sign-in timed out. Please try again.'));}
+    },120000);
+    function finish(fn,value){
+      if(settled)return;settled=true;clearTimeout(timer);fn(value);
+    }
+    try{
+      var client=google.accounts.oauth2.initTokenClient({
+        client_id:GOOGLE_OAUTH_CLIENT_ID,
+        scope:GOOGLE_MEET_SCOPE,
+        callback:function(response){
+          if(!response||response.error||!response.access_token){
+            finish(reject,new Error((response&&response.error_description)||
+              (response&&response.error)||'Google authorization was not completed.'));
+            return;
+          }
+          if(google.accounts.oauth2.hasGrantedAllScopes&&
+             !google.accounts.oauth2.hasGrantedAllScopes(response,GOOGLE_MEET_SCOPE)){
+            finish(reject,new Error('Permission to create a Google Meet link was not granted.'));
+            return;
+          }
+          GOOGLE_MEET_TOKEN=response.access_token;
+          GOOGLE_MEET_TOKEN_EXPIRES=Date.now()+(Math.max(60,+response.expires_in||3600)*1000);
+          finish(resolve,GOOGLE_MEET_TOKEN);
+        },
+        error_callback:function(error){
+          var kind=(error&&error.type)||'Google sign-in was closed.';
+          finish(reject,new Error(kind));
+        }
+      });
+      client.requestAccessToken();
+    }catch(error){finish(reject,error);}
+  });
+}
+async function createGoogleMeetSpace(){
+  var token=await requestGoogleMeetAccessToken();
+  var response=await fetch(GOOGLE_MEET_API_URL,{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+    body:'{}'
+  });
+  var textBody=await response.text(),data={};
+  try{data=textBody?JSON.parse(textBody):{};}catch(ignore){}
+  if(!response.ok){
+    if(response.status===401){GOOGLE_MEET_TOKEN='';GOOGLE_MEET_TOKEN_EXPIRES=0;}
+    var detail=data&&data.error&&data.error.message?data.error.message:('HTTP '+response.status);
+    throw new Error(detail);
+  }
+  if(!data.meetingUri)throw new Error('Google created the meeting space without a join link. Please try again.');
+  return data;
+}
+function googleMeetErrorText(error){
+  var msg=String(error&&error.message||error||'Unknown error');
+  if(/popup_closed|closed/i.test(msg))return 'Google sign-in was closed. Click Create & Send Invitation and choose your Google account.';
+  if(/popup_failed|popup.*open/i.test(msg))return 'The Google sign-in window was blocked. Allow pop-ups for this portal and try again.';
+  if(/access_denied|not.*test|permission|eligible|403/i.test(msg))return 'This Google account is not allowed yet. While the app is in Testing, Admin must add its Gmail address as an OAuth test user.';
+  if(/origin|redirect_uri_mismatch/i.test(msg))return 'This website address is not authorized in the Google OAuth client. Ask Admin to check the authorized JavaScript origins.';
+  return 'Google Meet could not be created: '+msg;
+}
+
 /* ── Call a meeting ──────────────────────────────────────────────────────── */
 function vMeet(){
   var pre=MEET_PRE||{}; MEET_PRE=null;
   return pageHead('Call a meeting',
-      'Set the agenda and invite people. Reserve a room, open a virtual room, or both.')
+      'Set the agenda and invite people. Reserve a room, create a Google Meet link, or both.')
     +'<div class="split"><div class="card"><div class="card-h"><div class="card-t">'
       +'<span class="ico">'+ico('cal')+'</span>Meeting details</div></div><div class="card-b">'
     +'<div class="form">'
@@ -1280,17 +1384,18 @@ function vMeet(){
       +fld('mPhones','Invite by phone','<input id="mPhones" type="text" inputmode="tel" placeholder="07xxxxxxxxx, +9647xxxxxxxxx">',
           'Add one or more phone numbers. The portal will prepare the invitation in Messages/SMS.',true)
       +fld('mAg','Agenda','<textarea id="mAg" placeholder="What will be covered?"></textarea>','',true)
-      +'<div class="fld wide"><label>Virtual room</label>'
+      +'<div class="fld wide"><label>Online meeting</label>'
         +'<label style="display:flex;gap:9px;align-items:flex-start;background:#F4F6F9;border:1px solid var(--line-soft);'
         +'border-radius:9px;padding:12px;cursor:pointer;font-size:12.5px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-2)">'
-        +'<input type="checkbox" id="mVirt" style="width:16px;height:16px;margin-top:1px;accent-color:var(--brand)">'
-        +'<span><b>Also open a virtual room</b><br><span style="font-size:11.5px;color:var(--ink-3)">'
-        +'Everyone invited can join from the browser, speak over microphone and present their screen.</span></span></label></div>'
+        +'<input type="checkbox" id="mVirt" checked style="width:16px;height:16px;margin-top:1px;accent-color:var(--brand)">'
+        +'<span><b>Create a Google Meet link automatically</b><br><span style="font-size:11.5px;color:var(--ink-3)">'
+        +'When you submit, Google asks you to choose your own account. The access token stays only in this browser session.</span></span></label>'
+        +'<div class="hint" style="margin-top:7px">During OAuth Testing, each employee Gmail address must be added by Admin as a Google test user.</div></div>'
       +approvalRouteSummary('room')
     +'</div>'
     +'<div class="form-foot"><div class="grow"></div>'
       +'<button class="btn" onclick="go(\'rooms\')">Cancel</button>'
-      +'<button class="btn btn-p" onclick="saveMeet()">Send invitation</button></div>'
+      +'<button class="btn btn-p" id="mSave" onclick="saveMeet()">Create &amp; Send Invitation</button></div>'
     +'</div></div>'
     +'<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('door')+'</span>Rooms</div></div>'
       +'<div class="card-b" style="padding:0">'+STORE.rooms.map(function(r){
@@ -1315,7 +1420,7 @@ function meetConflict(){
     +'<b>That room is taken.</b> '+esc(c.title)+' runs '+esc(c.start)+'\u2013'+esc(c.end)
     +' ('+esc(c.by)+'). Pick another time or room.</div>'):'';
 }
-function saveMeet(){
+async function saveMeet(){
   if(!needMe()) return;
   if(!requireUserPermission('canCallMeetings','Admin has not enabled meeting requests for your account'))return;
   clearBad();
@@ -1326,21 +1431,28 @@ function saveMeet(){
   if(!date){ bad('mDate','Pick a date'); ok=false; }
   if(!from||!to){ bad('mFrom','Set a start and end time'); ok=false; }
   if(from&&to&&toMin(to)<=toMin(from)){ bad('mTo','The end time must be after the start'); ok=false; }
-  if(!room&&!virt){ bad('mRoom','Choose a room, or tick the virtual room'); ok=false; }
+  if(!room&&!virt){ bad('mRoom','Choose a room, or keep Google Meet enabled'); ok=false; }
   if(!ok){ toast('Check the highlighted fields',false); return; }
   var approvals=room?requireAutomaticApprovers('room'):[];if(room&&!approvals)return;
   var c=overlaps(room,date,from,to);
   if(c){ meetConflict(); toast('That room is already booked at that time',false); return; }
 
-  var vr=null;
+  var meetSpace=null,saveBtn=document.getElementById('mSave');
+  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent=virt?'Creating Google Meet…':'Saving…';}
   if(virt){
-    vr={id:uid('vr'),name:t,host:ME.name,created:nowISO(),open:true};
-    STORE.vrooms.unshift(vr);
+    try{meetSpace=await createGoogleMeetSpace();}
+    catch(error){
+      if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Create & Send Invitation';}
+      toast(googleMeetErrorText(error),false);return;
+    }
   }
   var b={id:uid('b'),roomId:room||'',date:date,start:from,end:to,title:t,
          by:ME.name,byId:ME.id,dept:ME.dept,
          attendees:splitList(val('mWho')),emails:splitList(val('mEmails')),phones:splitList(val('mPhones')),
-         directoryIds:selectedDirectoryIds('m'),agenda:val('mAg'),virtual:!!virt,vroomId:vr?vr.id:''};
+         directoryIds:selectedDirectoryIds('m'),agenda:val('mAg'),virtual:!!virt,vroomId:'',
+         meetingProvider:meetSpace?'google_meet':'',meetUri:meetSpace?meetSpace.meetingUri:'',
+         meetSpaceName:meetSpace?(meetSpace.name||''):'',meetCode:meetSpace?(meetSpace.meetingCode||''):'',
+         meetCreatedAt:meetSpace?nowISO():''};
   STORE.bookings.push(b);
   if(room){
     var rr=submitRequest('room',{title:t,date:date,from:from,to:to,
@@ -1349,26 +1461,29 @@ function saveMeet(){
     b.requestId=rr.id;
     save();
   } else save();
-  toast('Meeting booked'+(virt?' with a virtual room':''),true);
+  toast('Meeting booked'+(virt?' with Google Meet':''),true);
   openShareMeeting(b.id,true);
 }
 function openBooking(id){
   var b=STORE.bookings.find(function(x){ return x.id===id; }); if(!b) return;
   var rm=STORE.rooms.find(function(r){ return r.id===b.roomId; });
   var mine=ME&&b.byId===ME.id;
+  var canJoinGoogle=!!b.meetUri,canJoinLegacy=!!(b.virtual&&b.vroomId&&!b.meetUri);
   var m=document.createElement('div'); m.className='mod';
   m.innerHTML='<div class="mod-in"><div class="mod-h"><div><div class="mod-t">'+esc(b.title)+'</div>'
     +'<div class="mod-s">'+fmtDate(b.date)+' \u00b7 '+esc(b.start)+'\u2013'+esc(b.end)+'</div></div>'
     +'<button class="mod-x" id="bx">&times;</button></div><div class="mod-b"><dl class="dl">'
-    +'<dt>Room</dt><dd>'+esc(rm?(rm.name+' · '+rm.location):'Virtual only')+'</dd>'
+    +'<dt>Location</dt><dd>'+esc(meetingRoomName(b))+'</dd>'
     +'<dt>Called by</dt><dd>'+esc(b.by)+' \u00b7 '+esc(b.dept||'')+'</dd>'
-    +'<dt>Invited</dt><dd>'+(b.attendees.length?esc(b.attendees.join(', ')):'No names listed')+'</dd>'
+    +'<dt>Invited</dt><dd>'+((b.attendees||[]).length?esc(b.attendees.join(', ')):'No names listed')+'</dd>'
     +'<dt>Email</dt><dd>'+((b.emails||[]).length?esc(b.emails.join(', ')):'No email listed')+'</dd>'
     +'<dt>Phone</dt><dd>'+((b.phones||[]).length?esc(b.phones.join(', ')):'No phone listed')+'</dd>'
-    +'<dt>Meeting link</dt><dd><a href="'+esc(meetingDirectLink(b))+'" style="color:var(--info);word-break:break-all">'+esc(meetingDirectLink(b))+'</a></dd>'
+    +'<dt>Invitation link</dt><dd><a href="'+esc(meetingDirectLink(b))+'" style="color:var(--info);word-break:break-all">'+esc(meetingDirectLink(b))+'</a></dd>'
+    +(b.meetUri?'<dt>Online room</dt><dd><span class="chip c-ok"><i></i>Google Meet ready</span></dd>':'')
     +'<dt>Agenda</dt><dd>'+(b.agenda?esc(b.agenda):'None recorded')+'</dd>'
     +'</dl></div><div class="mod-f">'
-    +(b.virtual?'<button class="btn btn-p" id="bj">'+ico('video')+'Join virtual room</button>':'')
+    +(canJoinGoogle?'<button class="btn btn-p" id="bj">'+ico('video')+'Join Google Meet</button>':'')
+    +(canJoinLegacy?'<button class="btn btn-p" id="bj">'+ico('video')+'Join backup room</button>':'')
     +((mine||isAdmin())?'<button class="btn" id="bs">'+ico('mail')+'Send invitation</button>':'')
     +((mine||isAdmin())?'<button class="btn" id="be">'+ico('edit')+'Edit</button>':'')
     +'<div class="grow"></div>'
@@ -1378,7 +1493,8 @@ function openBooking(id){
   var close=function(){ m.remove(); };
   m.querySelector('#bx').onclick=close; m.querySelector('#bc').onclick=close;
   m.addEventListener('click',function(e){ if(e.target===m) close(); });
-  if(b.virtual) m.querySelector('#bj').onclick=function(){ CURVR=b.vroomId; close(); go('virtual'); };
+  if(canJoinGoogle)m.querySelector('#bj').onclick=function(){window.open(b.meetUri,'_blank','noopener,noreferrer');};
+  else if(canJoinLegacy)m.querySelector('#bj').onclick=function(){ CURVR=b.vroomId; close(); go('virtual'); };
   if(mine||isAdmin()){
     m.querySelector('#bs').onclick=function(){ close(); openShareMeeting(b.id,false); };
     m.querySelector('#be').onclick=function(){ close(); editMeeting(b.id); };
@@ -1388,7 +1504,11 @@ function openBooking(id){
 
 function meetingRoomName(b){
   var rm=STORE.rooms.find(function(r){return r.id===b.roomId;});
-  return rm?(rm.name+' · '+rm.location):(b.virtual?'Virtual room':'No room');
+  var place=rm?(rm.name+' · '+rm.location):'';
+  if(place&&b.meetUri)return place+' + Google Meet';
+  if(place)return place;
+  if(b.meetUri)return 'Google Meet';
+  return b.virtual?'Backup virtual room':'No room';
 }
 function portalBaseURL(){
   /* Invitations must always contain the deployed portal URL, even when Admin
@@ -1415,7 +1535,8 @@ function applyPortalLink(){
   }
 }
 function meetingDirectLink(b){
-  if(b.virtual&&b.vroomId)return portalBaseURL()+'&virtual='+encodeURIComponent(b.vroomId);
+  /* Invitees always see the branded company invitation first. The direct
+     Google Meet URI is revealed only by the Join button inside that record. */
   return portalBaseURL()+'&booking='+encodeURIComponent(b.id);
 }
 function meetingInviteText(b){
@@ -1428,7 +1549,7 @@ function meetingInviteText(b){
   ];
   if(b.agenda) lines.push('Agenda: '+b.agenda);
   lines.push('');
-  if(b.virtual) lines.push('JOIN THE MEETING:');
+  if(b.virtual) lines.push('OPEN THE COMPANY INVITATION TO JOIN:');
   else lines.push('OPEN MEETING DETAILS:');
   lines.push(meetingDirectLink(b));
   lines.push('','Please confirm your attendance.');
@@ -1461,20 +1582,21 @@ async function copyMeetingInvite(id){
 async function copyMeetingLink(id){
   var b=STORE.bookings.find(function(x){return x.id===id;});if(!b)return;var link=meetingDirectLink(b),ok=false;
   try{await navigator.clipboard.writeText(link);ok=true;}catch(e){}
-  toast(ok?'Meeting link copied':'Could not copy the meeting link',ok);
+  toast(ok?'Invitation link copied':'Could not copy the invitation link',ok);
 }
 function openShareMeeting(id,afterCreate){
   var b=STORE.bookings.find(function(x){return x.id===id;}); if(!b) return;
   var m=document.createElement('div'); m.className='mod';
   var hasEmail=(b.emails||[]).length, hasPhone=(b.phones||[]).length;
   m.innerHTML='<div class="mod-in"><div class="mod-h"><div><div class="mod-t">'
-    +(afterCreate?'Meeting booked — send the invitation':'Send meeting invitation')+'</div>'
+    +(afterCreate?(b.meetUri?'Google Meet created — send the invitation':'Meeting booked — send the invitation'):'Send meeting invitation')+'</div>'
     +'<div class="mod-s">Choose email or phone. Your device opens the message ready for you to send.</div></div>'
     +'<button class="mod-x" id="ix">&times;</button></div><div class="mod-b">'
     +'<div class="card" style="box-shadow:none"><div class="card-b"><b>'+esc(b.title)+'</b>'
     +'<div style="font-size:12px;color:var(--ink-3);line-height:1.7;margin-top:6px">'
     +fmtDate(b.date)+' · '+esc(b.start)+'–'+esc(b.end)+'<br>'+esc(meetingRoomName(b))+'</div>'
-    +'<div style="font-size:10.5px;margin-top:8px;color:var(--good);font-weight:800">Direct link included · build '+esc(PORTAL_BUILD)+'</div>'
+    +'<div style="font-size:10.5px;margin-top:8px;color:var(--good);font-weight:800">'
+    +(b.meetUri?'Google Meet ready · branded portal invitation included':'Branded portal invitation included')+' · build '+esc(PORTAL_BUILD)+'</div>'
     +'<div style="font-size:11px;margin-top:5px;word-break:break-all"><a href="'+esc(meetingDirectLink(b))+'" style="color:var(--info)">'+esc(meetingDirectLink(b))+'</a></div></div></div>'
     +'<div class="form" style="margin-top:14px">'
     +'<div class="fld"><label>Email recipients</label><div style="font-size:12.5px;line-height:1.6">'
@@ -1489,7 +1611,7 @@ function openShareMeeting(id,afterCreate){
   document.body.appendChild(m);
   var finish=function(){
     m.remove();
-    if(afterCreate){ if(b.virtual){ CURVR=b.vroomId; go('virtual'); } else go('rooms'); }
+    if(afterCreate)go('rooms');
   };
   m.querySelector('#ix').onclick=finish; m.querySelector('#id').onclick=finish;
   m.addEventListener('click',function(e){if(e.target===m) finish();});
@@ -1536,25 +1658,38 @@ function editMeeting(id){
     +fld('ePhones','Phone numbers','<input id="ePhones" inputmode="tel" value="'+esc((b.phones||[]).join(', '))+'">','',true)
     +fld('eAg','Agenda','<textarea id="eAg">'+esc(b.agenda||'')+'</textarea>','',true)
     +'<div class="fld wide"><label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;color:var(--ink-2)">'
-      +'<input id="eVirt" type="checkbox" style="width:16px;height:16px"'+(b.virtual?' checked':'')+'> Virtual room</label></div>'
+      +'<input id="eVirt" type="checkbox" style="width:16px;height:16px"'+(b.virtual?' checked':'')+'> Include online meeting</label>'
+      +'<div class="hint">Enabling this creates a Google Meet link when needed. Disabling removes the link from this portal booking.</div></div>'
     +'</div></div><div class="mod-f"><div class="grow"></div><button class="btn" id="ec">Cancel</button>'
     +'<button class="btn btn-p" id="es">Save changes</button></div></div>';
   document.body.appendChild(m);
   var close=function(){m.remove();}; m.querySelector('#ex').onclick=close; m.querySelector('#ec').onclick=close;
   m.addEventListener('click',function(e){if(e.target===m) close();});
-  m.querySelector('#es').onclick=function(){
+  m.querySelector('#es').onclick=async function(){
     var title=m.querySelector('#eT').value.trim(), date=m.querySelector('#eDate').value;
     var from=m.querySelector('#eFrom').value,to=m.querySelector('#eTo').value,room=m.querySelector('#eRoom').value;
     var virt=m.querySelector('#eVirt').checked;
     if(!title||!date||!from||!to||toMin(to)<=toMin(from)){toast('Enter a valid title, date and time',false);return;}
-    if(!room&&!virt){toast('Choose a room or keep the virtual room enabled',false);return;}
+    if(!room&&!virt){toast('Choose a room or keep the online meeting enabled',false);return;}
     var clash=overlaps(room,date,from,to,b.id);
     if(clash){toast('That room is already booked for '+clash.start+'–'+clash.end,false);return;}
+    var meetSpace=null,saveEdit=m.querySelector('#es');
+    if(virt&&!b.meetUri&&!b.vroomId){
+      saveEdit.disabled=true;saveEdit.textContent='Creating Google Meet…';
+      try{meetSpace=await createGoogleMeetSpace();}
+      catch(error){saveEdit.disabled=false;saveEdit.textContent='Save changes';toast(googleMeetErrorText(error),false);return;}
+    }
     b.title=title;b.date=date;b.start=from;b.end=to;b.roomId=room;
     b.attendees=splitList(m.querySelector('#eWho').value);b.emails=splitList(m.querySelector('#eEmails').value);
     b.phones=splitList(m.querySelector('#ePhones').value);b.directoryIds=selectedDirectoryIds('e');b.agenda=m.querySelector('#eAg').value.trim();
-    if(virt&&!b.virtual){var vr={id:uid('vr'),name:title,host:b.by,created:nowISO(),open:true};STORE.vrooms.unshift(vr);b.vroomId=vr.id;}
-    if(!virt&&b.virtual){var old=STORE.vrooms.find(function(v){return v.id===b.vroomId;});if(old)old.open=false;b.vroomId='';}
+    if(meetSpace){
+      b.meetingProvider='google_meet';b.meetUri=meetSpace.meetingUri;
+      b.meetSpaceName=meetSpace.name||'';b.meetCode=meetSpace.meetingCode||'';b.meetCreatedAt=nowISO();
+    }
+    if(!virt&&b.virtual){
+      var old=STORE.vrooms.find(function(v){return v.id===b.vroomId;});if(old)old.open=false;
+      b.vroomId='';b.meetUri='';b.meetSpaceName='';b.meetCode='';b.meetingProvider='';
+    }
     b.virtual=virt;
     var currentVr=STORE.vrooms.find(function(v){return v.id===b.vroomId;});if(currentVr)currentVr.name=title;
     syncMeetingRequest(b); save(); close(); render(); toast('Meeting updated',true);
@@ -2155,15 +2290,26 @@ function adminDeleteRequest(id){
    ═══════════════════════════════════════════════════════════════════════════ */
 
 var CURVR=null;
-var VR={ pc:{}, local:null, screen:null, muted:false, joined:false,
+var VR={ pc:{}, dc:{}, local:null, screen:null, muted:false, joined:false,
          peers:{}, pendingIce:{}, retried:{}, retryTimers:{}, heartbeat:null,
-         ref:null, meRef:null, id:null, analyser:null, talkTimer:null,
-         iceServers:null, turnReady:false };
+         ref:null, meRef:null, infoRef:null, id:null, analyser:null, talkTimer:null,
+         iceServers:null, turnReady:false, serverOffset:0, files:[], fileRx:{},
+         fileSending:false, listenersReady:false };
 
-var VR_PEER_TTL=75000;
+/* Presence is based on Firebase server time, not the clocks on staff devices.
+   Four minutes tolerates laptop sleep and short mobile-network handovers while
+   onDisconnect still removes a participant promptly after a clean disconnect. */
+var VR_PEER_TTL=240000;
+
+function vrNow(){return Date.now()+(Number(VR.serverOffset)||0);}
+function vrServerTimestamp(){
+  try{return firebase.database.ServerValue.TIMESTAMP;}catch(e){return vrNow();}
+}
 
 function vrPeerFresh(p){
-  return !!(p&&p.at&&Date.now()-Number(p.at)<VR_PEER_TTL);
+  if(!p||!p.at)return false;
+  var age=vrNow()-Number(p.at);
+  return age<VR_PEER_TTL&&age>-60000;
 }
 
 function iceURLList(value){
@@ -2180,24 +2326,9 @@ function configuredTurn(){
   return {urls:urls,username:String(t.username).trim(),credential:String(t.credential)};
 }
 async function openRelayTurn(){
-  /* Metered Open Relay publishes a static-auth endpoint for time-limited TURN
-     credentials. Media remains DTLS-SRTP encrypted; the relay only forwards
-     packets when a direct connection is blocked. Custom Admin credentials,
-     when present, always take priority over this fallback. */
-  if(!(window.crypto&&crypto.subtle&&window.TextEncoder&&window.btoa))return null;
-  try{
-    var username=(Math.floor(Date.now()/1000)+86400)+':knowledge-papers';
-    var enc=new TextEncoder();
-    var key=await crypto.subtle.importKey('raw',enc.encode('openrelayprojectsecret'),
-      {name:'HMAC',hash:'SHA-1'},false,['sign']);
-    var sig=await crypto.subtle.sign('HMAC',key,enc.encode(username));
-    var bin='';new Uint8Array(sig).forEach(function(b){bin+=String.fromCharCode(b);});
-    return {urls:[
-      'turn:staticauth.openrelay.metered.ca:80',
-      'turn:staticauth.openrelay.metered.ca:443',
-      'turns:staticauth.openrelay.metered.ca:443?transport=tcp'
-    ],username:username,credential:btoa(bin)};
-  }catch(e){console.warn('[vr] TURN fallback credentials unavailable',e);return null;}
+  /* Legacy mesh fallback is disabled. Build 14 keeps LiveKit Cloud as a
+     all media credentials on the server-side token function. */
+  return null;
 }
 function iceServers(){
   var list=[{urls:[
@@ -2221,8 +2352,8 @@ function vVirtual(){
   var rooms=STORE.vrooms.filter(function(v){ return v.open!==false; });
   var cur=CURVR?STORE.vrooms.find(function(v){ return v.id===CURVR; }):null;
   if(!cur){
-    return pageHead('Virtual room',
-        'Talk over microphone and present your screen, straight from the browser. No install.')
+    return pageHead('Backup virtual room',
+        'LiveKit fallback for internal meetings when Google Meet is unavailable. Microphone, screen presentation and file sharing.')
       +'<div class="split"><div class="card"><div class="card-h"><div class="card-t">'
         +'<span class="ico">'+ico('video')+'</span>Open a room</div></div><div class="card-b">'
       +'<div class="form">'
@@ -2239,17 +2370,14 @@ function vVirtual(){
             +'<div class="vp-r">Opened by '+esc(v.host)+' \u00b7 '+fmtWhen(v.created)+'</div></div>'
             +'<button class="btn btn-sm btn-p" style="margin-left:auto" onclick="vrJoin(\''+v.id+'\')">Join</button></div>';
         }).join('')
-        :'<div class="t-empty"><b>No rooms open</b>Create one on the left, or tick \u201cvirtual room\u201d when you call a meeting.</div>')
+        :'<div class="t-empty"><b>No backup rooms open</b>Create one on the left only if Google Meet is unavailable.</div>')
       +'</div></div></div>';
   }
 
   /* about:srcdoc inherits the secure context of its HTTPS parent. Checking the
      protocol alone produced the false red warning shown in the user's screen. */
   var secure=(window.isSecureContext===true||location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1');
-  var synced=!!(SY&&SY.ref);
-  var customTurn=!!configuredTurn();
-  var automaticTurn=!!(window.crypto&&crypto.subtle&&window.TextEncoder&&window.btoa);
-  var hasTurn=customTurn||automaticTurn;
+  var synced=!!(SY&&SY.ref&&SY.writable);
   return pageHead(esc(cur.name),'Opened by '+esc(cur.host)+' · '+fmtWhen(cur.created),
       '<button class="btn" onclick="vrLeave(true)">Leave room</button>')
     +'<div class="vr"><div>'
@@ -2263,31 +2391,33 @@ function vVirtual(){
         +'<button class="vr-btn" id="vrJoinBtn" onclick="vrToggleJoin()">'+ico('mic')+'<span>Join with microphone</span></button>'
         +'<button class="vr-btn" id="vrMute" onclick="vrToggleMute()" disabled>'+ico('mic')+'<span>Mute</span></button>'
         +'<button class="vr-btn" id="vrShare" onclick="vrToggleShare()" disabled>'+ico('screen')+'<span>Share screen</span></button>'
+        +'<button class="vr-btn" id="vrFile" onclick="document.getElementById(\'vrFileInput\').click()" disabled>'+ico('file')+'<span>Share file</span></button>'
+        +'<input id="vrFileInput" type="file" multiple accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.ppt,.pptx,.txt,.zip,.png,.jpg,.jpeg" style="display:none" onchange="vrShareFiles(this)">'
         +'<div style="flex:1"></div>'
         +'<span id="vrState" style="font-size:11.5px;color:#9AA7B5;font-weight:700">Not connected</span>'
       +'</div>'
-      +'<audio id="vrAudio" autoplay></audio>'
+      +'<div id="vrAudioBank" style="display:none" aria-hidden="true"></div>'
     +'</div>'
     +'<div class="vr-side">'
       +'<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('mic')+'</span>In the room</div>'
         +'<span id="vrCount" style="font-size:11px;color:var(--muted);font-weight:700">0</span></div>'
         +'<div class="vr-people" id="vrPeople"><div class="t-empty" style="padding:20px">'
         +'<b>Empty</b>Join with your microphone to appear here.</div></div></div>'
+      +'<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('file')+'</span>Shared files</div>'
+        +'<span id="vrFileCount" style="font-size:11px;color:var(--muted);font-weight:700">0</span></div>'
+        +'<div class="vr-files" id="vrFiles"><div class="t-empty" style="padding:18px">'
+        +'<b>No files yet</b>Use Share file to send Excel, PDF, Word, PowerPoint or another supported file.</div></div></div>'
       +(!secure?('<div class="vr-note" style="background:var(--risk-bg);border-color:#E4B4BA;color:var(--risk)">'
         +'<b>Microphone and screen sharing are blocked.</b> Browsers only allow them over <b>https://</b> '
         +'(or on localhost). This page is on <b>'+esc(location.protocol)+'</b>, so joining will fail until '
         +'the portal is served over HTTPS.</div>'):'')
       +(!synced?('<div class="vr-note" style="background:var(--warn-bg);border-color:#DFC98F;color:var(--warn)">'
-        +'<b>Sync is not connected.</b> Two browsers cannot find each other without it. '
-        +'Connect from the button in the top-right, then rejoin.</div>'):'')
-      +(!hasTurn?('<div class="vr-note" style="background:var(--warn-bg);border-color:#DFC98F;color:var(--warn)">'
-        +'<b>No TURN relay is configured.</b> Direct calls can still work, but restricted company or mobile networks '
-        +'may block them. Admin can add TURN URL, username and password in Sync settings.</div>'):'')
-      +(!customTurn&&automaticTurn?('<div class="vr-note" style="background:var(--good-bg);border-color:#A9D6C0;color:var(--good)">'
-        +'<b>Secure TURN fallback is ready.</b> It is used automatically only when the two browsers cannot connect directly.</div>'):'')
-      +'<div class="vr-note"><b>How this works.</b> Audio and screen go directly between browsers; '
-      +'only the connection handshake passes through your database. Best for about six people at once. '
-      +'Some corporate networks need a TURN relay \u2014 add one in Sync settings if a colleague cannot connect.</div>'
+        +'<b>Portal data is reconnecting.</b> You can still try to join; refresh the page if the invitation details do not appear.</div>'):'')
+      +'<div class="vr-note" style="background:var(--good-bg);border-color:#A9D6C0;color:var(--good)">'
+        +'<b>LiveKit media server.</b> Audio and screen quality adapt automatically to each participant\'s connection, '
+        +'so one slow device does not delay the entire room.</div>'
+      +'<div class="vr-note"><b>File privacy.</b> Excel, PDF, Word, PowerPoint and other selected files are sent '
+        +'only to the people already connected to this room. The portal does not save meeting files in Firebase.</div>'
     +'</div></div>';
 }
 
@@ -2305,6 +2435,7 @@ function vrMount(){
   var v=CURVR?STORE.vrooms.find(function(x){ return x.id===CURVR; }):null;
   if(!v) return;
   vrPaintPeople();
+  vrPaintFiles();
 }
 function vrState(t,cls){
   var e=document.getElementById('vrState');
@@ -2312,10 +2443,77 @@ function vrState(t,cls){
 }
 
 /* ── Join / leave ────────────────────────────────────────────────────────── */
+function vrPresencePayload(){
+  return {name:ME.name,dept:ME.dept,muted:!!VR.muted,sharing:!!VR.screen,
+          build:PORTAL_BUILD,at:vrServerTimestamp()};
+}
+function vrWritePresence(){
+  if(!VR.meRef)return Promise.reject(new Error('Meeting presence is not ready'));
+  try{VR.meRef.onDisconnect().remove();}catch(e){}
+  return VR.meRef.set(vrPresencePayload()).then(function(){
+    return VR.meRef.once('value');
+  }).then(function(s){
+    if(!s.exists())throw new Error('Firebase did not keep the participant record');
+    return true;
+  });
+}
+function vrPromiseTimeout(p,ms,message){
+  return Promise.race([p,new Promise(function(_,reject){
+    setTimeout(function(){reject(new Error(message||'Timed out'));},ms);
+  })]);
+}
+function vrRemovePeer(id){
+  delete VR.peers[id];delete VR.pendingIce[id];delete VR.retried[id];
+  if(VR.retryTimers[id]){clearTimeout(VR.retryTimers[id]);delete VR.retryTimers[id];}
+  if(VR.dc[id]){try{VR.dc[id].close();}catch(e){}delete VR.dc[id];}
+  if(VR.pc[id]){try{VR.pc[id].close();}catch(e){}delete VR.pc[id];}
+  var audio=document.getElementById('vrAudio_'+id);if(audio)audio.remove();
+  delete VR.fileRx[id];
+}
+function vrAttachLiveListeners(base){
+  if(VR.listenersReady)return;
+  VR.listenersReady=true;
+  base.child('peers').on('child_added',function(s){
+    if(s.key===VR.id)return;
+    if(!vrPeerFresh(s.val()))return;
+    VR.peers[s.key]=s.val();vrPaintPeople();
+    /* Deterministic offerer: the lexically smaller id calls, so two browsers
+       never both create an offer for the same pair. */
+    if(VR.id<s.key)vrCall(s.key);
+  });
+  base.child('peers').on('child_changed',function(s){
+    if(s.key===VR.id)return;
+    if(!vrPeerFresh(s.val())){vrRemovePeer(s.key);vrPaintPeople();return;}
+    var first=!VR.peers[s.key];
+    VR.peers[s.key]=s.val();vrPaintPeople();
+    if(first&&VR.id<s.key)vrCall(s.key);
+  });
+  base.child('peers').on('child_removed',function(s){
+    vrRemovePeer(s.key);vrPaintPeople();
+  });
+  base.child('signals/'+VR.id).on('child_added',function(s){
+    var msg=s.val();s.ref.remove();if(msg)vrSignal(msg);
+  });
+}
+function vrWatchFirebaseConnection(){
+  try{
+    VR.infoRef=firebase.database().ref('.info/connected');
+    VR.infoRef.on('value',function(s){
+      if(!VR.joined)return;
+      if(s.val()!==true){vrState('Reconnecting to meeting…');return;}
+      vrWritePresence().then(function(){
+        if(VR.joined&&Object.keys(VR.peers).length===0)vrState('In room — waiting for others','ok');
+      }).catch(function(e){
+        vrState('Meeting sync blocked','err');
+        toast('Firebase could not register you in the meeting: '+(e&&e.message||e),false);
+      });
+    });
+  }catch(e){}
+}
 async function vrToggleJoin(){
   if(VR.joined){ vrLeave(); return; }
   if(!needMe()) return;
-  if(!(SY&&SY.ref)){ toast('Connect sync first — browsers cannot find each other without it',false); return; }
+  if(!(SY&&SY.ref&&SY.writable)){ toast('Wait for the top-right Sync indicator to show Live, then join again',false); return; }
   if(window.isSecureContext===false){
     toast('Open this meeting from the secure https:// portal link, then try again.',false); return;
   }
@@ -2343,54 +2541,30 @@ async function vrToggleJoin(){
   var base=SY.ref.child('vroomLive/'+CURVR);
   VR.ref=base;
   VR.meRef=base.child('peers/'+VR.id);
-  VR.meRef.set({name:ME.name,dept:ME.dept,muted:false,sharing:false,at:Date.now()});
-  try{ VR.meRef.onDisconnect().remove(); }catch(e){}
-
-  /* A closed mobile browser can leave a presence row behind for a while.
-     Remove expired rows and keep this participant fresh while the room is open. */
-  base.child('peers').once('value').then(function(s){
-    s.forEach(function(ch){
-      if(ch.key!==VR.id&&!vrPeerFresh(ch.val())) ch.ref.remove();
-    });
-  }).catch(function(){});
+  try{
+    var os=await firebase.database().ref('.info/serverTimeOffset').once('value');
+    VR.serverOffset=Number(os.val())||0;
+  }catch(e){VR.serverOffset=0;}
+  vrAttachLiveListeners(base);
+  try{
+    await vrPromiseTimeout(vrWritePresence(),10000,'Firebase did not confirm meeting presence');
+  }catch(e){
+    vrLeave();vrState('Meeting sync blocked','err');
+    toast('Could not enter the shared meeting: '+(e&&e.message||e)+'. Check Firebase write rules for asimati-services/vroomLive.',false);
+    return;
+  }
+  vrWatchFirebaseConnection();
   clearInterval(VR.heartbeat);
   VR.heartbeat=setInterval(function(){
-    if(VR.joined&&VR.meRef) VR.meRef.update({at:Date.now()});
+    if(VR.joined&&VR.meRef)VR.meRef.update({at:vrServerTimestamp()}).catch(function(){});
   },15000);
-
-  /* Anyone already here, plus anyone who arrives later. */
-  base.child('peers').on('child_added',function(s){
-    if(s.key===VR.id) return;
-    if(!vrPeerFresh(s.val())){ s.ref.remove(); return; }
-    VR.peers[s.key]=s.val();
-    vrPaintPeople();
-    /* Deterministic offerer: the lexically smaller id calls, so two browsers
-       never both create an offer for the same pair. */
-    if(VR.id<s.key) vrCall(s.key);
-  });
-  base.child('peers').on('child_changed',function(s){
-    if(s.key===VR.id) return;
-    if(!vrPeerFresh(s.val())){ s.ref.remove(); return; }
-    VR.peers[s.key]=s.val(); vrPaintPeople();
-  });
-  base.child('peers').on('child_removed',function(s){
-    delete VR.peers[s.key];
-    delete VR.pendingIce[s.key]; delete VR.retried[s.key];
-    if(VR.retryTimers[s.key]){ clearTimeout(VR.retryTimers[s.key]); delete VR.retryTimers[s.key]; }
-    if(VR.pc[s.key]){ try{ VR.pc[s.key].close(); }catch(e){} delete VR.pc[s.key]; }
-    vrPaintPeople();
-  });
-  /* Signals addressed to me. */
-  base.child('signals/'+VR.id).on('child_added',function(s){
-    var msg=s.val(); s.ref.remove();
-    if(msg) vrSignal(msg);
-  });
 
   document.getElementById('vrJoinBtn').innerHTML=ico('micOff')+'<span>Leave</span>';
   document.getElementById('vrJoinBtn').classList.add('off');
   document.getElementById('vrMute').disabled=false;
   document.getElementById('vrShare').disabled=false;
-  vrState('Connected','ok');
+  document.getElementById('vrFile').disabled=false;
+  vrState(Object.keys(VR.peers).length?'Connecting to participants…':'In room — waiting for others','ok');
   vrPaintPeople();
   toast('You are in the room — others will hear you now',true);
 }
@@ -2401,13 +2575,21 @@ function vrPeer(id){
   VR.pc[id]=pc;
   if(VR.local) VR.local.getTracks().forEach(function(t){ pc.addTrack(t,VR.local); });
   if(VR.screen) VR.screen.getTracks().forEach(function(t){ pc.addTrack(t,VR.screen); });
+  pc.ondatachannel=function(e){if(e.channel)vrBindDataChannel(id,e.channel);};
+  /* The designated offerer opens one reliable, ordered data channel. Excel,
+     PDF and other files then travel directly between participants and never
+     inflate the Realtime Database. */
+  if(VR.id&&VR.id<id){
+    try{vrBindDataChannel(id,pc.createDataChannel('kp-files',{ordered:true}));}catch(e){}
+  }
   pc.onicecandidate=function(e){
     if(e.candidate) vrSend(id,{t:'ice',from:VR.id,c:e.candidate.toJSON()});
   };
   pc.ontrack=function(e){
     var st=e.streams[0];
     if(e.track.kind==='audio'){
-      var a=document.getElementById('vrAudio');
+      var a=document.getElementById('vrAudio_'+id),bank=document.getElementById('vrAudioBank');
+      if(!a&&bank){a=document.createElement('audio');a.id='vrAudio_'+id;a.autoplay=true;a.playsInline=true;bank.appendChild(a);}
       if(a && a.srcObject!==st) a.srcObject=st;
     } else {
       var vid=document.getElementById('vrScreen');
@@ -2439,6 +2621,122 @@ function vrPeer(id){
     }
   };
   return pc;
+}
+
+/* ── Direct file sharing over the meeting data channel ─────────────────── */
+var VR_FILE_MAX=20*1024*1024;
+var VR_FILE_CHUNK=16*1024;
+function vrHumanBytes(n){
+  n=Number(n)||0;if(n<1024)return n+' B';if(n<1048576)return (n/1024).toFixed(n<10240?1:0)+' KB';
+  return (n/1048576).toFixed(n<10485760?1:0)+' MB';
+}
+function vrBindDataChannel(id,dc){
+  if(!dc)return;
+  var old=VR.dc[id];if(old&&old!==dc){try{old.close();}catch(e){}}
+  VR.dc[id]=dc;dc.binaryType='arraybuffer';dc.bufferedAmountLowThreshold=256*1024;
+  dc.onopen=function(){vrPaintFiles();};
+  dc.onclose=function(){if(VR.dc[id]===dc)delete VR.dc[id];};
+  dc.onerror=function(e){console.warn('[vr] file channel error',id,e);};
+  dc.onmessage=function(e){vrHandleDataMessage(id,e.data);};
+}
+function vrHandleDataMessage(peerId,data){
+  if(data instanceof Blob){data.arrayBuffer().then(function(b){vrHandleDataMessage(peerId,b);});return;}
+  if(typeof data==='string'){
+    var m=null;try{m=JSON.parse(data);}catch(e){}
+    if(!m||m.kp!=='file')return;
+    if(m.action==='meta'){
+      if(Number(m.size)>VR_FILE_MAX){VR.fileRx[peerId]={reject:true,id:m.id};return;}
+      VR.fileRx[peerId]={id:String(m.id||uid('f')),name:String(m.name||'Shared file'),
+        size:Number(m.size)||0,mime:String(m.mime||'application/octet-stream'),
+        from:String(m.from||((VR.peers[peerId]||{}).name)||'Participant'),chunks:[],received:0};
+      vrState('Receiving '+VR.fileRx[peerId].name+'…');
+    }else if(m.action==='done'){
+      var rx=VR.fileRx[peerId];delete VR.fileRx[peerId];
+      if(!rx||rx.reject||rx.id!==m.id)return;
+      if(rx.size&&rx.received!==rx.size){toast('The shared file was incomplete. Ask the sender to try again.',false);return;}
+      var blob=new Blob(rx.chunks,{type:rx.mime}),url=URL.createObjectURL(blob);
+      vrAddSharedFile({id:rx.id,name:rx.name,size:blob.size,mime:rx.mime,from:rx.from,
+        url:url,direction:'received',at:Date.now()});
+      vrState('Connected','ok');
+      toast(rx.from+' shared '+rx.name,true);
+    }
+    return;
+  }
+  var rx=VR.fileRx[peerId];if(!rx||rx.reject)return;
+  if(data instanceof ArrayBuffer){
+    if(rx.received+data.byteLength>VR_FILE_MAX){rx.reject=true;rx.chunks=[];return;}
+    rx.chunks.push(data);rx.received+=data.byteLength;
+  }
+}
+function vrAddSharedFile(f){
+  if(VR.files.some(function(x){return x.id===f.id&&x.direction===f.direction;}))return;
+  VR.files.unshift(f);
+  while(VR.files.length>20){var old=VR.files.pop();if(old&&old.url)try{URL.revokeObjectURL(old.url);}catch(e){}}
+  vrPaintFiles();
+}
+function vrPaintFiles(){
+  var host=document.getElementById('vrFiles'),count=document.getElementById('vrFileCount');
+  if(count)count.textContent=VR.files.length;if(!host)return;
+  if(!VR.files.length){host.innerHTML='<div class="t-empty" style="padding:18px"><b>No files yet</b>Use Share file to send Excel, PDF, Word, PowerPoint or another supported file.</div>';return;}
+  host.innerHTML=VR.files.map(function(f){
+    var meta=(f.direction==='received'?'From ':'Shared by ')+esc(f.from||'Participant')+' · '+vrHumanBytes(f.size);
+    return '<div class="vf"><div class="vf-icon">'+ico('file')+'</div><div class="vf-main">'
+      +'<div class="vf-name" title="'+esc(f.name)+'">'+esc(f.name)+'</div><div class="vf-meta">'+meta+'</div></div>'
+      +'<button class="vf-get" title="Download" onclick="vrDownloadFile(\''+esc(f.id)+'\')">'+ico('download')+'</button></div>';
+  }).join('');
+}
+function vrDownloadFile(id){
+  var f=VR.files.find(function(x){return x.id===id;});if(!f||!f.url)return;
+  var a=document.createElement('a');a.href=f.url;a.download=f.name||'shared-file';a.rel='noopener';
+  document.body.appendChild(a);a.click();a.remove();
+}
+function vrWaitForBuffer(dc){
+  return new Promise(function(resolve,reject){
+    var started=Date.now();
+    function check(){
+      if(!dc||dc.readyState!=='open'){reject(new Error('Participant connection closed'));return;}
+      if(dc.bufferedAmount<512*1024){resolve();return;}
+      if(Date.now()-started>15000){reject(new Error('File channel is too slow'));return;}
+      setTimeout(check,40);
+    }
+    check();
+  });
+}
+async function vrSendFileToChannel(dc,file,id,buffer){
+  dc.send(JSON.stringify({kp:'file',action:'meta',id:id,name:file.name,size:file.size,
+    mime:file.type||'application/octet-stream',from:ME.name}));
+  for(var at=0;at<buffer.byteLength;at+=VR_FILE_CHUNK){
+    await vrWaitForBuffer(dc);dc.send(buffer.slice(at,Math.min(buffer.byteLength,at+VR_FILE_CHUNK)));
+  }
+  await vrWaitForBuffer(dc);dc.send(JSON.stringify({kp:'file',action:'done',id:id}));
+}
+async function vrShareFiles(input){
+  var files=Array.prototype.slice.call(input&&input.files||[]);if(input)input.value='';
+  if(!files.length)return;
+  if(!VR.joined){toast('Join the meeting before sharing a file',false);return;}
+  if(VR.fileSending){toast('Another file is still being sent',false);return;}
+  VR.fileSending=true;
+  try{
+    for(var fi=0;fi<files.length;fi++){
+      var file=files[fi];
+      if(file.size>VR_FILE_MAX){toast(file.name+' is larger than the 20 MB meeting limit',false);continue;}
+      var channels=Object.keys(VR.dc).map(function(id){return VR.dc[id];}).filter(function(dc){return dc&&dc.readyState==='open';});
+      if(!channels.length){toast('No participant is fully connected yet. Wait until the meeting status says Connected.',false);break;}
+      var buffer=await file.arrayBuffer(),transferId=uid('file'),sent=0;
+      for(var ci=0;ci<channels.length;ci++){
+        try{
+          vrState('Sending '+file.name+' · '+(ci+1)+'/'+channels.length+'…');
+          await vrSendFileToChannel(channels[ci],file,transferId,buffer);sent++;
+        }catch(e){console.warn('[vr] file send failed',e);}
+      }
+      if(sent){
+        vrAddSharedFile({id:transferId,name:file.name,size:file.size,mime:file.type,from:ME.name,
+          url:URL.createObjectURL(file),direction:'sent',at:Date.now()});
+        toast(file.name+' shared with '+sent+' participant'+(sent===1?'':'s'),true);
+      }else toast('The file could not reach any participant',false);
+    }
+  }catch(e){toast('File sharing failed: '+(e&&e.message||e),false);}
+  VR.fileSending=false;vrState('Connected','ok');
 }
 function vrSend(to,msg){ try{ VR.ref.child('signals/'+to).push(msg); }catch(e){} }
 
@@ -2587,15 +2885,20 @@ function vrPaintPeople(){
 }
 
 function vrLeave(goBack){
-  if(VR.meRef){ try{ VR.meRef.remove(); }catch(e){} }
+  if(VR.meRef){try{VR.meRef.onDisconnect().cancel();}catch(e){}try{VR.meRef.remove();}catch(e){}}
   if(VR.ref){ try{ VR.ref.child('peers').off(); VR.ref.child('signals/'+VR.id).off(); }catch(e){} }
+  if(VR.infoRef){try{VR.infoRef.off();}catch(e){}}
   Object.keys(VR.pc).forEach(function(k){ try{ VR.pc[k].close(); }catch(e){} });
+  Object.keys(VR.dc||{}).forEach(function(k){try{VR.dc[k].close();}catch(e){}});
   if(VR.local) VR.local.getTracks().forEach(function(t){ try{t.stop();}catch(e){} });
   if(VR.screen) VR.screen.getTracks().forEach(function(t){ try{t.stop();}catch(e){} });
+  (VR.files||[]).forEach(function(f){if(f.url)try{URL.revokeObjectURL(f.url);}catch(e){}});
   clearInterval(VR.talkTimer);
   clearInterval(VR.heartbeat);
   Object.keys(VR.retryTimers||{}).forEach(function(k){ clearTimeout(VR.retryTimers[k]); });
-  VR={pc:{},local:null,screen:null,muted:false,joined:false,peers:{},pendingIce:{},retried:{},retryTimers:{},heartbeat:null,ref:null,meRef:null,id:null,analyser:null,talkTimer:null,iceServers:null,turnReady:false};
+  VR={pc:{},dc:{},local:null,screen:null,muted:false,joined:false,peers:{},pendingIce:{},retried:{},retryTimers:{},heartbeat:null,
+    ref:null,meRef:null,infoRef:null,id:null,analyser:null,talkTimer:null,iceServers:null,turnReady:false,
+    serverOffset:0,files:[],fileRx:{},fileSending:false,listenersReady:false};
   if(goBack){
     CURVR=null;PORTAL_LINK=null;
     try{history.replaceState(null,'',portalBaseURL());}catch(e){}
@@ -2604,11 +2907,380 @@ function vrLeave(goBack){
   else{
     var b=document.getElementById('vrJoinBtn');
     if(b){ b.innerHTML=ico('mic')+'<span>Join with microphone</span>'; b.classList.remove('off'); }
-    ['vrMute','vrShare'].forEach(function(id){ var e=document.getElementById(id); if(e) e.disabled=true; });
+    ['vrMute','vrShare','vrFile'].forEach(function(id){ var e=document.getElementById(id); if(e) e.disabled=true; });
     vrStopShare(); vrState('Not connected'); vrPaintPeople();
   }
 }
 window.addEventListener('beforeunload',function(){ if(VR.joined) vrLeave(); });
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIVEKIT SFU MEETING ENGINE — build 13
+   These declarations intentionally replace the legacy mesh handlers above.
+   Firebase continues to store bookings, rooms and approval routes; LiveKit
+   carries only live meeting media and realtime file streams.
+   ═══════════════════════════════════════════════════════════════════════════ */
+var VR_LK_LOAD=null;
+var VR_FILE_TOPIC='kp-meeting-files-v1';
+
+function vrNewState(){
+  return {room:null,joined:false,joining:false,leaving:false,muted:false,screen:null,
+    id:null,files:[],fileSending:false,presentingTrack:null,activeSpeakers:{}};
+}
+
+function vrLoadLiveKit(){
+  if(window.LivekitClient&&window.LivekitClient.Room)return Promise.resolve(window.LivekitClient);
+  if(!VR_LK_LOAD){
+    VR_LK_LOAD=loadScript(LIVEKIT_SDK_URL).then(function(){
+      if(!window.LivekitClient||!window.LivekitClient.Room)throw new Error('LiveKit SDK did not start');
+      return window.LivekitClient;
+    }).catch(function(e){VR_LK_LOAD=null;throw e;});
+  }
+  return VR_LK_LOAD;
+}
+
+function vrOpaqueId(){
+  try{if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();}catch(e){}
+  return uid('p');
+}
+
+async function vrFetchLiveKitToken(){
+  var response;
+  try{
+    response=await fetch(LIVEKIT_TOKEN_ENDPOINT,{
+      method:'POST',
+      mode:'cors',
+      cache:'no-store',
+      credentials:'omit',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({roomId:CURVR,name:ME&&ME.name||'Participant',dept:ME&&ME.dept||''})
+    });
+  }catch(e){
+    throw new Error('The secure meeting server is not reachable yet');
+  }
+  var data={};
+  try{data=await response.json();}catch(e){}
+  if(!response.ok||!data.token||!data.url){
+    throw new Error(data.error||('Meeting server returned '+response.status));
+  }
+  return data;
+}
+
+function vrParticipantDept(p){
+  try{return (JSON.parse(p&&p.metadata||'{}').dept||'');}catch(e){return '';}
+}
+
+function vrParticipantName(p){
+  return String(p&&p.name||p&&p.identity||'Participant');
+}
+
+function vrOn(room,event,fn){if(event)room.on(event,fn);}
+
+function vrTrackIsAudio(track){
+  var LK=window.LivekitClient||{};
+  return !!track&&(track.kind==='audio'||(LK.Track&&track.kind===LK.Track.Kind.Audio));
+}
+
+function vrPublicationIsScreen(pub){
+  var LK=window.LivekitClient||{},source=pub&&pub.source;
+  return !!pub&&(source==='screen_share'||(LK.Track&&source===LK.Track.Source.ScreenShare));
+}
+
+function vrDetachTrack(track){
+  if(!track||!track.detach)return;
+  try{(track.detach()||[]).forEach(function(el){if(el&&el.parentNode)el.remove();});}catch(e){}
+}
+
+function vrAttachAudio(track,participant){
+  var bank=document.getElementById('vrAudioBank');if(!bank||!track||!track.attach)return;
+  try{
+    var el=track.attach();
+    el.autoplay=true;el.playsInline=true;
+    el.dataset.participant=participant&&participant.identity||'';
+    bank.appendChild(el);
+    var play=el.play&&el.play();if(play&&play.catch)play.catch(function(){});
+  }catch(e){console.warn('[livekit] audio attach failed',e);}
+}
+
+function vrScreenTrackFor(p){
+  var LK=window.LivekitClient||{};
+  if(!p||!p.getTrackPublication||!LK.Track)return null;
+  var pub=p.getTrackPublication(LK.Track.Source.ScreenShare);
+  return pub&&!pub.isMuted&&(pub.track||pub.videoTrack)||null;
+}
+
+function vrRefreshStage(){
+  var room=VR.room,v=document.getElementById('vrScreen'),empty=document.getElementById('vrEmpty');
+  if(!v)return;
+  var chosen=null;
+  if(room){
+    chosen=vrScreenTrackFor(room.localParticipant);
+    if(!chosen)room.remoteParticipants.forEach(function(p){if(!chosen)chosen=vrScreenTrackFor(p);});
+  }
+  if(VR.presentingTrack&&VR.presentingTrack!==chosen){
+    try{VR.presentingTrack.detach(v);}catch(e){}
+  }
+  VR.presentingTrack=chosen||null;
+  VR.screen=room&&room.localParticipant&&room.localParticipant.isScreenShareEnabled
+    ?vrScreenTrackFor(room.localParticipant):null;
+  if(chosen){
+    try{chosen.attach(v);}catch(e){}
+    v.muted=true;v.style.display='block';
+    if(empty)empty.style.display='none';
+    var play=v.play&&v.play();if(play&&play.catch)play.catch(function(){});
+  }else{
+    try{v.pause();}catch(e){}
+    v.srcObject=null;v.style.display='none';
+    if(empty)empty.style.display='grid';
+  }
+  vrUpdateControlButtons();
+}
+
+function vrUpdateControlButtons(){
+  var joined=!!(VR&&VR.joined),joining=!!(VR&&VR.joining);
+  var join=document.getElementById('vrJoinBtn'),mute=document.getElementById('vrMute');
+  var share=document.getElementById('vrShare'),file=document.getElementById('vrFile');
+  if(join){
+    join.disabled=joining;
+    join.innerHTML=joined?(ico('micOff')+'<span>Leave</span>'):(ico('mic')+'<span>'+(joining?'Joining…':'Join with microphone')+'</span>');
+    join.classList.toggle('off',joined);
+  }
+  if(mute){
+    mute.disabled=!joined;
+    mute.innerHTML=(VR.muted?ico('micOff'):ico('mic'))+'<span>'+(VR.muted?'Unmute':'Mute')+'</span>';
+    mute.classList.toggle('off',!!VR.muted);
+  }
+  if(share){
+    share.disabled=!joined;
+    share.classList.toggle('live',!!VR.screen);
+    share.innerHTML=ico('screen')+'<span>'+(VR.screen?'Stop sharing':'Share screen')+'</span>';
+  }
+  if(file)file.disabled=!joined||!!VR.fileSending;
+}
+
+function vrReattachSubscribedMedia(){
+  if(!VR.room)return;
+  VR.room.remoteParticipants.forEach(function(p){
+    if(!p.trackPublications)return;
+    p.trackPublications.forEach(function(pub){
+      var track=pub&&pub.track;
+      if(track&&vrTrackIsAudio(track))vrAttachAudio(track,p);
+    });
+  });
+  vrRefreshStage();
+}
+
+function vrRegisterFileHandler(room){
+  if(!room.registerByteStreamHandler)return;
+  room.registerByteStreamHandler(VR_FILE_TOPIC,function(reader,participantInfo){
+    (async function(){
+      var info=reader.info||{},size=Number(info.size)||0;
+      if(size>VR_FILE_MAX){
+        toast('A participant tried to send a file larger than the 20 MB limit',false);
+        await reader.readAll();return;
+      }
+      var identity=participantInfo&&participantInfo.identity||String(participantInfo||'');
+      var remote=room.remoteParticipants.get(identity);
+      var from=remote?vrParticipantName(remote):String(participantInfo&&participantInfo.name||'Participant');
+      reader.onProgress=function(progress){
+        if(typeof progress==='number')vrState('Receiving '+(info.name||'file')+' · '+Math.round(progress*100)+'%');
+      };
+      var chunks=await reader.readAll();
+      var blob=new Blob(chunks,{type:info.mimeType||'application/octet-stream'});
+      var id=String(info.id||uid('file'));
+      vrAddSharedFile({id:id,name:String(info.name||'Shared file'),size:blob.size,
+        mime:String(info.mimeType||blob.type),from:from,url:URL.createObjectURL(blob),
+        direction:'received',at:Date.now()});
+      vrState('Connected','ok');
+      toast(from+' shared '+String(info.name||'a file'),true);
+    })().catch(function(e){
+      vrState('Connected','ok');
+      toast('Could not receive the shared file: '+(e&&e.message||e),false);
+    });
+  });
+}
+
+function vrBindLiveKitRoom(room){
+  var LK=window.LivekitClient,E=LK.RoomEvent;
+  vrOn(room,E.TrackSubscribed,function(track,pub,participant){
+    if(vrTrackIsAudio(track))vrAttachAudio(track,participant);
+    if(vrPublicationIsScreen(pub))vrRefreshStage();
+    vrPaintPeople();
+  });
+  vrOn(room,E.TrackUnsubscribed,function(track,pub){
+    vrDetachTrack(track);
+    if(vrPublicationIsScreen(pub))vrRefreshStage();
+    vrPaintPeople();
+  });
+  [E.ParticipantConnected,E.ParticipantDisconnected,E.ParticipantMetadataChanged,
+   E.ParticipantNameChanged,E.TrackPublished,E.TrackUnpublished,E.TrackMuted,E.TrackUnmuted]
+    .forEach(function(event){vrOn(room,event,function(){vrPaintPeople();vrRefreshStage();});});
+  vrOn(room,E.ActiveSpeakersChanged,function(speakers){
+    VR.activeSpeakers={};(speakers||[]).forEach(function(p){VR.activeSpeakers[p.identity]=true;});
+    vrPaintPeople();
+  });
+  vrOn(room,E.LocalTrackPublished,function(){vrPaintPeople();vrRefreshStage();});
+  vrOn(room,E.LocalTrackUnpublished,function(){vrPaintPeople();vrRefreshStage();});
+  vrOn(room,E.Reconnecting,function(){vrState('Reconnecting…');});
+  vrOn(room,E.Reconnected,function(){vrState('Connected','ok');vrPaintPeople();vrRefreshStage();});
+  vrOn(room,E.MediaDevicesError,function(e){toast('Media device error: '+(e&&e.message||e),false);});
+  vrOn(room,E.Disconnected,function(){
+    if(VR.room!==room||VR.leaving)return;
+    VR.joined=false;VR.muted=false;VR.screen=null;
+    vrState('Disconnected — press Join to reconnect','err');
+    vrUpdateControlButtons();vrPaintPeople();vrRefreshStage();
+  });
+  vrRegisterFileHandler(room);
+}
+
+/* Replaces the legacy Firebase-presence mount. LiveKit itself is now the
+   source of truth for who is actually inside the media room. */
+function vrMount(){
+  vrUpdateControlButtons();
+  vrPaintPeople();
+  vrPaintFiles();
+  if(VR.joined)vrReattachSubscribedMedia();
+}
+
+async function vrToggleJoin(){
+  if(VR.joined){vrLeave();return;}
+  if(VR.joining)return;
+  if(!needMe())return;
+  if(window.isSecureContext===false){
+    toast('Open this meeting from the secure https:// portal link, then try again.',false);return;
+  }
+  VR=vrNewState();VR.joining=true;VR.id=vrOpaqueId();
+  vrUpdateControlButtons();vrState('Loading secure meeting…');
+  var room=null;
+  try{
+    var LK=await vrLoadLiveKit();
+    var access=await vrFetchLiveKitToken();
+    room=new LK.Room({
+      adaptiveStream:true,
+      dynacast:true,
+      stopLocalTrackOnUnpublish:true,
+      disconnectOnPageLeave:true
+    });
+    VR.room=room;
+    vrBindLiveKitRoom(room);
+    vrState('Connecting to media server…');
+    await room.connect(access.url,access.token,{autoSubscribe:true});
+    VR.joined=true;VR.joining=false;
+    try{if(room.startAudio)await room.startAudio();}catch(e){}
+    vrState('Requesting microphone…');
+    await room.localParticipant.setMicrophoneEnabled(true);
+    VR.muted=false;
+    vrUpdateControlButtons();vrPaintPeople();vrRefreshStage();
+    vrState('Connected','ok');
+    toast('You are in the same LiveKit room — others will hear you now',true);
+  }catch(e){
+    if(room){try{VR.leaving=true;room.disconnect();}catch(x){}}
+    var message=String(e&&e.message||e||'Could not join');
+    VR=vrNewState();
+    vrUpdateControlButtons();vrPaintPeople();vrRefreshStage();
+    vrState('Meeting setup incomplete','err');
+    toast('Could not join: '+message,false);
+  }
+}
+
+async function vrToggleMute(){
+  if(!VR.joined||!VR.room)return;
+  var next=!VR.muted;
+  try{
+    await VR.room.localParticipant.setMicrophoneEnabled(!next);
+    VR.muted=next;vrUpdateControlButtons();vrPaintPeople();
+  }catch(e){toast('Could not change the microphone: '+(e&&e.message||e),false);}
+}
+
+async function vrToggleShare(){
+  if(!VR.joined||!VR.room)return;
+  if(VR.room.localParticipant.isScreenShareEnabled){await vrStopShare();return;}
+  try{
+    await VR.room.localParticipant.setScreenShareEnabled(true);
+    vrRefreshStage();vrPaintPeople();
+    toast('You are presenting — everyone in the room can see this',true);
+  }catch(e){
+    if(e&&e.name==='NotAllowedError')toast('Screen sharing was cancelled',false);
+    else toast('Could not start sharing: '+(e&&e.message||e),false);
+  }
+}
+
+async function vrStopShare(){
+  if(VR.room&&VR.joined){
+    try{await VR.room.localParticipant.setScreenShareEnabled(false);}catch(e){}
+  }
+  VR.screen=null;vrRefreshStage();vrPaintPeople();
+}
+
+async function vrShareFiles(input){
+  var files=Array.prototype.slice.call(input&&input.files||[]);if(input)input.value='';
+  if(!files.length)return;
+  if(!VR.joined||!VR.room){toast('Join the meeting before sharing a file',false);return;}
+  if(VR.fileSending){toast('Another file is still being sent',false);return;}
+  if(!VR.room.localParticipant.sendFile){toast('Update the browser and try file sharing again',false);return;}
+  if(!VR.room.remoteParticipants.size){toast('Wait until at least one other participant appears in the room',false);return;}
+  VR.fileSending=true;vrUpdateControlButtons();
+  try{
+    for(var i=0;i<files.length;i++){
+      let file=files[i];
+      if(file.size>VR_FILE_MAX){toast(file.name+' is larger than the 20 MB meeting limit',false);continue;}
+      vrState('Sending '+file.name+' · 0%');
+      var info=await VR.room.localParticipant.sendFile(file,{
+        topic:VR_FILE_TOPIC,
+        mimeType:file.type||'application/octet-stream',
+        onProgress:function(progress){vrState('Sending '+file.name+' · '+Math.round(progress*100)+'%');}
+      });
+      vrAddSharedFile({id:String(info&&info.id||uid('file')),name:file.name,size:file.size,
+        mime:file.type,from:ME.name,url:URL.createObjectURL(file),direction:'sent',at:Date.now()});
+      toast(file.name+' shared with the room',true);
+    }
+  }catch(e){toast('File sharing failed: '+(e&&e.message||e),false);}
+  VR.fileSending=false;vrUpdateControlButtons();vrState('Connected','ok');
+}
+
+function vrPaintPeople(){
+  var host=document.getElementById('vrPeople');if(!host)return;
+  var list=[],room=VR.room;
+  if(VR.joined&&room&&ME){
+    list.push({id:room.localParticipant.identity||'me',name:ME.name+' (you)',dept:ME.dept||'',
+      muted:VR.muted,sharing:!!room.localParticipant.isScreenShareEnabled,
+      speaking:!!(room.localParticipant.isSpeaking||VR.activeSpeakers[room.localParticipant.identity])});
+  }
+  if(room)room.remoteParticipants.forEach(function(p){
+    list.push({id:p.identity,name:vrParticipantName(p),dept:vrParticipantDept(p),
+      muted:!p.isMicrophoneEnabled,sharing:!!p.isScreenShareEnabled,
+      speaking:!!(p.isSpeaking||VR.activeSpeakers[p.identity])});
+  });
+  var n=document.getElementById('vrCount');if(n)n.textContent=list.length;
+  if(!list.length){
+    host.innerHTML='<div class="t-empty" style="padding:20px"><b>Empty</b>Join with your microphone to appear here.</div>';return;
+  }
+  host.innerHTML=list.map(function(p){
+    return '<div class="vp"><div class="vp-av'+(p.speaking?' talk':'')+'">'+esc(initials(p.name))+'</div>'
+      +'<div style="min-width:0"><div class="vp-n">'+esc(p.name)+'</div><div class="vp-r">'+esc(p.dept||'')+'</div></div>'
+      +'<div class="vp-ico">'+(p.sharing?ico('screen'):'')
+      +'<span class="'+(p.muted?'mute':'')+'">'+(p.muted?ico('micOff'):ico('mic'))+'</span></div></div>';
+  }).join('');
+}
+
+function vrLeave(goBack){
+  var old=VR||vrNewState();old.leaving=true;
+  if(old.room){
+    try{old.room.disconnect();}catch(e){}
+  }
+  if(old.presentingTrack)try{old.presentingTrack.detach();}catch(e){}
+  (old.files||[]).forEach(function(f){if(f.url)try{URL.revokeObjectURL(f.url);}catch(e){}});
+  var bank=document.getElementById('vrAudioBank');if(bank)bank.innerHTML='';
+  var video=document.getElementById('vrScreen');if(video){video.srcObject=null;video.style.display='none';}
+  VR=vrNewState();
+  if(goBack){
+    CURVR=null;PORTAL_LINK=null;
+    try{history.replaceState(null,'',portalBaseURL());}catch(e){}
+    render();
+  }else{
+    vrUpdateControlButtons();vrState('Not connected');vrPaintPeople();vrPaintFiles();vrRefreshStage();
+  }
+}
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -2634,8 +3306,6 @@ function paintSync(){
 function openSync(){
   var cur={},canEdit=isAdmin();
   try{ cur=JSON.parse(localStorage.getItem('kp_services_sync')||'{}'); }catch(e){}
-  var turn={};
-  try{ turn=(STORE&&STORE.settings&&STORE.settings.turn)||JSON.parse(localStorage.getItem('kp_services_turn')||'{}'); }catch(e){}
   var m=document.createElement('div'); m.className='mod';
   m.innerHTML='<div class="mod-in"><div class="mod-h"><div><div class="mod-t">Sync settings</div>'
     +'<div class="mod-s">Knowledge Papers Firebase · portals/'+ROOM_DEFAULT+(canEdit?'':' · Admin-only settings')+'</div></div>'
@@ -2645,13 +3315,8 @@ function openSync(){
     +'<div class="fld wide"><label>Room</label><input id="sRoom" value="'+esc(cur.room||ROOM_DEFAULT)+'"'+(canEdit?'':' disabled')+'>'
       +'<div class="hint">This portal keeps its own room. Do not point it at the projects room '
       +'(<code>asimati-hub-v2</code>) \u2014 the two hold different shapes of data and would overwrite each other.</div></div>'
-    +'<div class="fld wide"><label>Company TURN relay (optional override)</label>'
-      +'<input id="tUrl" placeholder="turns:turn.example.com:443?transport=tcp" value="'+esc(Array.isArray(turn.urls)?turn.urls.join(', '):(turn.urls||''))+'"'+(canEdit?'':' disabled')+'></div>'
-    +'<div class="fld"><label>TURN username</label><input id="tUser" value="'+esc(turn.username||'')+'"'+(canEdit?'':' disabled')+'></div>'
-    +'<div class="fld"><label>TURN password</label><input id="tPass" type="password" value="'+esc(canEdit?(turn.credential||''):'')+'"'+(canEdit?'':' disabled')+'></div>'
-    +'<div class="fld wide"><div class="hint">The portal includes an encrypted TURN fallback for restricted networks. '
-    +'Add company TURN credentials here only when you want to replace that fallback. '
-    +'The admin saves these credentials once and they apply automatically to all portal users.</div></div>'
+    +'<div class="fld wide"><label>Meeting media</label><div class="hint">Google Meet is the primary meeting service. LiveKit Cloud remains the internal backup. '
+    +'Google access tokens stay only in page memory; LiveKit API secrets stay only in the secure Firebase Function.</div></div>'
     +'</div></div><div class="mod-f"><div class="grow"></div>'
     +'<button class="btn" id="sc">'+(canEdit?'Cancel':'Close')+'</button>'
     +(canEdit?'<button class="btn btn-p" id="ss">Save and connect</button>':'')+'</div></div>';
@@ -2665,19 +3330,9 @@ function openSync(){
     if(room==='asimati-hub-v2'){
       toast('That is the projects room. Pick a different room name for this portal.',false); return;
     }
-    var turnCfg={
-      urls:m.querySelector('#tUrl').value.trim(),
-      username:m.querySelector('#tUser').value.trim(),
-      credential:m.querySelector('#tPass').value.trim()};
-    if(turnCfg.urls&&(!turnCfg.username||!turnCfg.credential)){
-      toast('TURN username and password are required with the TURN URL.',false); return;
-    }
     try{
       localStorage.setItem('kp_services_sync',JSON.stringify({databaseURL:url,room:room}));
-      localStorage.setItem('kp_services_turn',JSON.stringify(turnCfg));
     }catch(e){}
-    STORE.settings=STORE.settings||{};
-    STORE.settings.turn=turnCfg;
     save();
     close();
     if(url){ SY.cfg=Object.assign({},FIREBASE_DEFAULT,{databaseURL:url}); SY.room=room; initSync(); }

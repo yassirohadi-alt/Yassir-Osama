@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Privacy Policy — Knowledge Papers Work Place Hub</title>
+  <link rel="icon" type="image/png" href="/Logo%20PNG.png">
+  <style>
+    :root{--brand:#B12836;--deep:#8A1E2A;--ink:#20242E;--muted:#667085;--line:#E5E9F1;--bg:#F4F6F9}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Calibri,"Segoe UI",Arial,sans-serif;line-height:1.65}
+    header{background:linear-gradient(135deg,var(--deep),var(--brand));color:#fff;padding:42px 22px}
+    .head,.page{width:min(860px,calc(100% - 32px));margin:auto}.brand{display:flex;align-items:center;gap:12px;font-weight:800}
+    .mark{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.24)}
+    h1{font-size:30px;line-height:1.2;margin:25px 0 7px}header p{margin:0;opacity:.86}
+    main{padding:28px 0 48px}.page{background:#fff;border:1px solid var(--line);border-radius:15px;padding:30px;box-shadow:0 12px 36px -28px rgba(16,24,40,.45)}
+    h2{font-size:18px;color:var(--deep);margin:28px 0 8px}h2:first-child{margin-top:0}p,li{font-size:14px;color:#3B4048}
+    ul{padding-left:22px}.notice{background:#F9ECEE;border-left:4px solid var(--brand);padding:13px 15px;border-radius:8px;margin:18px 0}
+    a{color:var(--brand);font-weight:700}.meta{font-size:12px;color:var(--muted);margin-top:28px;padding-top:18px;border-top:1px solid var(--line)}
+    .back{display:inline-flex;margin-top:24px;text-decoration:none;border:1px solid var(--line);border-radius:9px;padding:9px 14px;background:#fff}
+    @media(max-width:600px){header{padding:30px 16px}.page{padding:22px 18px}h1{font-size:25px}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="head">
+      <div class="brand"><span class="mark">KP</span><span>Knowledge Papers · Work Place Hub</span></div>
+      <h1>Privacy Policy</h1>
+      <p>How the Work Place Hub handles company, meeting and Google user data.</p>
+    </div>
+  </header>
+  <main>
+    <article class="page">
+      <h2>1. Scope</h2>
+      <p>This policy applies to the Knowledge Papers Work Place Hub, including its meeting booking, invitation, company directory and Google Meet integration.</p>
+
+      <h2>2. Information the portal handles</h2>
+      <p>The portal may process meeting titles, dates, times, agendas, organisers, invited employee names, email addresses, phone numbers, room bookings and approval records entered by authorised company users.</p>
+
+      <h2>3. Google account access</h2>
+      <div class="notice"><strong>The portal requests one Google OAuth permission:</strong><br>
+        <code>https://www.googleapis.com/auth/meetings.space.created</code>
+      </div>
+      <p>This permission is requested only when an organiser chooses to create a Google Meet link. It lets the portal create a new meeting space on behalf of the Google account selected by that organiser. The portal receives the resulting meeting URI and limited space identifiers needed to attach the meeting to the company booking.</p>
+      <p>The portal does not request access to Gmail, Google Drive, Google Calendar, contacts, passwords, or existing meetings.</p>
+
+      <h2>4. How Google data is used and stored</h2>
+      <ul>
+        <li>The Google Meet URI is stored with the corresponding company booking in Firebase Realtime Database so authorised users can open the meeting from the branded invitation.</li>
+        <li>Google OAuth access tokens are held only in the active browser memory. They are not written to Firebase, local storage, the company directory or meeting records.</li>
+        <li>Google user data is used only to provide the meeting feature requested by the organiser. It is not sold, used for advertising or shared with unrelated third parties.</li>
+      </ul>
+      <p>The portal's use and transfer of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+
+      <h2>5. Access and sharing</h2>
+      <p>Meeting details are available only through the company portal and its configured access controls. Invitation recipients receive a branded portal link. The Google Meet URI is presented when an authorised participant opens the booking and chooses to join.</p>
+
+      <h2>6. Retention and deletion</h2>
+      <p>Booking data remains in the company portal until it is cancelled, removed by an authorised administrator, or no longer required for company operations. A Google Meet space is also governed by the organiser's Google account and Google's retention controls. Users may request correction or deletion of portal data using the contact below.</p>
+
+      <h2>7. Security</h2>
+      <p>The hosted portal uses HTTPS. Access tokens are short-lived and memory-only. Knowledge Papers limits portal administration and meeting creation to authorised roles. No internet service can be guaranteed completely secure, so suspected unauthorised access should be reported promptly.</p>
+
+      <h2>8. Contact</h2>
+      <p>For privacy questions, access requests or deletion requests, contact:<br><a href="mailto:yassirohadi@gmail.com">yassirohadi@gmail.com</a></p>
+
+      <p class="meta">Effective date: 25 August 2026 · Version 1.0</p>
+      <a class="back" href="/services_portal.html">← Return to Work Place Hub</a>
+    </article>
+  </main>
+</body>
+</html>
