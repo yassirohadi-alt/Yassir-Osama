@@ -250,6 +250,10 @@ table.t .ref{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--
 .vf-get svg{width:14px;height:14px}
 .vp{display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid var(--line-soft)}
 .vp:last-child{border-bottom:none}
+.vp.meeting-entry{cursor:pointer;transition:background .15s ease,box-shadow .15s ease}
+.vp.meeting-entry:hover,.vp.meeting-entry:focus{background:var(--brand-soft);outline:none;box-shadow:inset 3px 0 0 var(--brand)}
+.vp-open{margin-left:auto;display:inline-flex;align-items:center;gap:5px;color:var(--brand);font-size:11px;font-weight:800;white-space:nowrap}
+.vp-open svg{width:14px;height:14px}
 .vp-av{width:30px;height:30px;border-radius:99px;background:var(--brand-soft);color:var(--brand-deep);
   display:grid;place-items:center;font-size:11px;font-weight:800;flex:0 0 auto;position:relative}
 .vp-av.talk{box-shadow:0 0 0 3px rgba(46,125,91,.4)}
@@ -411,12 +415,12 @@ table.t .ref{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--
 
 var SK='kp_services_v1';
 var ROOM_DEFAULT='asimati-services';
-var PORTAL_BUILD='2026.08.25.14';
+var PORTAL_BUILD='2026.08.25.15';
 /* Meeting invitations must open the standalone hosted page. Loading the hub
    through an iframe/srcdoc gives it an about: URL, which is confusing for
    browser permission checks and makes troubleshooting microphone access much
    harder. Keep the meeting on the real Firebase HTTPS origin instead. */
-var PUBLIC_PORTAL_URL='https://knowledge-papers.web.app/services_portal.html?v=14';
+var PUBLIC_PORTAL_URL='https://knowledge-papers.web.app/services_portal.html?v=15';
 var MAIN_PORTAL_URL='https://knowledge-papers.web.app/';
 var GOOGLE_OAUTH_CLIENT_ID='602139029671-81nqjdon7ek9f5vlsbjmff1d2pqd5nq9.apps.googleusercontent.com';
 var GOOGLE_MEET_SCOPE='https://www.googleapis.com/auth/meetings.space.created';
@@ -638,7 +642,7 @@ function paintWho(){
   var role=ME?(ME.role==='admin'?'Admin':(level||ME.role==='approver'?'Approver':'Requester')):'';
   document.getElementById('whoAv').textContent=ME?initials(ME.name):'?';
   document.getElementById('whoName').textContent=ME?ME.name.split(' ')[0]:'Sign in';
-  document.getElementById('abSub').textContent=(ME?(ME.dept+' · '+role+(level?' · Approval L'+level:'')+(ME.role==='admin'&&!isAdmin()?' (locked)':'')):'Internal requests & meetings')+' · v14';
+  document.getElementById('abSub').textContent=(ME?(ME.dept+' · '+role+(level?' · Approval L'+level:'')+(ME.role==='admin'&&!isAdmin()?' (locked)':'')):'Internal requests & meetings')+' · v15';
   var ab=document.getElementById('adminAccessBtn');if(ab)ab.textContent=isAdmin()?'Admin centre':'Admin access';
 }
 function adminSessionOK(){
@@ -898,7 +902,6 @@ var NAV=[
   {id:'car',    n:'Request a vehicle',i:'car'},
   {id:'rooms',  n:'Meeting rooms',    i:'door'},
   {id:'meet',   n:'Call a meeting',   i:'cal'},
-  {id:'virtual',n:'Backup room',      i:'video'},
   {sec:'Supplies'},
   {id:'stationery',n:'Stationery',    i:'pen'},
   {id:'it',        n:'IT support',    i:'chip'},
@@ -907,7 +910,7 @@ var NAV=[
   {id:'approvals',n:'Approvals',      i:'check', badge:function(){ return isApprover()?myApprovalRequests().length:0; }},
   {id:'all',      n:'All requests',   i:'list'},
   {sec:'Manage',adminOnly:true},
-  {id:'directory',n:'Approval setup',i:'mail',adminOnly:true},
+  {id:'directory',n:'Company Directory & Approvals',i:'mail',adminOnly:true},
   {id:'admin',    n:'Admin centre',   i:'gear',adminOnly:true}
 ];
 function go(v){ VIEW=v; FILTER='open'; SEARCH=''; render(); window.scrollTo(0,0); }
@@ -991,7 +994,6 @@ function vHome(){
     ['car','Request a vehicle','Book a car or van with a driver, for a trip on a set date and time.','car'],
     ['rooms','Reserve a meeting room','See what is free today and take a slot in one tap.','door'],
     ['meet','Call a meeting','Set an agenda, invite people, and create a Google Meet invitation.','cal'],
-    ['virtual','Open a backup room','LiveKit fallback for an internal call if Google Meet is unavailable.','video'],
     ['stationery','Order stationery','Paper, pens, files and everything else from the store cupboard.','pen'],
     ['it','Ask IT for help','Report a fault or request equipment, software or access.','chip'],
     ['warehouse','Request from the warehouse','Draw equipment, cabling, tools or safety kit from stock.','box']
@@ -1033,10 +1035,12 @@ function vHome(){
       +'<div class="card-b" style="padding:0">'
       +(today.length?today.map(function(b){
           var rm=STORE.rooms.find(function(r){return r.id===b.roomId;});
-          return '<div class="vp"><div class="vp-av">'+esc(b.start.slice(0,2))+'</div>'
+          return '<div class="vp meeting-entry" role="button" tabindex="0" onclick="openBooking(\''+b.id+'\')" '
+            +'onkeydown="if(event.keyCode===13||event.keyCode===32){event.preventDefault();openBooking(\''+b.id+'\')}" '
+            +'title="Open meeting details"><div class="vp-av">'+esc(b.start.slice(0,2))+'</div>'
             +'<div style="min-width:0"><div class="vp-n">'+esc(b.title)+'</div>'
             +'<div class="vp-r">'+esc(b.start)+'\u2013'+esc(b.end)+' \u00b7 '+esc(rm?rm.name:(b.virtual?'Virtual':'—'))+'</div></div>'
-            +(b.virtual?('<div class="vp-ico">'+ico('video')+'</div>'):'')+'</div>';
+            +'<div class="vp-open">'+ico('video')+(b.meetUri?'Join':'Open')+'</div></div>';
         }).join('')
         :'<div class="t-empty"><b>No meetings today</b>Use \u201cCall a meeting\u201d to set one up.</div>')
       +'</div></div>'
@@ -1261,13 +1265,13 @@ function automaticApprovers(type){
 }
 function approvalRouteSummary(type){
   var all=automaticApprovers(type),label=APPROVAL_TYPE_LABELS[type]||'this service';
-  if(!all.length)return '<div class="appr-pick"><label>Approval owner — Admin controlled</label><div style="font-size:12px;color:var(--warn)"><b>No approver configured for '+esc(label)+'.</b> Admin must assign one from Approval setup.</div></div>';
+  if(!all.length)return '<div class="appr-pick"><label>Approval owner — Admin controlled</label><div style="font-size:12px;color:var(--warn)"><b>No approver configured for '+esc(label)+'.</b> Admin must assign one from Company Directory & Approvals.</div></div>';
   return '<div class="appr-pick"><label>Approval owner — assigned automatically by Admin</label><div class="appr-options">'
     +all.map(function(c){return '<div class="appr-option">Level '+c.level+' · '+esc(c.name)+'</div>';}).join('')+'</div>'
     +'<div style="font-size:10.5px;color:var(--muted);margin-top:8px">No requester selection is needed. Admin controls the people, services and approval order.</div></div>';
 }
 function requireAutomaticApprovers(type){
-  var a=automaticApprovers(type);if(!a.length){toast('Admin must assign an approver for '+(APPROVAL_TYPE_LABELS[type]||'this service')+' in Approval setup',false);return null;}return a;
+  var a=automaticApprovers(type);if(!a.length){toast('Admin must assign an approver for '+(APPROVAL_TYPE_LABELS[type]||'this service')+' in Company Directory & Approvals',false);return null;}return a;
 }
 function approverPicker(prefix,selected){
   var all=approvalContacts(),sel={};(selected||[]).forEach(function(a){sel[a.id]=1;});
@@ -1468,7 +1472,7 @@ function openBooking(id){
   var b=STORE.bookings.find(function(x){ return x.id===id; }); if(!b) return;
   var rm=STORE.rooms.find(function(r){ return r.id===b.roomId; });
   var mine=ME&&b.byId===ME.id;
-  var canJoinGoogle=!!b.meetUri,canJoinLegacy=!!(b.virtual&&b.vroomId&&!b.meetUri);
+  var canJoinGoogle=!!b.meetUri,canJoinLegacy=false;
   var m=document.createElement('div'); m.className='mod';
   m.innerHTML='<div class="mod-in"><div class="mod-h"><div><div class="mod-t">'+esc(b.title)+'</div>'
     +'<div class="mod-s">'+fmtDate(b.date)+' \u00b7 '+esc(b.start)+'\u2013'+esc(b.end)+'</div></div>'
@@ -1508,7 +1512,7 @@ function meetingRoomName(b){
   if(place&&b.meetUri)return place+' + Google Meet';
   if(place)return place;
   if(b.meetUri)return 'Google Meet';
-  return b.virtual?'Backup virtual room':'No room';
+  return b.virtual?'Online room unavailable':'No room';
 }
 function portalBaseURL(){
   /* Invitations must always contain the deployed portal URL, even when Admin
@@ -1525,8 +1529,9 @@ function readPortalLink(){
 function applyPortalLink(){
   if(!PORTAL_LINK||PORTAL_LINK.handled)return;
   if(PORTAL_LINK.virtual){
-    CURVR=PORTAL_LINK.virtual;VIEW='virtual';
-    if(STORE&&STORE.vrooms&&STORE.vrooms.some(function(v){return v.id===CURVR;}))PORTAL_LINK.handled=true;
+    /* Backup rooms were retired after Google Meet became the only online
+       meeting provider. Old backup links return safely to the dashboard. */
+    CURVR=null;VIEW='home';PORTAL_LINK.handled=true;
     return;
   }
   if(PORTAL_LINK.booking&&STORE&&STORE.bookings){
@@ -2008,10 +2013,10 @@ function permissionEditor(o){
     +'</div></div>';
 }
 function approvalTypesEditor(o){
-  normaliseApproverTypes(o);var selected=(o.approvalTypes||[]).slice();if(!o.id&&!selected.length)selected=APPROVAL_TYPE_KEYS.slice();
-  return '<div class="fld wide"><label>Can approve these services</label><div class="appr-options">'
+  normaliseApproverTypes(o);var selected=(o.approvalTypes||[]).slice();
+  return '<div class="fld wide"><label>Responsible for approval of these categories</label><div class="appr-options">'
     +APPROVAL_TYPE_KEYS.map(function(k){return '<label class="appr-option"><input type="checkbox" class="adminApprovalType" value="'+k+'"'+(selected.indexOf(k)>=0?' checked':'')+'> '+APPROVAL_TYPE_LABELS[k]+'</label>';}).join('')
-    +'</div><div class="hint">Admin-only setting. Requesters cannot choose the approver or approval level; the route is inserted automatically.</div></div>';
+    +'</div><div class="hint">Select only the categories this employee must approve. Level 1 acts first, then Level 2 and higher levels. The route is added automatically.</div></div>';
 }
 function selectedAdminApprovalTypes(){return Array.from(document.querySelectorAll('.adminApprovalType:checked')).map(function(x){return x.value;});}
 function permissionSummary(p){normalisePersonPermissions(p);var a=[];if(p.permissions.canRequest!==false)a.push('Requests');if(p.permissions.canCallMeetings!==false)a.push('Meetings');if(p.permissions.canApprove!==false)a.push('Approvals');return a.join(', ')||'No access';}
@@ -2028,14 +2033,32 @@ function directoryAdminRows(){
     +'<td style="white-space:nowrap"><button class="btn btn-sm" onclick="adminMaster(\'contacts\',\''+c.id+'\')">'+ico('edit')+'Edit</button> '
     +'<button class="btn btn-sm btn-d" onclick="adminRemove(\'contacts\',\''+c.id+'\')">'+ico('trash')+'</button></td></tr>';}).join('');
 }
+function approvalRoutingRows(){
+  return APPROVAL_TYPE_KEYS.map(function(type){
+    var all=automaticApprovers(type),byLevel={};
+    all.forEach(function(a){if(!byLevel[a.level])byLevel[a.level]=[];byLevel[a.level].push(a.name);});
+    var cells='';
+    for(var level=1;level<=5;level++){
+      cells+='<td>'+(byLevel[level]&&byLevel[level].length
+        ?byLevel[level].map(function(name){return '<span class="chip c-ok"><i></i>'+esc(name)+'</span>';}).join(' ')
+        :'—')+'</td>';
+    }
+    return '<tr><td><b>'+esc(APPROVAL_TYPE_LABELS[type]||type)+'</b></td>'+cells+'<td>'
+      +(all.length?'<span class="chip c-ok"><i></i>Configured</span>':'<span class="chip c-no"><i></i>No approver</span>')+'</td></tr>';
+  }).join('');
+}
 function filterDirectoryTable(q){
   q=String(q||'').toLowerCase();document.querySelectorAll('[data-directory-row]').forEach(function(r){r.style.display=!q||r.dataset.search.indexOf(q)>=0?'':'none';});
 }
 function vDirectory(){
   if(!isAdmin())return adminDenied();var rows=directoryAdminRows(),approvers=STORE.contacts.filter(function(c){return +c.approvalLevel>0;}).length;
-  return pageHead('Approval setup','Admin chooses who approves each service and in which level. Requesters cannot change this route.',
+  return pageHead('Company Directory & Approvals','Add employees, assign their approval level, and choose the categories each person must approve. Requesters cannot change this route.',
       '<button class="btn btn-p" onclick="adminMaster(\'contacts\',\'\')">'+ico('plus')+'Add employee</button>')
     +'<div class="kpis"><div class="kpi"><b>'+STORE.contacts.length+'</b><span>Employees</span></div><div class="kpi k-good"><b>'+approvers+'</b><span>Approvers</span></div></div>'
+    +'<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('check')+'</span>Who approves each category?</div></div>'
+    +'<div class="card-b" style="padding:10px 16px;font-size:11.5px;color:var(--ink-3)">Approvals run from Level 1 to Level 5. If more than one employee appears at the same level, all of them must approve before the request moves forward.</div>'
+    +'<div class="tw" style="border:0;border-radius:0"><table class="t"><thead><tr><th>Category</th><th>Level 1</th><th>Level 2</th><th>Level 3</th><th>Level 4</th><th>Level 5</th><th>Status</th></tr></thead><tbody>'
+    +approvalRoutingRows()+'</tbody></table></div></div>'
     +'<div class="fbar"><div class="fsearch" style="margin-left:0">'+ico('search')+'<input placeholder="Search name, email or department" oninput="filterDirectoryTable(this.value)"></div></div>'
     +'<div class="tw"><table class="t"><thead><tr><th>Name</th><th>Department</th><th>Email</th><th>Phone</th><th>Approval level</th><th>Approves</th><th>Actions</th></tr></thead><tbody>'
     +(rows||emptyRow(7,'Company Directory is empty','Add your first company employee.'))+'</tbody></table></div>';
@@ -2126,7 +2149,7 @@ function adminMaster(kind,id,catKind){
       +fld('aTitle','Job title','<input id="aTitle" value="'+esc(o.title||'')+'">')
       +fld('aEmail','Company email <span class="req">*</span>','<input id="aEmail" type="email" value="'+esc(o.email||'')+'" placeholder="name@company.com">')
       +fld('aPhone','Phone','<input id="aPhone" type="tel" value="'+esc(o.phone||'')+'">')
-      +fld('aLevel','Approval level','<select id="aLevel">'+approvalLevelOptions(o.approvalLevel||0)+'</select>',
+      +fld('aLevel','Approval level / order','<select id="aLevel">'+approvalLevelOptions(o.approvalLevel||0)+'</select>',
         'Level 1 approves first, followed by Level 2 and higher levels.')+approvalTypesEditor(o);
   }else if(kind==='people'){
     title=isNew?'Add user':'Edit user';
@@ -2174,6 +2197,7 @@ function adminMaster(kind,id,catKind){
     }else if(kind==='contacts'){
       n.name=val('aName');n.dept=val('aDept');n.title=val('aTitle');n.email=val('aEmail');n.phone=val('aPhone');n.approvalLevel=Math.max(0,Math.min(5,+val('aLevel')||0));n.approvalTypes=selectedAdminApprovalTypes();n.canApprove=n.approvalLevel>0&&n.approvalTypes.length>0;
       if(!n.name||!n.email||n.email.indexOf('@')<1){toast('Enter the employee name and a valid company email',false);return;}
+      if(n.approvalLevel>0&&!n.approvalTypes.length){toast('Choose at least one category for this approver',false);return;}
       var duplicate=STORE.contacts.find(function(c){return c.id!==n.id&&sameEmail(c.email,n.email);});
       if(duplicate){toast('That company email already belongs to '+duplicate.name,false);return;}
     }else if(kind==='people'){
