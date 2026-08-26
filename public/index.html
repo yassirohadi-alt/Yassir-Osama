@@ -17948,6 +17948,9 @@ function deferWhileTyping(v,key){
 function acceptRemoteProject(snap){
   if(SYNC.applying) return;
   var v=snap&&snap.val(), key=snap&&snap.key;
+  /* Smart Water Meter owns only p8. Normalise an older p8 payload before it
+     reaches the local portfolio; never let its migration touch another project. */
+  try{ if(window.__normalizeSmartMeterRemote) v=window.__normalizeSmartMeterRemote(v); }catch(e){}
   if(!v||!v.id) return;
   if(deferWhileTyping(v,key)) return;             /* never re-render over a live input */
   var arr=projectList(), idx=projectIndex(v.id,arr), local=idx<0?null:arr[idx];
@@ -17986,6 +17989,7 @@ function valueToProjects(v){
     .map(function(k){return v[k];}).filter(function(x){return x&&x.id;});
 }
 function reconcileProjectStructure(remote){
+  try{ if(window.__normalizeSmartMeterRemote) remote=(remote||[]).map(window.__normalizeSmartMeterRemote); }catch(e){}
   var local=projectList(), byId={}, requeue=false;
   local.forEach(function(p){ if(p&&p.id) byId[p.id]=p; });
   var merged=[];
@@ -18863,4 +18867,128 @@ function wrapImporter(name,fileIndex){
 })();
 
 
+</script>
+
+<style id="smartMeterV26Styles">
+.sm-shell{grid-column:1/-1;display:flex;flex-direction:column;gap:16px}.sm-kpis{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px}.sm-kpi{background:#fff;border:1px solid #e1e5ea;border-radius:13px;padding:15px 17px;box-shadow:0 2px 8px rgba(25,32,44,.05)}.sm-kpi b{display:block;font-size:26px;color:#20252d}.sm-kpi span{font-size:11px;color:#737d8c;font-weight:700;text-transform:uppercase;letter-spacing:.04em}.sm-card{background:#fff;border:1px solid #e1e5ea;border-radius:15px;overflow:hidden;box-shadow:0 3px 12px rgba(25,32,44,.05)}.sm-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 16px;border-bottom:1px solid #e8ebef;background:#fafbfc}.sm-head h3{margin:0;font-size:14px;color:#252a32}.sm-tools{display:flex;gap:8px;flex-wrap:wrap}.sm-tools button{border:1px solid #d5dae1;background:#fff;color:#303641;border-radius:8px;padding:8px 11px;font:700 11px inherit;cursor:pointer}.sm-tools button.sm-primary{background:#991b2b;color:#fff;border-color:#991b2b}.sm-table-wrap{overflow:auto;max-width:100%}.sm-table{border-collapse:separate;border-spacing:0;min-width:1250px;width:100%;font-size:11px}.sm-table th{position:sticky;top:0;z-index:2;background:#e8a17b;color:#20252d;padding:10px 9px;border-right:1px solid #c97f59;border-bottom:1px solid #c97f59;text-align:center;white-space:nowrap}.sm-table td{padding:9px;border-right:1px solid #e0e4e9;border-bottom:1px solid #e0e4e9;vertical-align:middle;text-align:center;min-width:84px;max-width:230px;white-space:normal;overflow-wrap:anywhere}.sm-table tbody tr:nth-child(even) td{background:#fcf8f6}.sm-table td.sm-left{text-align:left;min-width:155px}.sm-table td[contenteditable="true"]:focus,.site-table td[data-sm-row][contenteditable="true"]:focus{outline:2px solid var(--brand);outline-offset:-2px;background:var(--brand-soft)}.sm-img{display:block;width:92px;height:72px;object-fit:contain;margin:auto;background:#fff;border-radius:7px}.sm-img-path{display:block;width:120px;max-width:100%;margin:5px auto 0;border:1px solid var(--line);border-radius:6px;padding:4px 6px;font:9px var(--mono);color:var(--ink-2)}.sm-response{font-weight:800;border-radius:7px}.sm-quick{background:#e8f5ee!important;color:#1f7a4d}.sm-none{background:#fff4e5!important;color:#9a6700}.sm-bad{background:#fdecec!important;color:#b42318}.sm-chart{padding:16px}.sm-axis{display:flex;justify-content:space-between;color:#8a93a2;font:10px var(--mono);margin:0 0 7px 180px}.sm-bar-row{display:grid;grid-template-columns:170px 1fr 72px;gap:10px;align-items:center;margin:8px 0}.sm-bar-label{font-size:11px;font-weight:700;color:#39414d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sm-track{position:relative;height:18px;background:#f0f2f5;border-radius:99px;overflow:hidden}.sm-bar-max,.sm-bar-min{position:absolute;left:0;top:0;height:100%;border-radius:99px}.sm-bar-max{background:var(--brand);opacity:.30}.sm-bar-min{background:var(--brand);height:8px;top:5px}.sm-bar-value{font:700 10px var(--mono);text-align:right;color:#39414d}.sm-legend{display:flex;gap:14px;justify-content:flex-end;color:#667085;font-size:10px;margin-top:10px}.sm-legend i{display:inline-block;width:18px;height:7px;border-radius:99px;margin-right:4px}.sm-empty{padding:26px;text-align:center;color:#7c8593}@media(max-width:760px){.sm-kpis{grid-template-columns:repeat(2,1fr)}.sm-bar-row{grid-template-columns:105px 1fr 60px}.sm-axis{margin-left:115px}.sm-head{align-items:flex-start;flex-direction:column}}
+</style>
+<script>
+/* v26 — Smart Water Meter supplier tracker + safe, project-scoped recovery */
+(function(){
+var VERSION='2026-08-26-supplier-v2';
+var BASE_COLUMNS=[
+  {key:'brand',label:'Brand',type:'text'},{key:'origin',label:'Origin',type:'text'},{key:'price',label:'Price',type:'text'},
+  {key:'specs',label:'Specs',type:'text'},{key:'demo',label:'Demo',type:'text'},{key:'supplyPerMonth',label:'Supply / M',type:'text'},
+  {key:'duration',label:'Duration',type:'text'},{key:'product',label:'Product',type:'text'},{key:'responses',label:'Responses',type:'text'},
+  {key:'batteryWarranty',label:'Battery W',type:'text'},{key:'meterWarranty',label:'Meter W',type:'text'},
+  {key:'minPriceUsd',label:'Min Price USD',type:'number'},{key:'maxPriceUsd',label:'Max Price USD',type:'number'}
+];
+var SOURCE_ROWS=[
+  ['C1 SMART','CH','95 USD','DN15','N/A','100-300 K','45 Days','','Bad Response','8 Y','1 Y',95,95,'assets/smart-meter/c1-smart.png'],
+  ['Santrua Technology','CH','36 USD','DN15','Waiting approval on the payment','45 K','40 Days','','Quick Response','8-10 Y','1 Y',36,36,'assets/smart-meter/santrua.png'],
+  ['GridOn','IQ','115 USD / 105 USD','DN15','N/A','7 K','5 M','N/A','Declined: N/A Communication with our requirement','15 Y','1 Y',105,115,''],
+  ['Tengyue Metering','CH','42 USD','DN15','Waiting approval on the payment','80-100 K','5 M','','Quick Response','8 Y','1 Y',42,42,'assets/smart-meter/tengyue.png'],
+  ['Aimei meter manufacture','CH','60 USD','DN15','N/A','50 K','5 M','','Declined: N/A Communication with our requirement','10 Y','1 Y',60,60,'assets/smart-meter/aimei.png'],
+  ['WeThinq Digital Ltd','CH','41 USD','DN15','N/A','100-300 K','6 M','','No response','10 Y','1 Y',41,41,'assets/smart-meter/wethinq.png'],
+  ['Plumberstar','CH','42 USD','DN15','N/A','5 K','10 M','','Quick Response','8-10 Y','1 Y',42,42,'assets/smart-meter/plumberstar.png'],
+  ['SUNTRONT TECH CO','CH','56 USD / 37.4 USD','DN15','N/A','60 K','6 M','','Quick Response','8-10 Y','1 Y',37.4,56,'assets/smart-meter/suntront.png'],
+  ['Hexcell','CH','50 USD','DN15','N/A','50-100 K','4 M','N/A','No response','10 Y','1 Y',50,50,''],
+  ['Apator Powogaz SA','POL','69.6 USD','DN15','N/A','200 K','10 M','N/A','No response','10 Y / 16 Y','1 Y',69.6,69.6,''],
+  ['Hongxing','CH','60 USD','DN15','N/A','90-150 K','7 M','N/A','No response','10 Y','1 Y',60,60,''],
+  ['El Sewedy Electrometer Group S.A.E','EGP','58 USD','DN15','A','100 K','5 M','','Quick Response','6-10 Y','1 Y',58,58,'assets/smart-meter/elsewedy.png']
+];
+function smS(v){return String(v==null?'':v).trim();}
+function smN(v){return smS(v).toLowerCase().replace(/[^a-z0-9]+/g,' ' ).trim();}
+function smEsc(v){return smS(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function smKey(label,i){var x=smN(label).replace(/\s+/g,'_').slice(0,30);return 'sm_'+(x||('column_'+(i+1)))+'_'+Date.now().toString(36).slice(-4);}
+function smNum(v){var n=parseFloat(smS(v).replace(/[^0-9.\-]/g,''));return isFinite(n)?n:0;}
+function smCells(values,cols){var o={};cols.forEach(function(c,i){o[c.key]=c.type==='number'?smNum(values[i]):smS(values[i]);});return o;}
+function sourceModel(){return SOURCE_ROWS.map(function(r,i){var values=r.slice(0,13);values[7]=r[13]||r[7]||'';return {id:'sm'+(i+1),cells:smCells(values,BASE_COLUMNS),productImage:r[13]||''};});}
+function smProject(){return typeof projByID==='function'?projByID('p8'):null;}
+function freshSmartMeterProject(){return {id:'p8',name:'Smart Water Meter',nameEn:'Smart Water Meter',icon:'water',progress:0,
+  phases:[],milestones:[],qa:[],budget:[],risks:[],team:[],sites:[],supplierColumns:BASE_COLUMNS.map(function(c){return Object.assign({},c);}),suppliers:sourceModel(),
+  meta:{smartMeterSupplierModel:true,smartMeterSupplierVersion:VERSION,sourceFile:'SMART METER SUPPLY SHEET.docx',scheduleApplicable:false,lastUpdated:'2026-08-26'}};}
+function ensureSmartMeter(){
+  if(typeof STORE==='undefined'||!STORE||!Array.isArray(STORE.projects))return null;
+  var p=smProject(),fresh=!p||!p.meta||p.meta.smartMeterSupplierModel!==true||!Array.isArray(p.supplierColumns)||!Array.isArray(p.suppliers);
+  if(!p){p={id:'p8'};STORE.projects.push(p);fresh=true;}
+  if(fresh){
+    Object.keys(p).forEach(function(k){if(k!=='id')delete p[k];});
+    Object.assign(p,freshSmartMeterProject());
+  }else{
+    p.name='Smart Water Meter';p.nameEn='Smart Water Meter';p.meta.smartMeterSupplierVersion=VERSION;p.meta.scheduleApplicable=false;
+    (p.suppliers||[]).forEach(function(r){r.cells=r.cells||{};if(!smS(r.cells.product)&&smS(r.productImage))r.cells.product=r.productImage;});
+  }
+  return p;
+}
+window.__normalizeSmartMeterRemote=function(remote){
+  if(!remote||remote.id!=='p8')return remote;
+  var p=JSON.parse(JSON.stringify(remote));
+  if(!p.meta||p.meta.smartMeterSupplierModel!==true||!Array.isArray(p.supplierColumns)||!Array.isArray(p.suppliers))return freshSmartMeterProject();
+  p.name='Smart Water Meter';p.nameEn='Smart Water Meter';p.meta.smartMeterSupplierVersion=VERSION;p.meta.scheduleApplicable=false;
+  p.suppliers.forEach(function(r){r.cells=r.cells||{};if(!smS(r.cells.product)&&smS(r.productImage))r.cells.product=r.productImage;});
+  return p;
+};
+/* The legacy bootstrap expects a boolean migration result. This deliberately
+   performs no persist(): Firebase must finish its authoritative read first. */
+window.ensureSmartMeter=function(){var before=smProject(),sig='';try{sig=JSON.stringify(before);}catch(e){}var p=ensureSmartMeter();try{return sig!==JSON.stringify(p);}catch(e){return !!p;}};
+function val(row,key){return row&&row.cells?row.cells[key]:'';}
+function priceBounds(p){var vals=[];(p.suppliers||[]).forEach(function(r){var a=smNum(val(r,'minPriceUsd')),b=smNum(val(r,'maxPriceUsd'));if(a)vals.push(a);if(b)vals.push(b);});return {min:vals.length?Math.min.apply(Math,vals):0,max:vals.length?Math.max.apply(Math,vals):0};}
+function responseClass(v){var n=smN(v);return /quick/.test(n)?'sm-quick':(/no response/.test(n)?'sm-none':(/declined|bad/.test(n)?'sm-bad':''));}
+function supplierChart(p){var bounds=priceBounds(p),axis=Math.max(20,Math.ceil(bounds.max/20)*20),brandKey=(p.supplierColumns||[]).find(function(c){return smN(c.label)==='brand';})||{key:'brand'};var rows=(p.suppliers||[]).map(function(r){var mn=smNum(val(r,'minPriceUsd')),mx=smNum(val(r,'maxPriceUsd'));if(!mx){var nums=(smS(val(r,'price')).match(/\d+(?:\.\d+)?/g)||[]).map(Number);mn=nums.length?Math.min.apply(Math,nums):0;mx=nums.length?Math.max.apply(Math,nums):0;}return '<div class="sm-bar-row"><div class="sm-bar-label" title="'+smEsc(val(r,brandKey.key))+'">'+smEsc(val(r,brandKey.key))+'</div><div class="sm-track"><div class="sm-bar-max" style="width:'+Math.max(0,Math.min(100,mx/axis*100))+'%"></div><div class="sm-bar-min" style="width:'+Math.max(0,Math.min(100,mn/axis*100))+'%"></div></div><div class="sm-bar-value">'+(mn===mx?mn:(mn+'–'+mx))+' USD</div></div>';}).join('');return '<div class="sm-axis"><span>0</span><span>'+(axis/2)+' USD</span><span>'+axis+' USD</span></div>'+rows+'<div class="sm-legend"><span><i style="background:#8b1e2d"></i>Minimum quote</span><span><i style="background:#e8a17b"></i>Maximum quote</span></div>';}
+function supplierHeader(c){var edit=(typeof isEditor==='function'&&isEditor()),tools=edit?'<span class="st-col-tools"><button onclick="event.stopPropagation();supplierMoveColumn(\''+c.key+'\',-1)" title="Move left">←</button><button onclick="event.stopPropagation();supplierMoveColumn(\''+c.key+'\',1)" title="Move right">→</button><button onclick="event.stopPropagation();supplierDeleteColumn(\''+c.key+'\')" title="Delete column">×</button></span>':'';return '<th><div class="sth-wrap"><span class="sth-label" '+(edit?'contenteditable="true" onblur="supplierRenameColumn(\''+c.key+'\',this.textContent)"':'')+'>'+smEsc(c.label||c.key)+'</span>'+tools+'</div></th>';}
+function supplierTable(p){var cols=p.supplierColumns||[],edit=(typeof isEditor==='function'&&isEditor()),head='<th class="st-no-col">#</th>'+cols.map(supplierHeader).join('')+'<th></th>',rows=(p.suppliers||[]).map(function(r,ri){return '<tr><td class="st-rowno">'+(ri+1)+'</td>'+cols.map(function(c){var x=val(r,c.key),isProduct=c.key==='product',cls=(c.key==='brand'?'site-name-td sm-left ':'')+(c.key==='responses'?('sm-response '+responseClass(x)):'');var html;if(isProduct){var path=smS(x)||smS(r.productImage);html=(path?'<img class="sm-img" src="'+smEsc(path)+'" alt="'+smEsc(val(r,'brand'))+' smart water meter">':'')+(edit?'<input class="sm-img-path" value="'+smEsc(path)+'" placeholder="Image path / URL" onblur="supplierImageEdit('+ri+',this.value)">':'');}else html=smEsc(x);return '<td class="'+cls+'" data-sm-row="'+ri+'" data-sm-key="'+smEsc(c.key)+'" contenteditable="'+(edit&&!isProduct?'true':'false')+'">'+html+'</td>';}).join('')+'<td style="white-space:nowrap">'+(edit?'<button class="st-row-btn" onclick="supplierMoveRow('+ri+',-1)" title="Move up">↑</button><button class="st-row-btn" onclick="supplierMoveRow('+ri+',1)" title="Move down">↓</button><button class="row-del-btn pm-only" onclick="supplierDeleteRow('+ri+')" title="Delete row">✕</button>':'')+'</td></tr>';}).join('');return '<div class="site-table-wrap"><table class="site-table"><thead><tr>'+head+'</tr></thead><tbody>'+rows+'</tbody></table></div>';}
+function renderSmartMeter(){
+  var p=ensureSmartMeter(),grid=document.getElementById('pvGrid'),kpis=document.getElementById('pvKpis');if(!p||!grid)return;
+  document.getElementById('pvTitle').textContent=p.nameEn;var pvEn=document.getElementById('pvEn');if(pvEn)pvEn.textContent='';var b=priceBounds(p),quick=(p.suppliers||[]).filter(function(r){return /quick/.test(smN(val(r,'responses')));}).length,orig={};(p.suppliers||[]).forEach(function(r){orig[smS(val(r,'origin'))]=1;});
+  if(kpis)kpis.innerHTML='<div class="pv-kpi b"><div class="kv">'+p.suppliers.length+'</div><div class="kk">Suppliers</div></div><div class="pv-kpi g"><div class="kv">'+b.min.toFixed(1)+' USD</div><div class="kk">Lowest Price</div></div><div class="pv-kpi a"><div class="kv">'+b.max.toFixed(1)+' USD</div><div class="kk">Highest Price</div></div><div class="pv-kpi"><div class="kv">'+quick+'</div><div class="kk">Quick Responses</div></div>';
+  grid.classList.add('official-view');
+  grid.innerHTML='<div class="sm-shell"><div class="sec-card pv-full"><div class="sec-head"><div class="sec-head-l"><div class="sec-icon">$</div><div class="sec-title">Supplier Price Range</div></div><span style="font-size:11px;color:#fff">Dynamic scale: 0–'+Math.max(20,Math.ceil(b.max/20)*20)+' USD</span></div><div class="sec-body sm-chart">'+supplierChart(p)+'</div></div><div class="sec-card pv-full"><div class="sec-head"><div class="sec-head-l"><div class="sec-icon">↔</div><div class="sec-title">Supplier Comparison <span class="tracker-badge">Editable Tracker</span></div></div><div class="sec-actions"><span style="font-size:11px;color:#fff">'+p.suppliers.length+' suppliers · '+(p.supplierColumns||[]).length+' columns</span></div></div><div class="sec-body"><div class="site-col-toolbar" style="margin-bottom:12px"><button class="site-col-btn" onclick="supplierAddRow()">+ Supplier</button><button class="site-col-btn" onclick="supplierAddColumn()">+ Column</button><button class="site-col-btn site-col-btn-hi" onclick="supplierExportExcel()">↓ Export Excel</button><button class="site-col-btn" onclick="triggerExcel()">↑ Import Excel</button><button class="site-col-btn" onclick="recoverPortfolioData()">Recover project data</button><span class="site-col-hint">Rename headers inline · ←→ reorder columns · ↑↓ reorder rows · × to delete</span></div>'+supplierTable(p)+'</div></div></div>';
+  grid.querySelectorAll('[data-sm-row][contenteditable="true"]').forEach(function(td){td.addEventListener('blur',function(){supplierCellEdit(+td.getAttribute('data-sm-row'),td.getAttribute('data-sm-key'),td.textContent);});});
+}
+window.supplierCellEdit=function(i,key,v){var p=smProject(),r=p&&p.suppliers&&p.suppliers[i];if(!r)return;r.cells=r.cells||{};var c=(p.supplierColumns||[]).find(function(x){return x.key===key;});r.cells[key]=c&&c.type==='number'?smNum(v):smS(v);if(key==='product')r.productImage=smS(v);p.meta.lastUpdated=new Date().toISOString();try{persist('p8');}catch(e){persist();}renderSmartMeter();};
+window.supplierImageEdit=function(i,v){var p=smProject(),r=p&&p.suppliers&&p.suppliers[i];if(!r)return;r.productImage=smS(v);r.cells=r.cells||{};r.cells.product=smS(v);persist('p8');renderSmartMeter();};
+window.supplierAddRow=function(){var p=ensureSmartMeter(),cells={};(p.supplierColumns||[]).forEach(function(c){cells[c.key]=c.type==='number'?0:'';});p.suppliers.push({id:'sm_'+Date.now().toString(36),cells:cells,productImage:''});persist('p8');renderSmartMeter();};
+window.supplierDeleteRow=function(i){var p=smProject();if(!p||!p.suppliers[i]||!confirm('Delete this supplier row?'))return;p.suppliers.splice(i,1);persist('p8');renderSmartMeter();};
+window.supplierMoveRow=function(i,d){var p=smProject(),a=p&&p.suppliers,n=i+d;if(!a||n<0||n>=a.length)return;var x=a[i];a[i]=a[n];a[n]=x;persist('p8');renderSmartMeter();};
+window.supplierAddColumn=function(){var p=ensureSmartMeter(),name=prompt('New column name:','');if(name===null||!smS(name))return;var raw=prompt('Column type: text / number','text');if(raw===null)return;var type=/^number$/i.test(smS(raw))?'number':'text',key=smKey(name,p.supplierColumns.length);p.supplierColumns.push({key:key,label:smS(name),type:type});p.suppliers.forEach(function(r){r.cells=r.cells||{};r.cells[key]=type==='number'?0:'';});persist('p8');renderSmartMeter();};
+window.supplierDeleteColumn=function(key){var p=smProject();if(!p||p.supplierColumns.length<=1||!confirm('Delete this column and its values?'))return;p.supplierColumns=p.supplierColumns.filter(function(c){return c.key!==key;});p.suppliers.forEach(function(r){if(r.cells)delete r.cells[key];});persist('p8');renderSmartMeter();};
+window.supplierRenameColumn=function(key,label){var p=smProject(),c=p&&(p.supplierColumns||[]).find(function(x){return x.key===key;}),v=smS(label);if(!c||!v){renderSmartMeter();return;}c.label=v;persist('p8');renderSmartMeter();};
+window.supplierMoveColumn=function(key,d){var p=smProject(),a=p&&p.supplierColumns,i=a?a.findIndex(function(c){return c.key===key;}):-1,n=i+d;if(!a||i<0||n<0||n>=a.length)return;var x=a[i];a[i]=a[n];a[n]=x;persist('p8');renderSmartMeter();};
+function findHeader(rows){var best=-1,score=-1;for(var i=0;i<Math.min(rows.length,25);i++){var rr=rows[i]||[],s=0;rr.forEach(function(x){var n=smN(x);if(n==='brand'||n==='price'||n==='origin'||/response/.test(n))s++;});if(s>score){score=s;best=i;}}return score>=2?best:-1;}
+function importSupplierWorkbook(file){
+  function read(){var rd=new FileReader();rd.onload=function(e){try{var wb=XLSX.read(e.target.result,{type:'array',raw:false,cellDates:false}),sn=wb.SheetNames.find(function(n){return /supplier|smart.*meter/i.test(n);})||wb.SheetNames[0],rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:false,defval:'',blankrows:true}),hr=findHeader(rows);if(hr<0)throw new Error('Supplier header row was not found');var p=ensureSmartMeter(),heads=(rows[hr]||[]).map(smS),last=heads.reduce(function(a,x,i){return x?i:a;},-1);heads=heads.slice(0,last+1);var start=/^(#|no\.?|row)$/i.test(heads[0])?1:0,keyRow=rows[hr+1]||[],hasKeys=smS(keyRow[0])==='__kp_keys__',oldCols=p.supplierColumns||[],oldByKey={};oldCols.forEach(function(c){oldByKey[c.key]=c;});var cols=[];for(var i=start;i<heads.length;i++){var tag=hasKeys?smS(keyRow[i]):'',old=tag&&oldByKey[tag]?oldByKey[tag]:null,label=heads[i]||(old?old.label:('Column '+(i-start+1))),key=old?old.key:(tag||smKey(label,i)),type=old?old.type:(/min price|max price|amount|cost|qty|quantity|number/i.test(label)?'number':'text');cols.push({key:key,label:label,type:type});}var oldByBrand={};(p.suppliers||[]).forEach(function(r){oldByBrand[smN(val(r,'brand'))]=r;});var out=[],dataStart=hr+(hasKeys?2:1),brandCol=cols.findIndex(function(c){return smN(c.label)==='brand'||c.key==='brand';}),productCol=cols.findIndex(function(c){return c.key==='product'||smN(c.label)==='product';});for(var r=dataStart;r<rows.length;r++){var src=rows[r]||[],slice=src.slice(start,start+cols.length);if(!slice.some(function(x){return smS(x)!=='';}))continue;var cells=smCells(slice,cols),prior=brandCol>=0?oldByBrand[smN(slice[brandCol])]:null,img=productCol>=0?smS(slice[productCol]):'';out.push({id:(prior&&prior.id)||('sm'+Date.now()+'_'+r),cells:cells,productImage:img||(prior&&prior.productImage)||''});}p.supplierColumns=cols;p.suppliers=out;p.meta.sourceFile=file.name;p.meta.lastExcelImport=new Date().toISOString();p.meta.smartMeterSupplierVersion=VERSION;try{persist('p8');}catch(x){persist();}renderSmartMeter();try{renderHub();}catch(x){}toast('Excel applied permanently · '+out.length+' row(s) · '+cols.length+' column(s)',true);}catch(err){console.error(err);toast('Could not import supplier workbook: '+err.message,false);}};rd.readAsArrayBuffer(file);}
+  if(window.XLSX)read();else loadXLSX(read);
+}
+window.supplierExportExcel=function(){var p=ensureSmartMeter();function go(){var cols=p.supplierColumns||[],rows=[['SMART WATER METER — SUPPLIER COMPARISON'],['#'].concat(cols.map(function(c){return c.label;})),['__kp_keys__'].concat(cols.map(function(c){return c.key;}))];(p.suppliers||[]).forEach(function(r,i){rows.push([i+1].concat(cols.map(function(c){return val(r,c.key);})));});var wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(rows);ws['!merges']=[XLSX.utils.decode_range('A1:'+XLSX.utils.encode_col(cols.length)+'1')];ws['!rows']=[{hpt:26},{hpt:24},{hidden:true}];ws['!cols']=[{wch:6}].concat(cols.map(function(c){return {wch:Math.min(38,Math.max(12,smS(c.label).length+5))};}));XLSX.utils.book_append_sheet(wb,ws,'Supplier Comparison');XLSX.writeFile(wb,'Smart_Water_Meter_Supplier_Comparison.xlsx');toast('Excel exported · rows, headers and columns can all be changed',true);}if(window.XLSX)go();else loadXLSX(go);};
+var originalUpload=window.handleExcelUpload;
+window.handleExcelUpload=function(file){if(typeof CUR_PROJ!=='undefined'&&CUR_PROJ==='p8'){if(typeof showImportPreview==='function')showImportPreview(file,function(){importSupplierWorkbook(file);});else importSupplierWorkbook(file);return;}return originalUpload.apply(this,arguments);};
+var originalExport=window.exportExcel;
+window.exportExcel=function(){if(typeof CUR_PROJ!=='undefined'&&CUR_PROJ==='p8'){supplierExportExcel();return;}return originalExport.apply(this,arguments);};
+function downloadStoreBackup(label){try{var payload={version:'v26',createdAt:new Date().toISOString(),label:label||'manual',store:STORE},a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));a.download='Knowledge_Papers_Backup_'+payload.createdAt.replace(/[:.]/g,'-')+'.json';document.body.appendChild(a);a.click();a.remove();}catch(e){}}
+window.recoverPortfolioData=function(){
+  var sources=[];
+  [['kp_last_good_live','Last good server copy'],['kp_prepush_backup','Copy saved before the last server write']].forEach(function(x){try{var v=JSON.parse(localStorage.getItem(x[0])||'null');if(v&&v.store&&Array.isArray((v.store.engagements&&v.store.engagements[0]&&v.store.engagements[0].projects)||v.store.projects))sources.push({label:x[1],ts:v.ts||'',store:v.store});}catch(e){}});
+  if(!sources.length){alert('No local recovery copy was found on this device. The portal will keep the current Firebase data unchanged.');return;}
+  sources.sort(function(a,b){return String(b.ts).localeCompare(String(a.ts));});
+  var menu=sources.map(function(s,i){return (i+1)+'. '+s.label+' — '+(s.ts||'time unavailable');}).join('\n'),pick=prompt('Choose a recovery copy:\n\n'+menu+'\n\nOnly project data will be restored. Smart Water Meter will stay as the supplier tracker.','1');
+  if(pick===null)return;var src=sources[(parseInt(pick,10)||1)-1];if(!src){alert('Invalid selection.');return;}
+  if(!confirm('Restore every project from this copy? A backup of the current portal will download first.'))return;
+  downloadStoreBackup('before portfolio recovery');
+  var backupProjects=(src.store.engagements&&src.store.engagements[0]&&Array.isArray(src.store.engagements[0].projects))?src.store.engagements[0].projects:src.store.projects,currentP8=ensureSmartMeter(),restored=JSON.parse(JSON.stringify(backupProjects||[])),p8i=restored.findIndex(function(p){return p&&p.id==='p8';});
+  if(p8i>=0)restored[p8i]=JSON.parse(JSON.stringify(currentP8));else restored.push(JSON.parse(JSON.stringify(currentP8)));
+  STORE.projects=restored;if(STORE.engagements&&STORE.engagements[0])STORE.engagements[0].projects=STORE.projects;
+  if(Array.isArray(STORE._deletedIds)){var alive={};restored.forEach(function(p){if(p&&p.id)alive[p.id]=1;});STORE._deletedIds=STORE._deletedIds.filter(function(id){return !alive[id];});}
+  persist();try{renderHub();}catch(e){}try{renderProjectView('p8');}catch(e){}toast('Project data restored from '+src.label,true);
+};
+window.forceP8=function(){return ensureSmartMeter();};
+var originalRender=window.renderProjectView;
+window.renderProjectView=function(id){if(id==='p8'){ensureSmartMeter();try{applyProjectTheme(smProject());}catch(e){}CUR_PROJ='p8';renderSmartMeter();return;}return originalRender.apply(this,arguments);};
+var originalOverall=window.overallPct;
+window.overallPct=function(p){if(p&&p.meta&&p.meta.smartMeterSupplierModel)return 0;var v=originalOverall.apply(this,arguments);v=Number(v);return isFinite(v)?Math.max(0,Math.min(100,Math.round(v))):0;};
+var originalProgress=window.renderProgress;
+window.renderProgress=function(p,pct){var cp=Object.assign({},p,{phases:(p.phases||[]).map(function(ph){var x=Object.assign({},ph);['planPct','actualPct','pct'].forEach(function(k){if(x[k]!=null){var n=Number(x[k]);x[k]=isFinite(n)?Math.max(0,Math.min(100,n)):0;}});return x;})});return originalProgress.call(this,cp,Math.max(0,Math.min(100,Number(pct)||0)));};
+function boot(){/* no persist and no dirty flag before the authoritative Firebase read */try{renderHub();}catch(e){}}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+})();
 </script>
