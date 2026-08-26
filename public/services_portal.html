@@ -361,6 +361,36 @@ table.t .ref{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--
   .ab-title small{display:none}
   .toast{left:12px;right:12px;max-width:none}
 }
+
+/* V19 — Official correspondence tracker */
+.ol-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.ol-filter{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 14px}
+.ol-filter .fsearch{margin-left:auto}
+.ol-subject{max-width:360px;white-space:normal;line-height:1.45}
+.ol-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ol-note{background:#FFF5F4;border:1px solid #F4C9C5;border-left:4px solid var(--risk);border-radius:10px;padding:11px 13px;color:#7D1D1D;line-height:1.55}
+.ol-timeline{position:relative;padding-left:25px;display:grid;gap:13px}
+.ol-timeline:before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:var(--line)}
+.ol-event{position:relative;font-size:12px;line-height:1.45;color:var(--ink-3)}
+.ol-event:before{content:"";position:absolute;left:-23px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--brand);border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
+.ol-event b{display:block;color:var(--ink);font-size:12.5px}
+.ol-stage{display:grid;grid-template-columns:repeat(6,minmax(100px,1fr));gap:5px;margin:14px 0 17px;overflow-x:auto}
+.ol-stage span{min-width:100px;padding:7px 8px;border-radius:7px;background:var(--muted-bg);color:var(--ink-3);font-size:10.5px;text-align:center;font-weight:700}
+.ol-stage span.done{background:#E8F6EE;color:#1D6940}.ol-stage span.on{background:var(--brand);color:#fff}
+.official-compose{display:grid;grid-template-columns:minmax(320px,430px) minmax(650px,1fr);gap:18px;align-items:start}
+.letter-preview-wrap{background:#E7E9EE;border:1px solid var(--line);border-radius:12px;padding:16px;overflow:auto;max-height:76vh}
+.official-letter-sheet{position:relative;width:794px;height:1123px;margin:0 auto;background:#fff url('official-letter-template.png') center/100% 100% no-repeat;box-shadow:0 10px 34px rgba(20,24,36,.18);color:#111;overflow:hidden}
+.official-letter-content{position:absolute;left:82px;right:82px;top:170px;bottom:118px;font-family:"Arial","Tahoma",sans-serif;font-size:15px;line-height:1.8}
+.official-letter-content.rtl{direction:rtl;text-align:right;font-family:"Tahoma","Arial",sans-serif}
+.official-letter-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px 30px;margin-bottom:24px;font-size:14px}
+.official-letter-content.rtl .official-letter-meta{direction:rtl}
+.official-letter-to{margin:7px 0 12px;font-weight:700}.official-letter-subject{text-align:center;font-weight:800;text-decoration:underline;margin:12px 0 18px}
+.official-letter-body{white-space:pre-wrap;min-height:360px}.official-letter-closing{white-space:pre-wrap;margin-top:28px}.official-letter-sign{text-align:right;margin-top:32px;white-space:pre-wrap;font-weight:700}
+.official-letter-content.rtl .official-letter-sign{text-align:left}
+.letter-scale-note{font-size:10.5px;color:var(--ink-3);text-align:center;margin-top:8px}
+.letter-scale-note.warn{color:var(--risk);font-weight:800}
+@media(max-width:1160px){.official-compose{grid-template-columns:1fr}.letter-preview-wrap{max-height:none}}
+@media(max-width:760px){.ol-kpis{grid-template-columns:repeat(2,1fr)}.ol-filter .fsearch{margin-left:0;width:100%}.official-letter-sheet{transform-origin:top left;transform:scale(.68);margin-bottom:-360px}.letter-preview-wrap{padding:8px}}
 </style>
 </head>
 <body>
@@ -417,12 +447,12 @@ table.t .ref{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--
 
 var SK='kp_services_v1';
 var ROOM_DEFAULT='asimati-services';
-var PORTAL_BUILD='2026.08.26.18';
+var PORTAL_BUILD='2026.08.26.19';
 /* Meeting invitations must open the standalone hosted page. Loading the hub
    through an iframe/srcdoc gives it an about: URL, which is confusing for
    browser permission checks and makes troubleshooting microphone access much
    harder. Keep the meeting on the real Firebase HTTPS origin instead. */
-var PUBLIC_PORTAL_URL='https://knowledge-papers.web.app/services_portal.html?v=18';
+var PUBLIC_PORTAL_URL='https://knowledge-papers.web.app/services_portal.html?v=19';
 var MAIN_PORTAL_URL='https://knowledge-papers.web.app/';
 var GOOGLE_OAUTH_CLIENT_ID='602139029671-81nqjdon7ek9f5vlsbjmff1d2pqd5nq9.apps.googleusercontent.com';
 var GOOGLE_MEET_SCOPE='https://www.googleapis.com/auth/meetings.space.created';
@@ -460,8 +490,8 @@ var HUB_SESSION_KEY='kp_workplace_hub_ok';
 var STORE=null, ME=null, VIEW='home', FILTER='open', SEARCH='';
 var TLDATE=todayISO();
 var PORTAL_LINK=null;
-var APPROVAL_TYPE_KEYS=['car','room','stationery','it','warehouse','custom'];
-var APPROVAL_TYPE_LABELS={car:'Vehicle requests',room:'Meeting rooms',stationery:'Stationery',it:'IT support',warehouse:'Warehouse',custom:'Additional services'};
+var APPROVAL_TYPE_KEYS=['car','room','stationery','it','warehouse','custom','official'];
+var APPROVAL_TYPE_LABELS={car:'Vehicle requests',room:'Meeting rooms',stationery:'Stationery',it:'IT support',warehouse:'Warehouse',custom:'Additional services',official:'Official correspondence (GR)'};
 
 function normalisePersonPermissions(p){
   if(!p.permissions||typeof p.permissions!=='object')p.permissions={};
@@ -629,7 +659,7 @@ function save(){
 }
 
 /* ── Identity and portal roles ─────────────────────────────────────────── */
-var DEPTS=['Projects','IT','Finance','HR','Procurement','Operations','Engineering','Administration'];
+var DEPTS=['Projects','IT','Finance','HR','Procurement','Operations','Engineering','Administration','GR / Government Relations'];
 function loadMe(){
   try{ var m=localStorage.getItem('kp_services_me'); if(m) ME=JSON.parse(m); }catch(e){}
 }
@@ -658,7 +688,7 @@ function paintWho(){
   var role=ME?(ME.role==='admin'?'Admin':(level||ME.role==='approver'?'Approver':'Requester')):'';
   document.getElementById('whoAv').textContent=ME?initials(ME.name):'?';
   document.getElementById('whoName').textContent=ME?ME.name.split(' ')[0]:'Sign in';
-  document.getElementById('abSub').textContent=(ME?(ME.dept+' · '+role+(level?' · Approval L'+level:'')+(ME.role==='admin'&&!isAdmin()?' (locked)':'')):'Internal requests & meetings')+' · v18';
+  document.getElementById('abSub').textContent=(ME?(ME.dept+' · '+role+(level?' · Approval L'+level:'')+(ME.role==='admin'&&!isAdmin()?' (locked)':'')):'Internal requests & meetings')+' · v19';
   var ab=document.getElementById('adminAccessBtn');if(ab)ab.textContent=isAdmin()?'Admin centre':'Admin access';
 }
 function adminSessionOK(){
@@ -923,6 +953,7 @@ var NAV=[
   {id:'car',    n:'Request a vehicle',i:'car'},
   {id:'rooms',  n:'Meeting rooms',    i:'door'},
   {id:'meet',   n:'Call a meeting',   i:'cal'},
+  {id:'official',n:'Official correspondence',i:'file',badge:function(){return officialPendingBadge();}},
   {sec:'Supplies'},
   {id:'stationery',n:'Stationery',    i:'pen'},
   {id:'it',        n:'IT support',    i:'chip'},
@@ -3741,6 +3772,401 @@ var vHomeCoreV18=vHome;vHome=function(){return announcementDashboard()+vHomeCore
 var vAdminCoreV18=vAdmin;vAdmin=function(){return vAdminCoreV18()+adminAnnouncementPanel();};
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   V19 — OFFICIAL CORRESPONDENCE TRACKER
+   This branch stores workflow metadata and draft text, not a general file
+   repository. Letter number and letter date are entered manually by GR.
+   ═══════════════════════════════════════════════════════════════════════════ */
+var OFFICIAL_STATUS={
+  submitted:{label:'Submitted',cls:'c-info',step:0},
+  in_review:{label:'Under GR review',cls:'c-wait',step:1},
+  drafting:{label:'Drafting',cls:'c-wait',step:2},
+  rejected:{label:'Returned with note',cls:'c-no',step:2},
+  resubmitted:{label:'Resubmitted',cls:'c-info',step:1},
+  approved:{label:'Approved for issue',cls:'c-ok',step:3},
+  issued:{label:'Issued',cls:'c-ok',step:4},
+  sent:{label:'Sent',cls:'c-done',step:5},
+  closed:{label:'Closed',cls:'c-done',step:5}
+};
+var OFFICIAL_STAGE_LABELS=['Requested','GR review','Drafting','Approved','Issued','Sent / closed'];
+var OLFILTER='active',OLSEARCH='';
+
+var seedV19Base=seed;
+seed=function(){
+  var s=seedV19Base();
+  if(!Array.isArray(s.officialLetters))s.officialLetters=[];
+  return s;
+};
+var normaliseV19Base=normalise;
+normalise=function(){
+  normaliseV19Base();
+  if(!Array.isArray(STORE.officialLetters))STORE.officialLetters=[];
+  STORE.officialLetters.forEach(function(r){
+    if(!r.status)r.status='submitted';
+    if(!Array.isArray(r.history))r.history=[];
+    if(!r.created)r.created=nowISO();
+    if(!r.updated)r.updated=r.created;
+    if(!r.language)r.language='ar';
+    if(!r.preparationMode)r.preparationMode='gr';
+    if(!r.priority)r.priority='medium';
+    if(r.bookNo==null)r.bookNo='';
+    if(r.bookDate==null)r.bookDate='';
+    if(r.rejectionReason==null)r.rejectionReason='';
+  });
+};
+
+var watchLiveV19Base=watchLive;
+watchLive=function(){
+  watchLiveV19Base();
+  SY.ref.child('officialLetters').on('value',function(s){
+    var v=s.val();if(v==null)v=[];if(!Array.isArray(v))return;
+    if(JSON.stringify(STORE.officialLetters)===JSON.stringify(v))return;
+    STORE.officialLetters=v;normalise();
+    SY.base=JSON.parse(JSON.stringify(strip(STORE)));
+    try{localStorage.setItem(SK,JSON.stringify(STORE));}catch(e){}
+    if(VIEW!=='virtual')render();
+  });
+};
+
+function officialProfileHasGRScope(p){
+  if(!p)return false;normalisePersonPermissions(p);normaliseApproverTypes(p);
+  return p.permissions.canApprove!==false&&(p.approvalTypes||[]).indexOf('official')>=0;
+}
+function officialCanManage(){
+  if(isAdmin())return true;
+  if(!ME)return false;
+  var p=currentUserProfile();
+  if(officialProfileHasGRScope(p))return true;
+  return (STORE.contacts||[]).some(function(c){return sameEmail(c.email,ME.email)&&officialProfileHasGRScope(c);});
+}
+function officialCanSee(r){
+  return officialCanManage()||!!(ME&&r&&(r.byId===ME.id||sameEmail(r.byEmail,ME.email)));
+}
+function officialVisible(){
+  return (STORE.officialLetters||[]).filter(officialCanSee).sort(function(a,b){return String(b.updated||b.created).localeCompare(String(a.updated||a.created));});
+}
+function officialPendingBadge(){
+  if(!STORE||!ME)return 0;
+  if(officialCanManage())return (STORE.officialLetters||[]).filter(function(r){return ['submitted','resubmitted','in_review','drafting','approved'].indexOf(r.status)>=0;}).length;
+  return (STORE.officialLetters||[]).filter(function(r){return officialCanSee(r)&&r.status==='rejected';}).length;
+}
+function officialStatusChip(status){
+  var s=OFFICIAL_STATUS[status]||OFFICIAL_STATUS.submitted;
+  return '<span class="chip '+s.cls+'"><i></i>'+esc(s.label)+'</span>';
+}
+function officialNextRef(){
+  var year=new Date().getFullYear(),prefix='GR-REQ-'+year+'-',max=0;
+  (STORE.officialLetters||[]).forEach(function(r){
+    if(String(r.ref||'').indexOf(prefix)===0)max=Math.max(max,+String(r.ref).slice(prefix.length)||0);
+  });
+  return prefix+String(max+1).padStart(4,'0');
+}
+function officialHistory(r,what,note,status){
+  if(!Array.isArray(r.history))r.history=[];
+  r.history.push({at:nowISO(),who:(ME&&ME.name)||'System',what:what,note:String(note||''),status:status||r.status});
+  r.updated=nowISO();
+}
+function officialStage(r){
+  var cur=(OFFICIAL_STATUS[r.status]||OFFICIAL_STATUS.submitted).step;
+  return '<div class="ol-stage">'+OFFICIAL_STAGE_LABELS.map(function(x,i){
+    return '<span class="'+(i<cur?'done':(i===cur?'on':''))+'">'+esc(x)+'</span>';
+  }).join('')+'</div>';
+}
+function officialTimeline(r){
+  var rows=(r.history||[]).slice().reverse().map(function(h){
+    return '<div class="ol-event"><b>'+esc(h.what||'Updated')+'</b><span>'+fmtWhen(h.at)+' · '+esc(h.who||'System')+'</span>'
+      +(h.note?'<div style="margin-top:3px;white-space:pre-wrap">'+esc(h.note)+'</div>':'')+'</div>';
+  }).join('');
+  return '<div class="ol-timeline">'+(rows||'<div class="ol-event"><b>Request created</b><span>'+fmtWhen(r.created)+'</span></div>')+'</div>';
+}
+function officialIsActive(r){return ['sent','closed'].indexOf(r.status)<0;}
+
+function vOfficialLetters(){
+  if(!ME)return pageHead('Official correspondence','Track official letter requests with GR.',
+    '<button class="btn btn-p" onclick="openWho(true)">Identify yourself</button>');
+  var all=officialVisible(),list=all.slice();
+  if(OLFILTER==='active')list=list.filter(officialIsActive);
+  else if(OLFILTER==='mine')list=list.filter(function(r){return r.byId===ME.id||sameEmail(r.byEmail,ME.email);});
+  else if(OLFILTER!=='all')list=list.filter(function(r){return r.status===OLFILTER;});
+  if(OLSEARCH){
+    var q=OLSEARCH.toLowerCase();
+    list=list.filter(function(r){return [r.ref,r.bookNo,r.subject,r.recipient,r.by,r.dept,r.rejectionReason].join(' ').toLowerCase().indexOf(q)>=0;});
+  }
+  var withGR=all.filter(function(r){return ['submitted','resubmitted','in_review','drafting','approved'].indexOf(r.status)>=0;}).length;
+  var rejected=all.filter(function(r){return r.status==='rejected';}).length;
+  var issued=all.filter(function(r){return ['issued','sent','closed'].indexOf(r.status)>=0;}).length;
+  var rows=list.map(function(r){
+    return '<tr><td class="ref">'+esc(r.ref)+'</td><td><b>'+esc(r.by||'—')+'</b><br><span style="font-size:11px;color:var(--muted)">'+esc(r.dept||'')+'</span></td>'
+      +'<td class="ol-subject"><b>'+esc(r.subject||'Untitled')+'</b><br><span style="font-size:11px;color:var(--muted)">To: '+esc(r.recipient||'—')+'</span></td>'
+      +'<td>'+officialStatusChip(r.status)+(r.status==='rejected'&&r.rejectionReason?'<div style="font-size:10.5px;color:var(--risk);margin-top:5px;max-width:210px">'+esc(r.rejectionReason)+'</div>':'')+'</td>'
+      +'<td><b>'+esc(r.bookNo||'Not assigned')+'</b><br><span style="font-size:11px;color:var(--muted)">'+(r.bookDate?fmtDate(r.bookDate):'Date not entered')+'</span></td>'
+      +'<td style="white-space:nowrap">'+fmtWhen(r.created)+'</td><td style="white-space:nowrap">'+fmtWhen(r.updated)+'</td>'
+      +'<td><button class="btn btn-sm" onclick="openOfficialLetter(\''+r.id+'\')">Open tracker</button></td></tr>';
+  }).join('');
+  return pageHead('Official correspondence tracker',
+      'Request an official letter from GR, follow every step, and download the issued letter on the company form.',
+      '<button class="btn" onclick="exportOfficialLetters()">'+ico('download')+'Export tracker</button> '
+      +'<button class="btn btn-p" onclick="officialRequestEditor()">'+ico('plus')+'New letter request</button>')
+    +'<div class="ol-kpis"><div class="kpi"><b>'+all.length+'</b><span>Visible requests</span></div>'
+      +'<div class="kpi k-info"><b>'+withGR+'</b><span>With GR</span></div><div class="kpi k-risk"><b>'+rejected+'</b><span>Returned with note</span></div>'
+      +'<div class="kpi k-good"><b>'+issued+'</b><span>Issued / sent</span></div></div>'
+    +(officialCanManage()?'<div class="card" style="margin-bottom:14px"><div class="card-b" style="padding:11px 15px;font-size:12px;line-height:1.65">'
+      +'<b>GR workspace:</b> Letter number and letter date are deliberately not generated by the portal. Enter both when the letter is officially issued. '
+      +'If a request is rejected or returned, a written reason is mandatory and appears immediately to the requester.</div></div>':'')
+    +'<div class="ol-filter">'
+      +[['active','Active'],['mine','My requests'],['submitted','New'],['rejected','Returned'],['issued','Issued'],['sent','Sent'],['all','Everything']].map(function(x){
+        return '<button class="fbtn'+(OLFILTER===x[0]?' on':'')+'" onclick="setOfficialFilter(\''+x[0]+'\')">'+x[1]+'</button>';
+      }).join('')
+      +'<div class="fsearch">'+ico('search')+'<input placeholder="Search request, letter no., subject or name" value="'+esc(OLSEARCH)+'" oninput="setOfficialSearch(this.value)"></div></div>'
+    +'<div class="tw"><table class="t"><thead><tr><th>Tracker ID</th><th>Requester</th><th>Letter</th><th>Status</th><th>Official no. / date</th><th>Requested</th><th>Last update</th><th>Action</th></tr></thead><tbody>'
+    +(rows||emptyRow(8,'No correspondence requests','Create a request and it will remain visible through the complete GR workflow.'))+'</tbody></table></div>';
+}
+function setOfficialFilter(v){OLFILTER=v;render();}
+var _olSearchTimer=null;
+function setOfficialSearch(v){OLSEARCH=String(v||'');clearTimeout(_olSearchTimer);_olSearchTimer=setTimeout(function(){render();var i=document.querySelector('.ol-filter .fsearch input');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length);}},180);}
+
+function officialRequestEditor(id){
+  if(!needMe())return;
+  if(!requireUserPermission('canRequest','Admin has not enabled service requests for your account'))return;
+  var r=(STORE.officialLetters||[]).find(function(x){return x.id===id;})||{},isNew=!r.id;
+  if(!isNew&&!officialCanSee(r)){toast('You do not have access to this request',false);return;}
+  if(!isNew&&!officialCanManage()&&!(r.byId===ME.id||sameEmail(r.byEmail,ME.email))){toast('Only the requester or GR can edit this request',false);return;}
+  if(!isNew&&!officialCanManage()&&['rejected','submitted'].indexOf(r.status)<0){toast('The request cannot be changed at this stage',false);return;}
+  var m=document.createElement('div');m.className='mod';m.innerHTML='<div class="mod-in"><div class="mod-h"><div><div class="mod-t">'+(isNew?'New official letter request':'Update and resubmit request')+'</div>'
+    +'<div class="mod-s">GR will prepare and issue the letter. The official number and date are completed by GR.</div></div><button class="mod-x" id="orx">&times;</button></div>'
+    +'<div class="mod-b">'+(r.status==='rejected'&&r.rejectionReason?'<div class="ol-note" style="margin-bottom:14px"><b>GR returned this request:</b><br>'+esc(r.rejectionReason)+'</div>':'')
+    +'<div class="form">'
+      +fld('orRecipient','Recipient / authority <span class="req">*</span>','<input id="orRecipient" value="'+esc(r.recipient||'')+'" placeholder="e.g. Ministry, municipality or company">','',true)
+      +fld('orSubject','Letter subject <span class="req">*</span>','<input id="orSubject" value="'+esc(r.subject||'')+'" placeholder="Clear official subject">','',true)
+      +fld('orPurpose','Purpose and instructions <span class="req">*</span>','<textarea id="orPurpose" style="min-height:100px" placeholder="Explain what the letter must request, confirm or communicate.">'+esc(r.purpose||'')+'</textarea>','',true)
+      +fld('orDraft','Proposed wording / details','<textarea id="orDraft" style="min-height:150px" placeholder="Optional: enter facts, names, references or proposed wording for GR.">'+esc(r.draftBody||'')+'</textarea>','',true)
+      +fld('orLanguage','Language','<select id="orLanguage"><option value="ar"'+(r.language!=='en'?' selected':'')+'>Arabic</option><option value="en"'+(r.language==='en'?' selected':'')+'>English</option></select>')
+      +fld('orMode','Preparation','<select id="orMode"><option value="gr"'+(r.preparationMode!=='requester'?' selected':'')+'>GR writes the official letter</option><option value="requester"'+(r.preparationMode==='requester'?' selected':'')+'>Use my proposed text as the first draft</option></select>')
+      +fld('orNeeded','Needed by','<input id="orNeeded" type="date" min="'+todayISO()+'" value="'+esc(r.neededBy||'')+'">')
+      +fld('orPriority','Priority','<select id="orPriority"><option value="low"'+(r.priority==='low'?' selected':'')+'>Low</option><option value="medium"'+(!r.priority||r.priority==='medium'?' selected':'')+'>Medium</option><option value="high"'+(r.priority==='high'?' selected':'')+'>High</option></select>')
+    +'</div>'+approvalRouteSummary('official')+'</div><div class="mod-f"><div class="grow"></div><button class="btn" id="orc">Cancel</button><button class="btn btn-p" id="ors">'+(isNew?'Submit to GR':'Save and resubmit')+'</button></div></div>';
+  document.body.appendChild(m);var close=function(){m.remove();};m.querySelector('#orx').onclick=close;m.querySelector('#orc').onclick=close;
+  m.querySelector('#ors').onclick=function(){
+    clearBad();var recipient=val('orRecipient'),subject=val('orSubject'),purpose=val('orPurpose'),ok=true;
+    if(!recipient){bad('orRecipient','Enter the authority or recipient');ok=false;}
+    if(!subject){bad('orSubject','Enter the official subject');ok=false;}
+    if(!purpose){bad('orPurpose','Explain what GR must prepare');ok=false;}
+    if(!ok){toast('Check the highlighted fields',false);return;}
+    if(!isAdmin()&&!automaticApprovers('official').length){toast('Admin must assign an Official correspondence (GR) approver before this request can be submitted',false);return;}
+    if(isNew){
+      r={id:uid('ol'),ref:officialNextRef(),by:ME.name,byId:ME.id,byEmail:ME.email||'',dept:ME.dept||'',
+        created:nowISO(),updated:nowISO(),status:'submitted',history:[],bookNo:'',bookDate:'',rejectionReason:''};
+      STORE.officialLetters.unshift(r);
+    }
+    r.recipient=recipient;r.subject=subject;r.purpose=purpose;r.draftBody=val('orDraft');
+    r.language=val('orLanguage')||'ar';r.preparationMode=val('orMode')||'gr';r.neededBy=val('orNeeded');r.priority=val('orPriority')||'medium';
+    var resubmitting=!isNew&&r.status==='rejected';
+    r.status=resubmitting?'resubmitted':'submitted';
+    if(resubmitting)r.lastRejectionReason=r.rejectionReason||'';
+    officialHistory(r,resubmitting?'Request corrected and resubmitted':'Request submitted to GR','',r.status);
+    auditRecord(resubmitting?'resubmit':'create','official-letter',r.id,r.ref+' · '+r.subject);
+    save();close();render();toast(resubmitting?'Request resubmitted to GR':'Official letter request submitted',true);
+  };
+}
+
+function openOfficialLetter(id){
+  var r=(STORE.officialLetters||[]).find(function(x){return x.id===id;});if(!r||!officialCanSee(r))return;
+  var manager=officialCanManage(),mine=ME&&(r.byId===ME.id||sameEmail(r.byEmail,ME.email)),actions='';
+  if(mine&&r.status==='rejected')actions+='<button class="btn btn-p" onclick="closeOfficialDetail();officialRequestEditor(\''+r.id+'\')">'+ico('edit')+'Correct and resubmit</button>';
+  if(manager&&['submitted','resubmitted'].indexOf(r.status)>=0)actions+='<button class="btn" onclick="officialStartReview(\''+r.id+'\')">Start GR review</button>';
+  if(manager&&['submitted','resubmitted','in_review','drafting','approved','rejected'].indexOf(r.status)>=0)actions+='<button class="btn" onclick="closeOfficialDetail();openOfficialComposer(\''+r.id+'\')">'+ico('edit')+'Open letter composer</button>';
+  if(manager&&['submitted','resubmitted','in_review','drafting','approved'].indexOf(r.status)>=0)actions+='<button class="btn btn-d" onclick="closeOfficialDetail();officialReject(\''+r.id+'\')">Return / reject</button>';
+  if(manager&&r.status==='issued')actions+='<button class="btn btn-p" onclick="officialMarkSent(\''+r.id+'\')">Mark as sent</button>';
+  if(manager&&r.status==='sent')actions+='<button class="btn btn-p" onclick="officialClose(\''+r.id+'\')">Close tracker</button>';
+  if(['issued','sent','closed'].indexOf(r.status)>=0)actions+='<button class="btn" onclick="closeOfficialDetail();openOfficialComposer(\''+r.id+'\')">'+ico('download')+'View / download letter</button>';
+  var m=document.createElement('div');m.className='mod';m.id='officialDetailModal';
+  m.innerHTML='<div class="mod-in" style="width:min(820px,96vw)"><div class="mod-h"><div><div class="mod-t">'+esc(r.ref)+' · '+esc(r.subject)+'</div>'
+    +'<div class="mod-s">Official correspondence tracker</div></div><button class="mod-x" onclick="closeOfficialDetail()">&times;</button></div><div class="mod-b">'
+    +officialStage(r)
+    +(r.status==='rejected'&&r.rejectionReason?'<div class="ol-note" style="margin-bottom:14px"><b>Reason returned / rejected by GR</b><br>'+esc(r.rejectionReason)+'</div>':'')
+    +'<dl class="detail">'
+      +'<dt>Status</dt><dd>'+officialStatusChip(r.status)+'</dd><dt>Requester</dt><dd>'+esc(r.by)+' · '+esc(r.dept||'—')+'</dd>'
+      +'<dt>Recipient</dt><dd>'+esc(r.recipient||'—')+'</dd><dt>Subject</dt><dd>'+esc(r.subject||'—')+'</dd>'
+      +'<dt>Purpose</dt><dd style="white-space:pre-wrap">'+esc(r.purpose||'—')+'</dd><dt>Requested</dt><dd>'+fmtWhen(r.created)+'</dd>'
+      +'<dt>Needed by</dt><dd>'+(r.neededBy?fmtDate(r.neededBy):'Not specified')+'</dd><dt>Language</dt><dd>'+(r.language==='en'?'English':'Arabic')+'</dd>'
+      +'<dt>Official letter no.</dt><dd><b>'+esc(r.bookNo||'Not entered by GR')+'</b></dd><dt>Official letter date</dt><dd><b>'+(r.bookDate?fmtDate(r.bookDate):'Not entered by GR')+'</b></dd>'
+    +'</dl><div class="card" style="margin-top:16px"><div class="card-h"><div class="card-t"><span class="ico">'+ico('history')+'</span>Tracking history</div></div><div class="card-b">'+officialTimeline(r)+'</div></div>'
+    +'</div><div class="mod-f"><button class="btn" onclick="closeOfficialDetail()">Close</button><div class="grow"></div><div class="ol-actions">'+actions+'</div></div></div>';
+  document.body.appendChild(m);
+}
+function closeOfficialDetail(){var m=document.getElementById('officialDetailModal');if(m)m.remove();}
+function officialStartReview(id){
+  var r=(STORE.officialLetters||[]).find(function(x){return x.id===id;});if(!r||!officialCanManage())return;
+  r.status='in_review';officialHistory(r,'GR review started','',r.status);auditRecord('review','official-letter',r.id,r.ref);save();closeOfficialDetail();render();openOfficialLetter(id);
+}
+function officialReject(id){
+  var r=(STORE.officialLetters||[]).find(function(x){return x.id===id;});if(!r||!officialCanManage())return;
+  var m=document.createElement('div');m.className='mod';m.innerHTML='<div class="mod-in"><div class="mod-h"><div><div class="mod-t">Return or reject '+esc(r.ref)+'</div>'
+    +'<div class="mod-s">A clear reason is mandatory and will be shown to the requester.</div></div><button class="mod-x" id="ojx">&times;</button></div>'
+    +'<div class="mod-b">'+fld('ojReason','Reason / required correction <span class="req">*</span>','<textarea id="ojReason" style="min-height:150px" placeholder="Explain exactly why GR returned the request and what must be corrected."></textarea>','',true)
+    +'</div><div class="mod-f"><div class="grow"></div><button class="btn" id="ojc">Cancel</button><button class="btn btn-d" id="ojs">Return with reason</button></div></div>';
+  document.body.appendChild(m);var close=function(){m.remove();};m.querySelector('#ojx').onclick=close;m.querySelector('#ojc').onclick=close;
+  m.querySelector('#ojs').onclick=function(){
+    var reason=val('ojReason');if(!reason){bad('ojReason','The requester must receive a written reason');toast('Enter the rejection reason',false);return;}
+    r.status='rejected';r.rejectionReason=reason;r.rejectedAt=nowISO();r.rejectedBy=ME.name;
+    officialHistory(r,'Returned / rejected by GR',reason,r.status);auditRecord('decline','official-letter',r.id,r.ref+' · '+reason);
+    save();close();render();toast('Request returned with a reason',true);
+  };
+}
+
+function officialLetterPreviewMarkup(r){
+  var rtl=(val('ocLanguage')||r.language||'ar')!=='en';
+  return '<div class="official-letter-sheet" id="officialLetterSheet"><div class="official-letter-content'+(rtl?' rtl':'')+'">'
+    +'<div class="official-letter-meta"><div><b>'+(rtl?'العدد: ':'No.: ')+'</b><span id="olpNo"></span></div><div><b>'+(rtl?'التاريخ: ':'Date: ')+'</b><span id="olpDate"></span></div></div>'
+    +'<div class="official-letter-to" id="olpTo"></div><div class="official-letter-subject" id="olpSubject"></div>'
+    +'<div class="official-letter-body" id="olpBody"></div><div class="official-letter-closing" id="olpClosing"></div><div class="official-letter-sign" id="olpSign"></div>'
+    +'</div></div>';
+}
+function openOfficialComposer(id){
+  var r=(STORE.officialLetters||[]).find(function(x){return x.id===id;});if(!r||!officialCanSee(r))return;
+  var can=officialCanManage(),locked=!can||['sent','closed'].indexOf(r.status)>=0,dis=locked?' disabled':'';
+  var m=document.createElement('div');m.className='mod';m.id='officialComposeModal';
+  m.innerHTML='<div class="mod-in" style="width:min(1500px,98vw);max-height:96vh"><div class="mod-h"><div><div class="mod-t">Official letter · '+esc(r.ref)+'</div>'
+    +'<div class="mod-s">Compose on the approved Knowledge Papers form. Number and date are entered manually by GR.</div></div><button class="mod-x" onclick="closeOfficialComposer()">&times;</button></div>'
+    +'<div class="mod-b"><div class="official-compose"><div><div class="form">'
+      +fld('ocBookNo','Official letter number <span class="req">*</span>','<input id="ocBookNo" value="'+esc(r.bookNo||'')+'" placeholder="GR enters the official number"'+dis+'>','Not generated automatically by the portal.',true)
+      +fld('ocBookDate','Official letter date <span class="req">*</span>','<input id="ocBookDate" type="date" value="'+esc(r.bookDate||'')+'"'+dis+'>','GR enters the official issue date.',true)
+      +fld('ocLanguage','Language','<select id="ocLanguage"'+dis+'><option value="ar"'+(r.language!=='en'?' selected':'')+'>Arabic / RTL</option><option value="en"'+(r.language==='en'?' selected':'')+'>English / LTR</option></select>','',true)
+      +fld('ocRecipient','Recipient <span class="req">*</span>','<input id="ocRecipient" value="'+esc(r.recipient||'')+'"'+dis+'>','',true)
+      +fld('ocSubject','Subject <span class="req">*</span>','<input id="ocSubject" value="'+esc(r.subject||'')+'"'+dis+'>','',true)
+      +fld('ocBody','Letter body <span class="req">*</span>','<textarea id="ocBody" style="min-height:260px"'+dis+'>'+esc(r.letterBody||r.draftBody||r.purpose||'')+'</textarea>','',true)
+      +fld('ocClosing','Closing / copies','<textarea id="ocClosing" style="min-height:80px"'+dis+'>'+esc(r.closing||'')+'</textarea>','',true)
+      +fld('ocSign','Signatory name and title','<textarea id="ocSign" style="min-height:70px"'+dis+'>'+esc(r.signatory||'')+'</textarea>','A digital-signature workflow can be added later; this release prepares the signature block.',true)
+    +'</div></div><div class="letter-preview-wrap">'+officialLetterPreviewMarkup(r)+'<div class="letter-scale-note" id="officialLetterFitNote">A4 preview · generated locally from the official company form</div></div></div></div>'
+    +'<div class="mod-f"><button class="btn" onclick="closeOfficialComposer()">Close</button><div class="grow"></div>'
+      +(can&&!locked?'<button class="btn" onclick="officialSaveComposer(\''+r.id+'\',false)">Save draft</button><button class="btn btn-p" onclick="officialSaveComposer(\''+r.id+'\',true)">Save & issue</button>':'')
+      +(['issued','sent','closed'].indexOf(r.status)>=0?'<button class="btn btn-p" onclick="officialDownloadPdf(\''+r.id+'\')">'+ico('download')+'Download PDF</button>':'')
+    +'</div></div>';
+  document.body.appendChild(m);
+  ['ocBookNo','ocBookDate','ocLanguage','ocRecipient','ocSubject','ocBody','ocClosing','ocSign'].forEach(function(x){var e=document.getElementById(x);if(e)e.addEventListener('input',officialPaintLetterPreview);if(e)e.addEventListener('change',officialPaintLetterPreview);});
+  officialPaintLetterPreview();
+}
+function closeOfficialComposer(){var m=document.getElementById('officialComposeModal');if(m)m.remove();}
+function officialPaintLetterPreview(){
+  var sheet=document.getElementById('officialLetterSheet');if(!sheet)return;
+  var content=sheet.querySelector('.official-letter-content'),rtl=val('ocLanguage')!=='en';
+  content.classList.toggle('rtl',rtl);
+  var put=function(id,text){var e=document.getElementById(id);if(e)e.textContent=text||'';};
+  put('olpNo',val('ocBookNo')||'________________');
+  put('olpDate',val('ocBookDate')||'____ / ____ / ______');
+  put('olpTo',(rtl?'إلى / ':'To / ')+(val('ocRecipient')||'________________'));
+  put('olpSubject',(rtl?'م / ':'Subject / ')+(val('ocSubject')||'________________'));
+  put('olpBody',val('ocBody'));
+  put('olpClosing',val('ocClosing'));
+  put('olpSign',val('ocSign'));
+  requestAnimationFrame(function(){
+    var note=document.getElementById('officialLetterFitNote');if(!note)return;
+    var overflow=content.scrollHeight>content.clientHeight+4;
+    note.classList.toggle('warn',overflow);
+    note.textContent=overflow?'The letter is longer than one A4 page. Shorten the text before issue.':'A4 preview · generated locally from the official company form';
+  });
+}
+function officialSaveComposer(id,issue){
+  var r=(STORE.officialLetters||[]).find(function(x){return x.id===id;});if(!r||!officialCanManage())return;
+  clearBad();var recipient=val('ocRecipient'),subject=val('ocSubject'),body=val('ocBody'),bookNo=val('ocBookNo'),bookDate=val('ocBookDate'),ok=true;
+  if(!recipient){bad('ocRecipient','Enter the recipient');ok=false;}if(!subject){bad('ocSubject','Enter the subject');ok=false;}if(!body){bad('ocBody','Write the official letter');ok=false;}
+  if(issue&&!bookNo){bad('ocBookNo','GR must enter the official letter number');ok=false;}
+  if(issue&&!bookDate){bad('ocBookDate','GR must enter the official letter date');ok=false;}
+  var previewContent=document.querySelector('#officialLetterSheet .official-letter-content');
+  if(issue&&previewContent&&previewContent.scrollHeight>previewContent.clientHeight+4){toast('The letter exceeds one A4 page. Shorten the text before issuing it.',false);ok=false;}
+  if(!ok){toast('Check the highlighted fields',false);return;}
+  r.recipient=recipient;r.subject=subject;r.letterBody=body;r.bookNo=bookNo;r.bookDate=bookDate;r.language=val('ocLanguage')||'ar';r.closing=val('ocClosing');r.signatory=val('ocSign');
+  if(issue){
+    r.status='issued';r.issuedAt=nowISO();r.issuedBy=ME.name;
+    officialHistory(r,'Official letter issued','Letter no. '+r.bookNo+' · '+r.bookDate,r.status);
+    auditRecord('issue','official-letter',r.id,r.ref+' · '+r.bookNo);
+  }else{
+    r.status='drafting';officialHistory(r,'Draft saved by GR','',r.status);auditRecord('update','official-letter',r.id,r.ref+' · draft saved');
+  }
+  save();closeOfficialComposer();render();toast(issue?'Official letter issued':'Draft saved',true);
+  if(issue)setTimeout(function(){openOfficialComposer(id);},80);
+}
+async function officialDownloadPdf(id){
+  var r=(STORE.officialLetters||[]).find(function(x){return x.id===id;});if(!r||['issued','sent','closed'].indexOf(r.status)<0){toast('Issue the letter before downloading the official PDF',false);return;}
+  var sheet=document.getElementById('officialLetterSheet');if(!sheet){openOfficialComposer(id);return;}
+  var btns=document.querySelectorAll('#officialComposeModal .btn');btns.forEach(function(b){b.disabled=true;});
+  toast('Preparing the A4 PDF…',true);
+  var oldTransform=sheet.style.transform,oldMarginBottom=sheet.style.marginBottom;
+  try{
+    if(!window.html2canvas)await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+    if(!(window.jspdf&&window.jspdf.jsPDF))await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+    await new Promise(function(resolve){
+      var done=false,finish=function(){if(done)return;done=true;resolve();},img=new Image();
+      img.onload=finish;img.onerror=finish;img.src='official-letter-template.png';if(img.complete)finish();setTimeout(finish,3000);
+    });
+    sheet.style.transform='none';sheet.style.marginBottom='0';
+    await new Promise(function(resolve){requestAnimationFrame(function(){requestAnimationFrame(resolve);});});
+    var canvas=await window.html2canvas(sheet,{scale:2,useCORS:true,backgroundColor:'#ffffff',width:794,height:1123,logging:false});
+    var pdf=new window.jspdf.jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});
+    pdf.addImage(canvas.toDataURL('image/jpeg',.96),'JPEG',0,0,210,297,undefined,'FAST');
+    var safe=String(r.bookNo||r.ref).replace(/[\\/:*?\"<>|]+/g,'-');
+    pdf.save('Knowledge_Papers_Official_Letter_'+safe+'.pdf');
+    auditRecord('download','official-letter',r.id,r.ref+' · '+r.bookNo);save();toast('Official letter PDF downloaded',true);
+  }catch(e){
+    toast('PDF generation failed. Use the browser print command as a fallback: '+(e&&e.message||e),false);
+  }
+  sheet.style.transform=oldTransform;sheet.style.marginBottom=oldMarginBottom;
+  btns.forEach(function(b){b.disabled=false;});
+}
+function officialMarkSent(id){
+  var r=(STORE.officialLetters||[]).find(function(x){return x.id===id;});if(!r||!officialCanManage())return;
+  r.status='sent';r.sentAt=nowISO();r.sentBy=ME.name;officialHistory(r,'Official letter sent','Letter no. '+(r.bookNo||'—'),r.status);
+  auditRecord('send','official-letter',r.id,r.ref+' · '+r.bookNo);save();closeOfficialDetail();render();toast('Letter marked as sent',true);
+}
+function officialClose(id){
+  var r=(STORE.officialLetters||[]).find(function(x){return x.id===id;});if(!r||!officialCanManage())return;
+  r.status='closed';r.closedAt=nowISO();officialHistory(r,'Tracker closed','',r.status);auditRecord('close','official-letter',r.id,r.ref);
+  save();closeOfficialDetail();render();toast('Correspondence tracker closed',true);
+}
+
+function exportOfficialLetters(){
+  var run=function(){
+    try{
+      var rows=[['Tracker ID','Requester','Department','Recipient','Subject','Purpose','Priority','Status','Requested at','Needed by','Official letter no.','Official letter date','Rejected/return reason','Last update']];
+      officialVisible().forEach(function(r){rows.push([r.ref,r.by,r.dept,r.recipient,r.subject,r.purpose,r.priority,(OFFICIAL_STATUS[r.status]||{}).label||r.status,r.created,r.neededBy||'',r.bookNo||'',r.bookDate||'',r.rejectionReason||'',r.updated]);});
+      var wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols']=[{wch:18},{wch:22},{wch:18},{wch:32},{wch:36},{wch:50},{wch:10},{wch:20},{wch:22},{wch:13},{wch:20},{wch:18},{wch:45},{wch:22}];
+      XLSX.utils.book_append_sheet(wb,ws,'Official correspondence');
+      XLSX.writeFile(wb,'Official_Correspondence_Tracker_'+todayISO()+'.xlsx');toast('Official correspondence tracker exported',true);
+    }catch(e){toast('Tracker export failed: '+(e&&e.message||e),false);}
+  };
+  if(window.XLSX)return run();
+  loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js').then(run).catch(function(){toast('Could not load the Excel library',false);});
+}
+
+var auditActionLabelV19Base=auditActionLabel;
+auditActionLabel=function(a){
+  return ({review:'Review started',resubmit:'Resubmitted',issue:'Issued',send:'Sent',close:'Closed',download:'Downloaded'}[a]||auditActionLabelV19Base(a));
+};
+var renderV19Base=render;
+render=function(){
+  if(VIEW==='official'){
+    renderNav();document.getElementById('main').innerHTML=vOfficialLetters();paintWho();return;
+  }
+  renderV19Base();
+  if(VIEW==='home'){
+    var grid=document.querySelector('.svc-grid');
+    if(grid&&!grid.querySelector('[data-official-service]')){
+      grid.insertAdjacentHTML('afterbegin','<button class="svc" data-official-service onclick="go(\'official\')"><div class="svc-ico">'+ico('file')+'</div><div class="svc-n">Official correspondence</div><div class="svc-d">Request an official letter from GR and track it through issue and dispatch.</div><div class="svc-m">Open '+ico('plus')+'</div></button>');
+    }
+  }
+};
+var vAdminV19Base=vAdmin;
+vAdmin=function(){
+  var base=vAdminV19Base();if(!isAdmin())return base;
+  var active=(STORE.officialLetters||[]).filter(officialIsActive).length;
+  return base+'<div class="card" style="margin-top:16px"><div class="card-h"><div class="card-t"><span class="ico">'+ico('file')+'</span>Official correspondence tracker</div>'
+    +'<button class="btn btn-sm btn-p" onclick="go(\'official\')">Manage '+active+' active request'+(active===1?'':'s')+'</button></div>'
+    +'<div class="card-b" style="font-size:12px;line-height:1.65">Assign the <b>Official correspondence (GR)</b> category to the responsible GR employee in Company Directory & Approvals. '
+    +'That employee can review requests, return them with a mandatory reason, prepare the letter, enter its official number and date, issue it and close the tracker.</div></div>';
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════
    EXPORT
    ═══════════════════════════════════════════════════════════════════════════ */
 function exportAll(){
@@ -3759,6 +4185,14 @@ function exportAll(){
       ws['!cols']=[{wch:11},{wch:14},{wch:20},{wch:15},{wch:44},{wch:10},{wch:12},{wch:38},{wch:22},{wch:16},{wch:18},{wch:22},{wch:40}];
       ws['!freeze']={xSplit:1,ySplit:1};
       XLSX.utils.book_append_sheet(wb,ws,'Requests');
+
+      var oh=[['Tracker ID','Requester','Department','Recipient','Subject','Purpose','Priority','Status','Requested at','Needed by','Official letter no.','Official letter date','Rejected/return reason','Last update']];
+      (STORE.officialLetters||[]).forEach(function(r){
+        oh.push([r.ref,r.by,r.dept,r.recipient,r.subject,r.purpose,r.priority,(OFFICIAL_STATUS[r.status]||{}).label||r.status,r.created,r.neededBy||'',r.bookNo||'',r.bookDate||'',r.rejectionReason||'',r.updated]);
+      });
+      var wo=XLSX.utils.aoa_to_sheet(oh);
+      wo['!cols']=[{wch:18},{wch:22},{wch:18},{wch:32},{wch:36},{wch:50},{wch:10},{wch:20},{wch:22},{wch:13},{wch:20},{wch:18},{wch:45},{wch:22}];
+      XLSX.utils.book_append_sheet(wb,wo,'Official correspondence');
 
       var bh=[['Title','Date','From','To','Room','Called by','Department','Invited','Emails','Phones','Virtual','Agenda']];
       STORE.bookings.forEach(function(b){
