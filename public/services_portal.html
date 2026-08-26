@@ -447,12 +447,12 @@ table.t .ref{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--
 
 var SK='kp_services_v1';
 var ROOM_DEFAULT='asimati-services';
-var PORTAL_BUILD='2026.08.26.21';
+var PORTAL_BUILD='2026.08.26.22';
 /* Meeting invitations must open the standalone hosted page. Loading the hub
    through an iframe/srcdoc gives it an about: URL, which is confusing for
    browser permission checks and makes troubleshooting microphone access much
    harder. Keep the meeting on the real Firebase HTTPS origin instead. */
-var PUBLIC_PORTAL_URL='https://knowledge-papers.web.app/services_portal.html?v=21';
+var PUBLIC_PORTAL_URL='https://knowledge-papers.web.app/services_portal.html?v=22';
 var MAIN_PORTAL_URL='https://knowledge-papers.web.app/';
 var ANNOUNCEMENT_EMAIL_ENDPOINT='https://me-central1-knowledge-papers.cloudfunctions.net/announcementEmail';
 var GOOGLE_OAUTH_CLIENT_ID='602139029671-81nqjdon7ek9f5vlsbjmff1d2pqd5nq9.apps.googleusercontent.com';
@@ -689,7 +689,7 @@ function paintWho(){
   var role=ME?(ME.role==='admin'?'Admin':(level||ME.role==='approver'?'Approver':'Requester')):'';
   document.getElementById('whoAv').textContent=ME?initials(ME.name):'?';
   document.getElementById('whoName').textContent=ME?ME.name.split(' ')[0]:'Sign in';
-  document.getElementById('abSub').textContent=(ME?(ME.dept+' · '+role+(level?' · Approval L'+level:'')+(ME.role==='admin'&&!isAdmin()?' (locked)':'')):'Internal requests & meetings')+' · v21';
+  document.getElementById('abSub').textContent=(ME?(ME.dept+' · '+role+(level?' · Approval L'+level:'')+(ME.role==='admin'&&!isAdmin()?' (locked)':'')):'Internal requests & meetings')+' · v22';
   var ab=document.getElementById('adminAccessBtn');if(ab)ab.textContent=isAdmin()?'Admin centre':'Admin access';
 }
 function adminSessionOK(){
@@ -3436,7 +3436,7 @@ function vrLeave(goBack){
 /* ═══════════════════════════════════════════════════════════════════════════
    SYNC — its own room, never the projects room
    ═══════════════════════════════════════════════════════════════════════════ */
-var SY={ cfg:null, room:null, ref:null, on:false, base:null, writable:false };
+var SY={ cfg:null, room:null, ref:null, announcementRef:null, on:false, base:null, writable:false };
 var ANNOUNCEMENT_OUTBOX_KEY='kp_services_announcements_outbox_v1';
 var ANNOUNCEMENT_MIGRATION_KEY='kp_services_announcements_v20_migrated';
 
@@ -3466,20 +3466,49 @@ function mergeAnnouncementLists(remote,local){
 }
 function syncAnnouncementsNow(){
   queueAnnouncementsForSync();
-  if(!SY.ref||!SY.writable){
+  var list=announcementListCopy(STORE.announcements||[]),writes=[];
+  /* Announcements are mirrored to the proven main-portal room as well as the
+     Services room. This keeps company notices available even when database
+     rules allow the main portal but block a newly introduced Services room. */
+  if(SY.announcementRef)writes.push(SY.announcementRef.set(list));
+  if(SY.ref&&SY.writable)writes.push(SY.ref.child('announcements').set(list));
+  if(!writes.length){
     toast('Saved on this device. It will publish automatically when Live connects.',false);
     return Promise.resolve(false);
   }
-  var list=announcementListCopy(STORE.announcements||[]);
-  return SY.ref.child('announcements').set(list).then(function(){
-    clearAnnouncementOutbox();
-    if(SY.base)SY.base.announcements=announcementListCopy(list);
-    toast('Announcement published to the team',true);
-    return true;
-  }).catch(function(e){
-    toast('Saved locally, but team publishing failed: '+(e&&e.message||e),false);
+  return Promise.allSettled(writes).then(function(results){
+    var ok=results.some(function(x){return x.status==='fulfilled';});
+    if(ok){
+      clearAnnouncementOutbox();
+      if(SY.base)SY.base.announcements=announcementListCopy(list);
+      toast('Announcement published to the team',true);
+      return true;
+    }
+    var failed=results[0]&&results[0].reason;
+    toast('Saved locally, but team publishing failed: '+(failed&&failed.message||failed||'database rejected the write'),false);
     return false;
   });
+}
+
+function startSharedAnnouncementBridge(){
+  SY.announcementRef=firebase.database().ref('portals/asimati-hub-v2/workplaceAnnouncements');
+  SY.announcementRef.on('value',function(s){
+    var remote=s.val();
+    if(remote!=null&&!Array.isArray(remote))return;
+    if(remote==null){
+      var queued=readAnnouncementOutbox();
+      if(ME&&ME.role==='admin'&&(queued.length||(STORE.announcements||[]).length)){syncAnnouncementsNow();return;}
+      if((STORE.announcements||[]).length&&(!ME||ME.role!=='admin')){
+        STORE.announcements=[];try{localStorage.setItem(SK,JSON.stringify(STORE));}catch(e){}render();
+      }
+      return;
+    }
+    var merged=mergeAnnouncementLists(remote,readAnnouncementOutbox());
+    if(JSON.stringify(STORE.announcements||[])===JSON.stringify(merged))return;
+    STORE.announcements=merged;
+    try{localStorage.setItem(SK,JSON.stringify(STORE));}catch(e){}
+    if(VIEW!=='virtual')render();
+  },function(e){console.warn('shared announcement bridge failed',e);});
 }
 
 function loadSync(){
@@ -3543,6 +3572,7 @@ async function initSync(){
       await loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js');
     }
     if(!firebase.apps.length) firebase.initializeApp(SY.cfg);
+    startSharedAnnouncementBridge();
     SY.ref=firebase.database().ref('portals/'+SY.room);
     SY.on=true; paintSync();
     bootstrapSync();
