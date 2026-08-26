@@ -447,12 +447,12 @@ table.t .ref{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--
 
 var SK='kp_services_v1';
 var ROOM_DEFAULT='asimati-services';
-var PORTAL_BUILD='2026.08.26.22';
+var PORTAL_BUILD='2026.08.26.23';
 /* Meeting invitations must open the standalone hosted page. Loading the hub
    through an iframe/srcdoc gives it an about: URL, which is confusing for
    browser permission checks and makes troubleshooting microphone access much
    harder. Keep the meeting on the real Firebase HTTPS origin instead. */
-var PUBLIC_PORTAL_URL='https://knowledge-papers.web.app/services_portal.html?v=22';
+var PUBLIC_PORTAL_URL='https://knowledge-papers.web.app/services_portal.html?v=23';
 var MAIN_PORTAL_URL='https://knowledge-papers.web.app/';
 var ANNOUNCEMENT_EMAIL_ENDPOINT='https://me-central1-knowledge-papers.cloudfunctions.net/announcementEmail';
 var GOOGLE_OAUTH_CLIENT_ID='602139029671-81nqjdon7ek9f5vlsbjmff1d2pqd5nq9.apps.googleusercontent.com';
@@ -689,7 +689,7 @@ function paintWho(){
   var role=ME?(ME.role==='admin'?'Admin':(level||ME.role==='approver'?'Approver':'Requester')):'';
   document.getElementById('whoAv').textContent=ME?initials(ME.name):'?';
   document.getElementById('whoName').textContent=ME?ME.name.split(' ')[0]:'Sign in';
-  document.getElementById('abSub').textContent=(ME?(ME.dept+' · '+role+(level?' · Approval L'+level:'')+(ME.role==='admin'&&!isAdmin()?' (locked)':'')):'Internal requests & meetings')+' · v22';
+  document.getElementById('abSub').textContent=(ME?(ME.dept+' · '+role+(level?' · Approval L'+level:'')+(ME.role==='admin'&&!isAdmin()?' (locked)':'')):'Internal requests & meetings')+' · v23';
   var ab=document.getElementById('adminAccessBtn');if(ab)ab.textContent=isAdmin()?'Admin centre':'Admin access';
 }
 function adminSessionOK(){
@@ -3438,7 +3438,7 @@ function vrLeave(goBack){
    ═══════════════════════════════════════════════════════════════════════════ */
 var SY={ cfg:null, room:null, ref:null, announcementRef:null, on:false, base:null, writable:false };
 var ANNOUNCEMENT_OUTBOX_KEY='kp_services_announcements_outbox_v1';
-var ANNOUNCEMENT_MIGRATION_KEY='kp_services_announcements_v20_migrated';
+var ANNOUNCEMENT_MIGRATION_KEY='kp_services_announcements_v23_migrated';
 
 function announcementListCopy(list){
   return JSON.parse(JSON.stringify(Array.isArray(list)?list:[]));
@@ -3491,6 +3491,7 @@ function syncAnnouncementsNow(){
 }
 
 function startSharedAnnouncementBridge(){
+  if(SY.announcementRef)try{SY.announcementRef.off('value');}catch(e){}
   SY.announcementRef=firebase.database().ref('portals/asimati-hub-v2/workplaceAnnouncements');
   SY.announcementRef.on('value',function(s){
     var remote=s.val();
@@ -3572,7 +3573,6 @@ async function initSync(){
       await loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js');
     }
     if(!firebase.apps.length) firebase.initializeApp(SY.cfg);
-    startSharedAnnouncementBridge();
     SY.ref=firebase.database().ref('portals/'+SY.room);
     SY.on=true; paintSync();
     bootstrapSync();
@@ -3592,6 +3592,7 @@ function bootstrapSync(){
   var timer=setTimeout(function(){
     if(settled) return; settled=true;
     SY.writable=false; paintSync();
+    startSharedAnnouncementBridge();
     toast('The database did not respond. Working offline; your changes stay on this device.',false);
   },12000);
   SY.ref.once('value').then(function(snap){
@@ -3615,19 +3616,24 @@ function bootstrapSync(){
          never create partial Firebase rows. */
       SY.ref.child('contacts').set(STORE.contacts||[]).catch(function(e){console.warn('directory sync failed',e);});
     }
+    /* Attach Services listeners first, then attach the authoritative shared
+       announcement listener last. An empty Services snapshot must never erase
+       a notice already received from the main portal room. */
+    watchLive();
+    startSharedAnnouncementBridge();
     if(rescue.length){
-      SY.ref.child('announcements').set(STORE.announcements||[]).then(function(){
+      syncAnnouncementsNow().then(function(ok){if(ok){
         clearAnnouncementOutbox();
         try{localStorage.setItem(ANNOUNCEMENT_MIGRATION_KEY,'1');}catch(e){}
         if(SY.base)SY.base.announcements=announcementListCopy(STORE.announcements||[]);
-      }).catch(function(e){console.warn('announcement recovery failed',e);});
+      }}).catch(function(e){console.warn('announcement recovery failed',e);});
     }else try{localStorage.setItem(ANNOUNCEMENT_MIGRATION_KEY,'1');}catch(e){}
-    watchLive();
     render();
     toast('Connected to '+SY.room,true);
   }).catch(function(e){
     if(settled) return; settled=true; clearTimeout(timer);
     SY.writable=false; paintSync();
+    startSharedAnnouncementBridge();
     toast('Sync failed: '+(e&&e.message||e),false);
   });
 }
@@ -3642,7 +3648,7 @@ function strip(o){
 }
 /* Watch shared operational and Admin-managed branches. */
 function watchLive(){
-  ['people','contacts','resourceDirectory','announcements','auditLog','services','requests','bookings','vrooms','rooms','fleet','catalog'].forEach(function(k){
+  ['people','contacts','resourceDirectory','auditLog','services','requests','bookings','vrooms','rooms','fleet','catalog'].forEach(function(k){
     SY.ref.child(k).on('value',function(s){
       var v=s.val();
       if(k==='catalog'){ if(!v||typeof v!=='object') return; }
@@ -3811,6 +3817,7 @@ function announcementCard(a,compact){
   return '<div class="card announcement-card" style="border-left:4px solid '+(a.priority==='urgent'?'#b42318':(a.priority==='important'?'#c08a2e':'#2f6db1'))+'"><div class="card-h"><div class="card-t"><span class="ico">'+ico('bell')+'</span>'+esc(a.title)+'</div><span class="chip '+cls+'"><i></i>'+esc(a.priority||'normal')+'</span></div>'
     +'<div class="card-b"><div style="white-space:pre-wrap;line-height:1.65">'+esc(a.message||'')+'</div><div style="display:flex;gap:8px;align-items:center;margin-top:12px;color:var(--muted);font-size:11px">'
     +'<span>'+fmtWhen(a.publishAt||a.created)+'</span><span>·</span><span>'+esc(a.audience==='all'?'Everyone':String(a.audience||'').replace('dept:',''))+'</span><span class="grow"></span>'
+    +(isAdmin()?'<button class="btn btn-sm" onclick="announcementEditor(\''+a.id+'\')">'+ico('edit')+'Edit</button>':'')
     +(!announcementRead(a)?'<button class="btn btn-sm" onclick="markAnnouncementRead(\''+a.id+'\')">Mark as read</button>':'<span class="chip c-ok"><i></i>Read</span>')+'</div></div></div>';
 }
 function announcementDashboard(){
