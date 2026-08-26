@@ -447,12 +447,12 @@ table.t .ref{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--
 
 var SK='kp_services_v1';
 var ROOM_DEFAULT='asimati-services';
-var PORTAL_BUILD='2026.08.26.19';
+var PORTAL_BUILD='2026.08.26.20';
 /* Meeting invitations must open the standalone hosted page. Loading the hub
    through an iframe/srcdoc gives it an about: URL, which is confusing for
    browser permission checks and makes troubleshooting microphone access much
    harder. Keep the meeting on the real Firebase HTTPS origin instead. */
-var PUBLIC_PORTAL_URL='https://knowledge-papers.web.app/services_portal.html?v=19';
+var PUBLIC_PORTAL_URL='https://knowledge-papers.web.app/services_portal.html?v=20';
 var MAIN_PORTAL_URL='https://knowledge-papers.web.app/';
 var GOOGLE_OAUTH_CLIENT_ID='602139029671-81nqjdon7ek9f5vlsbjmff1d2pqd5nq9.apps.googleusercontent.com';
 var GOOGLE_MEET_SCOPE='https://www.googleapis.com/auth/meetings.space.created';
@@ -688,7 +688,7 @@ function paintWho(){
   var role=ME?(ME.role==='admin'?'Admin':(level||ME.role==='approver'?'Approver':'Requester')):'';
   document.getElementById('whoAv').textContent=ME?initials(ME.name):'?';
   document.getElementById('whoName').textContent=ME?ME.name.split(' ')[0]:'Sign in';
-  document.getElementById('abSub').textContent=(ME?(ME.dept+' · '+role+(level?' · Approval L'+level:'')+(ME.role==='admin'&&!isAdmin()?' (locked)':'')):'Internal requests & meetings')+' · v19';
+  document.getElementById('abSub').textContent=(ME?(ME.dept+' · '+role+(level?' · Approval L'+level:'')+(ME.role==='admin'&&!isAdmin()?' (locked)':'')):'Internal requests & meetings')+' · v20';
   var ab=document.getElementById('adminAccessBtn');if(ab)ab.textContent=isAdmin()?'Admin centre':'Admin access';
 }
 function adminSessionOK(){
@@ -3436,15 +3436,62 @@ function vrLeave(goBack){
    SYNC — its own room, never the projects room
    ═══════════════════════════════════════════════════════════════════════════ */
 var SY={ cfg:null, room:null, ref:null, on:false, base:null, writable:false };
+var ANNOUNCEMENT_OUTBOX_KEY='kp_services_announcements_outbox_v1';
+var ANNOUNCEMENT_MIGRATION_KEY='kp_services_announcements_v20_migrated';
+
+function announcementListCopy(list){
+  return JSON.parse(JSON.stringify(Array.isArray(list)?list:[]));
+}
+function queueAnnouncementsForSync(){
+  try{localStorage.setItem(ANNOUNCEMENT_OUTBOX_KEY,JSON.stringify(STORE.announcements||[]));}catch(e){}
+}
+function readAnnouncementOutbox(){
+  try{var v=JSON.parse(localStorage.getItem(ANNOUNCEMENT_OUTBOX_KEY)||'[]');return Array.isArray(v)?v:[];}catch(e){return [];}
+}
+function clearAnnouncementOutbox(){
+  try{localStorage.removeItem(ANNOUNCEMENT_OUTBOX_KEY);}catch(e){}
+}
+function mergeAnnouncementLists(remote,local){
+  var out=[],byId={};
+  announcementListCopy(remote).forEach(function(a){if(!a||!a.id)return;byId[a.id]=a;out.push(a);});
+  announcementListCopy(local).forEach(function(a){
+    if(!a||!a.id)return;
+    var old=byId[a.id];
+    if(!old){byId[a.id]=a;out.push(a);return;}
+    var oldAt=String(old.updated||old.created||''),newAt=String(a.updated||a.created||'');
+    if(newAt>=oldAt){var i=out.findIndex(function(x){return x.id===a.id;});if(i>=0)out[i]=a;byId[a.id]=a;}
+  });
+  return out.sort(function(a,b){return String(b.publishAt||b.created||'').localeCompare(String(a.publishAt||a.created||''));});
+}
+function syncAnnouncementsNow(){
+  queueAnnouncementsForSync();
+  if(!SY.ref||!SY.writable){
+    toast('Saved on this device. It will publish automatically when Live connects.',false);
+    return Promise.resolve(false);
+  }
+  var list=announcementListCopy(STORE.announcements||[]);
+  return SY.ref.child('announcements').set(list).then(function(){
+    clearAnnouncementOutbox();
+    if(SY.base)SY.base.announcements=announcementListCopy(list);
+    toast('Announcement published to the team',true);
+    return true;
+  }).catch(function(e){
+    toast('Saved locally, but team publishing failed: '+(e&&e.message||e),false);
+    return false;
+  });
+}
 
 function loadSync(){
   var c=null;
   try{
     c=JSON.parse(localStorage.getItem('kp_services_sync')||'null');
   }catch(e){}
-  c=c||{};
-  SY.cfg=Object.assign({},FIREBASE_DEFAULT,{databaseURL:c.databaseURL||FIREBASE_DEFAULT.databaseURL});
-  SY.room=(c.room&&c.room!=='asimati-hub-v2')?c.room:ROOM_DEFAULT;
+  /* Production is deliberately pinned to one Firebase database and one room.
+     Previous builds allowed every device to retain a custom room, which made
+     an announcement appear only to the device that created it. */
+  SY.cfg=Object.assign({},FIREBASE_DEFAULT);
+  SY.room=ROOM_DEFAULT;
+  try{localStorage.setItem('kp_services_sync',JSON.stringify({databaseURL:FIREBASE_DEFAULT.databaseURL,room:ROOM_DEFAULT}));}catch(e){}
   initSync();
 }
 function paintSync(){
@@ -3460,32 +3507,25 @@ function openSync(){
     +'<div class="mod-s">Knowledge Papers Firebase · portals/'+ROOM_DEFAULT+(canEdit?'':' · Admin-only settings')+'</div></div>'
     +'<button class="mod-x" id="sx">&times;</button></div><div class="mod-b"><div class="form">'
     +'<div class="fld wide"><label>Firebase database URL</label>'
-      +'<input id="sUrl" placeholder="https://your-project-default-rtdb.firebaseio.com" value="'+esc(cur.databaseURL||FIREBASE_DEFAULT.databaseURL)+'"'+(canEdit?'':' disabled')+'></div>'
-    +'<div class="fld wide"><label>Room</label><input id="sRoom" value="'+esc(cur.room||ROOM_DEFAULT)+'"'+(canEdit?'':' disabled')+'>'
-      +'<div class="hint">This portal keeps its own room. Do not point it at the projects room '
-      +'(<code>asimati-hub-v2</code>) \u2014 the two hold different shapes of data and would overwrite each other.</div></div>'
+      +'<input id="sUrl" value="'+esc(FIREBASE_DEFAULT.databaseURL)+'" disabled></div>'
+    +'<div class="fld wide"><label>Room</label><input id="sRoom" value="'+ROOM_DEFAULT+'" disabled>'
+      +'<div class="hint">Production is locked to this shared room so announcements and requests appear on every team device. The projects room remains separate.</div></div>'
     +'<div class="fld wide"><label>Meeting media</label><div class="hint">Google Meet is the primary meeting service. LiveKit Cloud remains the internal backup. '
     +'Google access tokens stay only in page memory; LiveKit API secrets stay only in the secure Firebase Function.</div></div>'
     +'</div></div><div class="mod-f"><div class="grow"></div>'
     +'<button class="btn" id="sc">'+(canEdit?'Cancel':'Close')+'</button>'
-    +(canEdit?'<button class="btn btn-p" id="ss">Save and connect</button>':'')+'</div></div>';
+    +(canEdit?'<button class="btn btn-p" id="ss">Reconnect to production</button>':'')+'</div></div>';
   document.body.appendChild(m);
   var close=function(){ m.remove(); };
   m.querySelector('#sx').onclick=close; m.querySelector('#sc').onclick=close;
   m.addEventListener('click',function(e){ if(e.target===m) close(); });
   if(!canEdit)return;
   m.querySelector('#ss').onclick=function(){
-    var url=m.querySelector('#sUrl').value.trim(), room=m.querySelector('#sRoom').value.trim()||ROOM_DEFAULT;
-    if(room==='asimati-hub-v2'){
-      toast('That is the projects room. Pick a different room name for this portal.',false); return;
-    }
     try{
-      localStorage.setItem('kp_services_sync',JSON.stringify({databaseURL:url,room:room}));
+      localStorage.setItem('kp_services_sync',JSON.stringify({databaseURL:FIREBASE_DEFAULT.databaseURL,room:ROOM_DEFAULT}));
     }catch(e){}
-    save();
     close();
-    if(url){ SY.cfg=Object.assign({},FIREBASE_DEFAULT,{databaseURL:url}); SY.room=room; initSync(); }
-    else { toast('Saved. Add a database URL to sync with your team.',true); }
+    SY.cfg=Object.assign({},FIREBASE_DEFAULT);SY.room=ROOM_DEFAULT;initSync();
   };
 }
 function loadScript(src){
@@ -3513,6 +3553,10 @@ async function initSync(){
 /* One authoritative read, then targeted listeners — never a permanent root
    subscription, which is what made the projects portal expensive. */
 function bootstrapSync(){
+  var localBefore=announcementListCopy(STORE.announcements||[]);
+  var queuedBefore=readAnnouncementOutbox();
+  var legacyRescueAllowed=true;
+  try{legacyRescueAllowed=localStorage.getItem(ANNOUNCEMENT_MIGRATION_KEY)!=='1';}catch(e){}
   var settled=false;
   var timer=setTimeout(function(){
     if(settled) return; settled=true;
@@ -3527,6 +3571,10 @@ function bootstrapSync(){
       STORE=d; normalise();
       try{ localStorage.setItem(SK,JSON.stringify(STORE)); }catch(e){}
     }
+    /* Recover an admin announcement that an older build saved only locally,
+       then publish it to the shared production room. */
+    var rescue=queuedBefore.length?queuedBefore:((legacyRescueAllowed&&ME&&ME.role==='admin')?localBefore:[]);
+    if(rescue.length)STORE.announcements=mergeAnnouncementLists(STORE.announcements||[],rescue);
     applyPortalLink();
     SY.base=JSON.parse(JSON.stringify(strip(STORE)));
     SY.writable=true; paintSync();
@@ -3536,6 +3584,13 @@ function bootstrapSync(){
          never create partial Firebase rows. */
       SY.ref.child('contacts').set(STORE.contacts||[]).catch(function(e){console.warn('directory sync failed',e);});
     }
+    if(rescue.length){
+      SY.ref.child('announcements').set(STORE.announcements||[]).then(function(){
+        clearAnnouncementOutbox();
+        try{localStorage.setItem(ANNOUNCEMENT_MIGRATION_KEY,'1');}catch(e){}
+        if(SY.base)SY.base.announcements=announcementListCopy(STORE.announcements||[]);
+      }).catch(function(e){console.warn('announcement recovery failed',e);});
+    }else try{localStorage.setItem(ANNOUNCEMENT_MIGRATION_KEY,'1');}catch(e){}
     watchLive();
     render();
     toast('Connected to '+SY.room,true);
@@ -3759,12 +3814,12 @@ function announcementEditor(id){
     +'<div class="fld wide"><label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0"><input id="anActive" type="checkbox" style="width:16px;height:16px"'+(a.active!==false?' checked':'')+'> Active</label></div></div></div><div class="mod-f"><div class="grow"></div><button class="btn" id="anc">Cancel</button><button class="btn btn-p" id="ans">Save announcement</button></div></div>';
   document.body.appendChild(m);var close=function(){m.remove();};m.querySelector('#anx').onclick=close;m.querySelector('#anc').onclick=close;
   m.querySelector('#ans').onclick=function(){var title=val('anTitle'),message=val('anMessage');if(!title||!message){toast('Enter the title and message',false);return;}
-    var n={id:a.id||uid('an'),title:title,message:message,priority:val('anPriority'),audience:val('anAudience')||'all',publishAt:val('anPublish')?new Date(val('anPublish')).toISOString():nowISO(),expiresAt:val('anExpires')?new Date(val('anExpires')).toISOString():'',active:document.getElementById('anActive').checked,created:a.created||nowISO(),createdBy:a.createdBy||(ME&&ME.name)||'',readBy:a.readBy||{}};
-    if(isNew)STORE.announcements.unshift(n);else Object.keys(n).forEach(function(k){a[k]=n[k];});auditRecord(isNew?'publish':'update','announcement',n.id,n.title);save();close();render();toast('Announcement saved',true);};
+    var n={id:a.id||uid('an'),title:title,message:message,priority:val('anPriority'),audience:val('anAudience')||'all',publishAt:val('anPublish')?new Date(val('anPublish')).toISOString():nowISO(),expiresAt:val('anExpires')?new Date(val('anExpires')).toISOString():'',active:document.getElementById('anActive').checked,created:a.created||nowISO(),updated:nowISO(),createdBy:a.createdBy||(ME&&ME.name)||'',readBy:a.readBy||{}};
+    if(isNew)STORE.announcements.unshift(n);else Object.keys(n).forEach(function(k){a[k]=n[k];});auditRecord(isNew?'publish':'update','announcement',n.id,n.title);queueAnnouncementsForSync();save();syncAnnouncementsNow();close();render();};
 }
 function removeAnnouncement(id){
   if(!isAdmin())return;var a=(STORE.announcements||[]).find(function(x){return x.id===id;});if(!a||!confirm('Delete announcement "'+a.title+'"?'))return;
-  STORE.announcements=STORE.announcements.filter(function(x){return x.id!==id;});auditRecord('delete','announcement',id,a.title);save();render();toast('Announcement deleted',true);
+  STORE.announcements=STORE.announcements.filter(function(x){return x.id!==id;});auditRecord('delete','announcement',id,a.title);queueAnnouncementsForSync();save();syncAnnouncementsNow();render();
 }
 
 /* Enhance the existing dashboard and Admin centre without duplicating them. */
