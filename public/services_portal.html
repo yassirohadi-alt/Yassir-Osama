@@ -447,13 +447,14 @@ table.t .ref{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--
 
 var SK='kp_services_v1';
 var ROOM_DEFAULT='asimati-services';
-var PORTAL_BUILD='2026.08.26.20';
+var PORTAL_BUILD='2026.08.26.21';
 /* Meeting invitations must open the standalone hosted page. Loading the hub
    through an iframe/srcdoc gives it an about: URL, which is confusing for
    browser permission checks and makes troubleshooting microphone access much
    harder. Keep the meeting on the real Firebase HTTPS origin instead. */
-var PUBLIC_PORTAL_URL='https://knowledge-papers.web.app/services_portal.html?v=20';
+var PUBLIC_PORTAL_URL='https://knowledge-papers.web.app/services_portal.html?v=21';
 var MAIN_PORTAL_URL='https://knowledge-papers.web.app/';
+var ANNOUNCEMENT_EMAIL_ENDPOINT='https://me-central1-knowledge-papers.cloudfunctions.net/announcementEmail';
 var GOOGLE_OAUTH_CLIENT_ID='602139029671-81nqjdon7ek9f5vlsbjmff1d2pqd5nq9.apps.googleusercontent.com';
 var GOOGLE_MEET_SCOPE='https://www.googleapis.com/auth/meetings.space.created';
 var GOOGLE_CALENDAR_SCOPE='https://www.googleapis.com/auth/calendar.events';
@@ -688,7 +689,7 @@ function paintWho(){
   var role=ME?(ME.role==='admin'?'Admin':(level||ME.role==='approver'?'Approver':'Requester')):'';
   document.getElementById('whoAv').textContent=ME?initials(ME.name):'?';
   document.getElementById('whoName').textContent=ME?ME.name.split(' ')[0]:'Sign in';
-  document.getElementById('abSub').textContent=(ME?(ME.dept+' · '+role+(level?' · Approval L'+level:'')+(ME.role==='admin'&&!isAdmin()?' (locked)':'')):'Internal requests & meetings')+' · v20';
+  document.getElementById('abSub').textContent=(ME?(ME.dept+' · '+role+(level?' · Approval L'+level:'')+(ME.role==='admin'&&!isAdmin()?' (locked)':'')):'Internal requests & meetings')+' · v21';
   var ab=document.getElementById('adminAccessBtn');if(ab)ab.textContent=isAdmin()?'Admin centre':'Admin access';
 }
 function adminSessionOK(){
@@ -3796,10 +3797,47 @@ function markAnnouncementRead(id){
   if(!ME){openWho(true);return;}var a=(STORE.announcements||[]).find(function(x){return x.id===id;});if(!a)return;
   if(!a.readBy||typeof a.readBy!=='object')a.readBy={};a.readBy[ME.id]=nowISO();save();render();
 }
+function announcementEmailRecipientCount(a){
+  var seen={},n=0,audience=(a&&a.audience)||'all';
+  (STORE.contacts||[]).forEach(function(c){
+    var email=String(c.email||'').trim().toLowerCase();
+    if(!email||c.active===false||seen[email])return;
+    if(audience!=='all'&&audience!=='dept:'+c.dept)return;
+    seen[email]=1;n++;
+  });
+  return n;
+}
+async function emailAnnouncement(id,button){
+  if(!isAdmin()){toast('Admin access is required',false);return false;}
+  var a=(STORE.announcements||[]).find(function(x){return x.id===id;});
+  if(!a){toast('Announcement was not found',false);return false;}
+  var count=announcementEmailRecipientCount(a);
+  if(!count){toast('No company email addresses match this audience',false);return false;}
+  var oldText=button&&button.textContent;
+  if(button){button.disabled=true;button.textContent='Sending…';}
+  try{
+    var response=await fetch(ANNOUNCEMENT_EMAIL_ENDPOINT,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({announcementId:id})
+    });
+    var result={};try{result=await response.json();}catch(e){}
+    if(!response.ok||result.ok===false)throw new Error(result.error||('Email service returned '+response.status));
+    var latest=(STORE.announcements||[]).find(function(x){return x.id===id;})||a;
+    latest.emailSentAt=result.sentAt||nowISO();latest.emailRecipientCount=+result.sent||count;
+    save();render();
+    toast('Announcement emailed to '+latest.emailRecipientCount+' team member'+(latest.emailRecipientCount===1?'':'s'),true);
+    return true;
+  }catch(e){
+    toast('Announcement is shared, but email failed: '+(e&&e.message||e),false);
+    return false;
+  }finally{
+    if(button&&document.body.contains(button)){button.disabled=false;button.textContent=oldText;}
+  }
+}
 function adminAnnouncementPanel(){
   if(!isAdmin())return '';
-  var rows=(STORE.announcements||[]).map(function(a){return '<tr><td><b>'+esc(a.title)+'</b><br><span style="font-size:11px;color:var(--muted)">'+esc(a.message||'').slice(0,90)+'</span></td><td>'+esc(a.priority||'normal')+'</td><td>'+esc(a.audience==='all'?'Everyone':String(a.audience||'').replace('dept:',''))+'</td><td>'+fmtWhen(a.publishAt||a.created)+'</td><td>'+(a.active!==false?'<span class="chip c-ok"><i></i>Active</span>':'<span class="chip c-done"><i></i>Hidden</span>')+'</td><td style="white-space:nowrap"><button class="btn btn-sm" onclick="announcementEditor(\''+a.id+'\')">'+ico('edit')+'Edit</button> <button class="btn btn-sm btn-d" onclick="removeAnnouncement(\''+a.id+'\')">'+ico('trash')+'</button></td></tr>';}).join('');
-  return '<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('bell')+'</span>Announcements</div><button class="btn btn-sm btn-p" onclick="announcementEditor()">'+ico('plus')+'New announcement</button></div><div class="tw" style="border:0;border-radius:0"><table class="t"><thead><tr><th>Announcement</th><th>Priority</th><th>Audience</th><th>Publish</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+(rows||emptyRow(6,'No announcements','Publish the first company notice.'))+'</tbody></table></div></div>';
+  var rows=(STORE.announcements||[]).map(function(a){return '<tr><td><b>'+esc(a.title)+'</b><br><span style="font-size:11px;color:var(--muted)">'+esc(a.message||'').slice(0,90)+'</span></td><td>'+esc(a.priority||'normal')+'</td><td>'+esc(a.audience==='all'?'Everyone':String(a.audience||'').replace('dept:',''))+'</td><td>'+fmtWhen(a.publishAt||a.created)+'</td><td>'+(a.active!==false?'<span class="chip c-ok"><i></i>Active</span>':'<span class="chip c-done"><i></i>Hidden</span>')+'</td><td>'+(a.emailSentAt?'<span class="chip c-ok"><i></i>Sent to '+esc(a.emailRecipientCount||'team')+'</span><br><span style="font-size:10px;color:var(--muted)">'+fmtWhen(a.emailSentAt)+'</span>':'<span class="chip c-wait"><i></i>Not sent</span>')+'</td><td style="white-space:nowrap"><button class="btn btn-sm" onclick="announcementEditor(\''+a.id+'\')">'+ico('edit')+'Edit</button> <button class="btn btn-sm" onclick="emailAnnouncement(\''+a.id+'\',this)">'+ico('mail')+'Email</button> <button class="btn btn-sm btn-d" onclick="removeAnnouncement(\''+a.id+'\')">'+ico('trash')+'</button></td></tr>';}).join('');
+  return '<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('bell')+'</span>Announcements</div><button class="btn btn-sm btn-p" onclick="announcementEditor()">'+ico('plus')+'New announcement</button></div><div class="tw" style="border:0;border-radius:0"><table class="t"><thead><tr><th>Announcement</th><th>Priority</th><th>Audience</th><th>Publish</th><th>Status</th><th>Email</th><th>Actions</th></tr></thead><tbody>'+(rows||emptyRow(7,'No announcements','Publish the first company notice.'))+'</tbody></table></div></div>';
 }
 function announcementEditor(id){
   if(!isAdmin()){toast('Admin access is required',false);return;}var a=(STORE.announcements||[]).find(function(x){return x.id===id;})||{},isNew=!a.id;
@@ -3811,11 +3849,18 @@ function announcementEditor(id){
     +fld('anAudience','Audience','<select id="anAudience">'+audiences+'</select>')
     +fld('anPublish','Publish date & time','<input id="anPublish" type="datetime-local" value="'+esc((a.publishAt||'').slice(0,16))+'">')
     +fld('anExpires','Expiry date & time','<input id="anExpires" type="datetime-local" value="'+esc((a.expiresAt||'').slice(0,16))+'">')
-    +'<div class="fld wide"><label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0"><input id="anActive" type="checkbox" style="width:16px;height:16px"'+(a.active!==false?' checked':'')+'> Active</label></div></div></div><div class="mod-f"><div class="grow"></div><button class="btn" id="anc">Cancel</button><button class="btn btn-p" id="ans">Save announcement</button></div></div>';
+    +'<div class="fld wide"><label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0"><input id="anActive" type="checkbox" style="width:16px;height:16px"'+(a.active!==false?' checked':'')+'> Active</label></div>'
+    +'<div class="fld wide"><label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0"><input id="anEmail" type="checkbox" style="width:16px;height:16px"'+(isNew?' checked':'')+'> Email this announcement to the selected audience</label><div class="hint">Recipients come from Company Directory. Employees without a company email are skipped.</div></div></div></div><div class="mod-f"><div class="grow"></div><button class="btn" id="anc">Cancel</button><button class="btn btn-p" id="ans">Publish announcement</button></div></div>';
   document.body.appendChild(m);var close=function(){m.remove();};m.querySelector('#anx').onclick=close;m.querySelector('#anc').onclick=close;
-  m.querySelector('#ans').onclick=function(){var title=val('anTitle'),message=val('anMessage');if(!title||!message){toast('Enter the title and message',false);return;}
+  m.querySelector('#ans').onclick=async function(){var title=val('anTitle'),message=val('anMessage');if(!title||!message){toast('Enter the title and message',false);return;}
+    var sendEmail=document.getElementById('anEmail').checked,saveButton=this;saveButton.disabled=true;
     var n={id:a.id||uid('an'),title:title,message:message,priority:val('anPriority'),audience:val('anAudience')||'all',publishAt:val('anPublish')?new Date(val('anPublish')).toISOString():nowISO(),expiresAt:val('anExpires')?new Date(val('anExpires')).toISOString():'',active:document.getElementById('anActive').checked,created:a.created||nowISO(),updated:nowISO(),createdBy:a.createdBy||(ME&&ME.name)||'',readBy:a.readBy||{}};
-    if(isNew)STORE.announcements.unshift(n);else Object.keys(n).forEach(function(k){a[k]=n[k];});auditRecord(isNew?'publish':'update','announcement',n.id,n.title);queueAnnouncementsForSync();save();syncAnnouncementsNow();close();render();};
+    if(isNew)STORE.announcements.unshift(n);else Object.keys(n).forEach(function(k){a[k]=n[k];});auditRecord(isNew?'publish':'update','announcement',n.id,n.title);queueAnnouncementsForSync();save();
+    var shared=await syncAnnouncementsNow();
+    if(!shared){saveButton.disabled=false;return;}
+    close();render();
+    if(sendEmail)await emailAnnouncement(n.id);
+  };
 }
 function removeAnnouncement(id){
   if(!isAdmin())return;var a=(STORE.announcements||[]).find(function(x){return x.id===id;});if(!a||!confirm('Delete announcement "'+a.title+'"?'))return;
