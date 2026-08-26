@@ -417,16 +417,20 @@ table.t .ref{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--
 
 var SK='kp_services_v1';
 var ROOM_DEFAULT='asimati-services';
-var PORTAL_BUILD='2026.08.25.16';
+var PORTAL_BUILD='2026.08.26.18';
 /* Meeting invitations must open the standalone hosted page. Loading the hub
    through an iframe/srcdoc gives it an about: URL, which is confusing for
    browser permission checks and makes troubleshooting microphone access much
    harder. Keep the meeting on the real Firebase HTTPS origin instead. */
-var PUBLIC_PORTAL_URL='https://knowledge-papers.web.app/services_portal.html?v=17';
+var PUBLIC_PORTAL_URL='https://knowledge-papers.web.app/services_portal.html?v=18';
 var MAIN_PORTAL_URL='https://knowledge-papers.web.app/';
 var GOOGLE_OAUTH_CLIENT_ID='602139029671-81nqjdon7ek9f5vlsbjmff1d2pqd5nq9.apps.googleusercontent.com';
 var GOOGLE_MEET_SCOPE='https://www.googleapis.com/auth/meetings.space.created';
-var GOOGLE_MEET_API_URL='https://meet.googleapis.com/v2/spaces';
+var GOOGLE_CALENDAR_SCOPE='https://www.googleapis.com/auth/calendar.events';
+/* Calendar creates the event and its unique Meet conference in one request,
+   so the portal asks for only the narrower Calendar event permission. */
+var GOOGLE_OAUTH_SCOPES=GOOGLE_CALENDAR_SCOPE;
+var GOOGLE_CALENDAR_API_URL='https://www.googleapis.com/calendar/v3/calendars/primary/events';
 /* Google access tokens are deliberately kept only in page memory. They are
    never written to Firebase, localStorage or the meeting booking record. */
 var GOOGLE_MEET_TOKEN='';
@@ -509,6 +513,9 @@ function seed(){
     settings:{turn:{urls:'',username:'',credential:''}},
     people:[],
     contacts:[],
+    resourceDirectory:[],
+    announcements:[],
+    auditLog:[],
     services:[],
     requests:[],
     bookings:[],
@@ -567,7 +574,7 @@ function normalise(){
   var s=seed();
   if(!STORE.settings||typeof STORE.settings!=='object') STORE.settings=s.settings;
   if(!STORE.settings.turn||typeof STORE.settings.turn!=='object') STORE.settings.turn=s.settings.turn;
-  ['people','contacts','services','requests','bookings','vrooms','rooms','fleet'].forEach(function(k){
+  ['people','contacts','resourceDirectory','announcements','auditLog','services','requests','bookings','vrooms','rooms','fleet'].forEach(function(k){
     if(!Array.isArray(STORE[k])) STORE[k]=s[k];
   });
   if(!STORE.catalog) STORE.catalog=s.catalog;
@@ -591,6 +598,13 @@ function normalise(){
     c.approvalLevel=Math.max(0,Math.min(5,+c.approvalLevel||0));
     c.canApprove=c.approvalLevel>0;
     normaliseApproverTypes(c);
+  });
+  mergeResourceDirectory();
+  STORE.announcements.forEach(function(a){
+    if(a.active==null)a.active=true;
+    if(!a.priority)a.priority='normal';
+    if(!a.audience)a.audience='all';
+    if(!a.readBy||typeof a.readBy!=='object')a.readBy={};
   });
   STORE.services.forEach(function(sv){
     if(sv.name==null) sv.name='Service';
@@ -644,7 +658,7 @@ function paintWho(){
   var role=ME?(ME.role==='admin'?'Admin':(level||ME.role==='approver'?'Approver':'Requester')):'';
   document.getElementById('whoAv').textContent=ME?initials(ME.name):'?';
   document.getElementById('whoName').textContent=ME?ME.name.split(' ')[0]:'Sign in';
-  document.getElementById('abSub').textContent=(ME?(ME.dept+' · '+role+(level?' · Approval L'+level:'')+(ME.role==='admin'&&!isAdmin()?' (locked)':'')):'Internal requests & meetings')+' · v17';
+  document.getElementById('abSub').textContent=(ME?(ME.dept+' · '+role+(level?' · Approval L'+level:'')+(ME.role==='admin'&&!isAdmin()?' (locked)':'')):'Internal requests & meetings')+' · v18';
   var ab=document.getElementById('adminAccessBtn');if(ab)ab.textContent=isAdmin()?'Admin centre':'Admin access';
 }
 function adminSessionOK(){
@@ -828,6 +842,7 @@ function submitRequest(type,payload,priority,needed,note,approvals){
     details:payload, history:[{at:nowISO(),who:ME.name,what:'Submitted'}]
   };
   STORE.requests.unshift(r);
+  auditRecord('create','request',r.id,r.ref+' · '+requestTypeLabel(r));
   save();
   return r;
 }
@@ -851,6 +866,7 @@ function decide(id,status,reason){
   r.decidedAt=nowISO(); r.decidedBy=ME?ME.name:'';
   if(reason) r.decision=reason;
   r.history.push({at:nowISO(),who:ME?ME.name:'',what:STATUS[status].label+((status==='approved'||status==='declined')&&chain.length?(' · Level '+(level||1)):'')+(reason?(' — '+reason):'')});
+  auditRecord(status==='approved'?'approve':(status==='declined'?'decline':(status==='fulfilled'?'fulfill':'update')),'request',r.id,r.ref+(reason?' · '+reason:''));
   save(); render();
   if(status==='approved'&&r.status==='submitted'){
     var done=chain.filter(function(a){return a.status==='approved';}).length;
@@ -891,6 +907,8 @@ var I={
   edit:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z"/>',
   trash:'<path d="M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6M10 11v6M14 11v6"/>',
   mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+  bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/>',
+  history:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>',
   phone:'<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.8a2 2 0 0 1-.4 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/>',
   gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1z"/>'
 };
@@ -900,6 +918,7 @@ function ico(k){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentCol
 var NAV=[
   {sec:'Overview'},
   {id:'home',   n:'Dashboard',        i:'home'},
+  {id:'announcements',n:'Announcements',i:'bell',badge:function(){return unreadAnnouncements().length;}},
   {sec:'Book'},
   {id:'car',    n:'Request a vehicle',i:'car'},
   {id:'rooms',  n:'Meeting rooms',    i:'door'},
@@ -913,6 +932,7 @@ var NAV=[
   {id:'all',      n:'All requests',   i:'list'},
   {sec:'Manage',adminOnly:true},
   {id:'directory',n:'Company Directory & Approvals',i:'mail',adminOnly:true},
+  {id:'audit',    n:'Audit log',      i:'history',adminOnly:true},
   {id:'admin',    n:'Admin centre',   i:'gear',adminOnly:true}
 ];
 function go(v){ VIEW=v; FILTER='open'; SEARCH=''; render(); window.scrollTo(0,0); }
@@ -975,7 +995,8 @@ function render(){
   var map={home:vHome,car:vCar,rooms:vRooms,meet:vMeet,virtual:vVirtual,
           stationery:function(){return vSupply('stationery');},
           it:vIT, warehouse:function(){return vSupply('warehouse');},
-          approvals:vApprovals, all:vAll, directory:vDirectory, admin:vAdmin};
+          approvals:vApprovals, all:vAll, announcements:vAnnouncements,
+          directory:vDirectory, audit:vAudit, admin:vAdmin};
   var fn=map[VIEW];
   if(!fn&&VIEW.indexOf('custom:')===0){var serviceId=VIEW.slice(7);fn=function(){return vCustomService(serviceId);};}
   fn=fn||vHome;
@@ -1315,7 +1336,7 @@ function requestGoogleMeetAccessToken(){
     try{
       var client=google.accounts.oauth2.initTokenClient({
         client_id:GOOGLE_OAUTH_CLIENT_ID,
-        scope:GOOGLE_MEET_SCOPE,
+        scope:GOOGLE_OAUTH_SCOPES,
         callback:function(response){
           if(!response||response.error||!response.access_token){
             finish(reject,new Error((response&&response.error_description)||
@@ -1323,8 +1344,8 @@ function requestGoogleMeetAccessToken(){
             return;
           }
           if(google.accounts.oauth2.hasGrantedAllScopes&&
-             !google.accounts.oauth2.hasGrantedAllScopes(response,GOOGLE_MEET_SCOPE)){
-            finish(reject,new Error('Permission to create a Google Meet link was not granted.'));
+             !google.accounts.oauth2.hasGrantedAllScopes(response,GOOGLE_CALENDAR_SCOPE)){
+            finish(reject,new Error('Permission to create the calendar invitation and Google Meet link was not granted.'));
             return;
           }
           GOOGLE_MEET_TOKEN=response.access_token;
@@ -1340,12 +1361,37 @@ function requestGoogleMeetAccessToken(){
     }catch(error){finish(reject,error);}
   });
 }
-async function createGoogleMeetSpace(){
+function calendarDateTime(date,time){return String(date||'')+'T'+String(time||'00:00')+':00+03:00';}
+function validInviteEmails(items){
+  return uniqueList(items||[]).filter(function(x){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(x||'').trim());});
+}
+function calendarMeetLink(event){
+  if(event&&event.hangoutLink)return event.hangoutLink;
+  var ep=event&&event.conferenceData&&event.conferenceData.entryPoints||[];
+  var video=ep.find(function(x){return x.entryPointType==='video';});return video&&video.uri||'';
+}
+function calendarEventPayload(info,conferenceMode){
+  var body={
+    summary:info.title,
+    description:(info.agenda||'')+'\n\nCreated through Knowledge Papers Work Place Hub.',
+    location:info.location||'',
+    start:{dateTime:calendarDateTime(info.date,info.from),timeZone:'Asia/Baghdad'},
+    end:{dateTime:calendarDateTime(info.date,info.to),timeZone:'Asia/Baghdad'},
+    attendees:validInviteEmails(info.emails).map(function(email){return {email:email};}),
+    guestsCanInviteOthers:false,
+    guestsCanModify:false,
+    guestsCanSeeOtherGuests:true
+  };
+  if(info.virtual&&conferenceMode==='create')body.conferenceData={createRequest:{requestId:'kp-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8),conferenceSolutionKey:{type:'hangoutsMeet'}}};
+  if(!info.virtual&&conferenceMode==='remove')body.conferenceData=null;
+  return body;
+}
+async function createGoogleMeetSpace(info){
   var token=await requestGoogleMeetAccessToken();
-  var response=await fetch(GOOGLE_MEET_API_URL,{
+  var response=await fetch(GOOGLE_CALENDAR_API_URL+'?conferenceDataVersion=1&sendUpdates=all',{
     method:'POST',
     headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
-    body:'{}'
+    body:JSON.stringify(calendarEventPayload(info||{},info&&info.virtual?'create':'preserve'))
   });
   var textBody=await response.text(),data={};
   try{data=textBody?JSON.parse(textBody):{};}catch(ignore){}
@@ -1354,8 +1400,28 @@ async function createGoogleMeetSpace(){
     var detail=data&&data.error&&data.error.message?data.error.message:('HTTP '+response.status);
     throw new Error(detail);
   }
-  if(!data.meetingUri)throw new Error('Google created the meeting space without a join link. Please try again.');
+  var meetUri=calendarMeetLink(data);
+  if(info&&info.virtual&&!meetUri)throw new Error('Google created the calendar event without a Meet link. Please try again.');
+  return {name:data.id||'',meetingUri:meetUri,meetingCode:'',calendarEventId:data.id||'',calendarHtmlLink:data.htmlLink||'',calendarOrganizer:(data.organizer&&data.organizer.email)||'',raw:data};
+}
+async function updateGoogleCalendarEvent(booking,info){
+  if(!booking||!booking.calendarEventId)return null;
+  var token=await requestGoogleMeetAccessToken();
+  var url=GOOGLE_CALENDAR_API_URL+'/'+encodeURIComponent(booking.calendarEventId)+'?conferenceDataVersion=1&sendUpdates=all';
+  var mode=info&&info.virtual?(booking.meetUri?'preserve':'create'):(booking.meetUri?'remove':'preserve');
+  var response=await fetch(url,{method:'PATCH',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(calendarEventPayload(info||{},mode))});
+  var textBody=await response.text(),data={};try{data=textBody?JSON.parse(textBody):{};}catch(ignore){}
+  if(!response.ok){if(response.status===401){GOOGLE_MEET_TOKEN='';GOOGLE_MEET_TOKEN_EXPIRES=0;}throw new Error(data&&data.error&&data.error.message||('HTTP '+response.status));}
   return data;
+}
+async function deleteGoogleCalendarEvent(booking){
+  if(!booking||!booking.calendarEventId)return true;
+  var token=await requestGoogleMeetAccessToken();
+  var response=await fetch(GOOGLE_CALENDAR_API_URL+'/'+encodeURIComponent(booking.calendarEventId)+'?sendUpdates=all',{method:'DELETE',headers:{'Authorization':'Bearer '+token}});
+  if(response.status===204||response.ok)return true;
+  var data={};try{data=JSON.parse(await response.text());}catch(ignore){}
+  if(response.status===401){GOOGLE_MEET_TOKEN='';GOOGLE_MEET_TOKEN_EXPIRES=0;}
+  throw new Error(data&&data.error&&data.error.message||('HTTP '+response.status));
 }
 function googleMeetErrorText(error){
   var msg=String(error&&error.message||error||'Unknown error');
@@ -1363,7 +1429,8 @@ function googleMeetErrorText(error){
   if(/popup_failed|popup.*open/i.test(msg))return 'The Google sign-in window was blocked. Allow pop-ups for this portal and try again.';
   if(/access_denied|not.*test|permission|eligible|403/i.test(msg))return 'This Google account is not allowed yet. While the app is in Testing, Admin must add its Gmail address as an OAuth test user.';
   if(/origin|redirect_uri_mismatch/i.test(msg))return 'This website address is not authorized in the Google OAuth client. Ask Admin to check the authorized JavaScript origins.';
-  return 'Google Meet could not be created: '+msg;
+  if(/calendar.*api.*disabled|access not configured|has not been used/i.test(msg))return 'Google Calendar API is not enabled for this project. Admin must enable it in Google Cloud, then try again.';
+  return 'Google Calendar invitation could not be created: '+msg;
 }
 
 /* ── Call a meeting ──────────────────────────────────────────────────────── */
@@ -1394,8 +1461,8 @@ function vMeet(){
         +'<label style="display:flex;gap:9px;align-items:flex-start;background:#F4F6F9;border:1px solid var(--line-soft);'
         +'border-radius:9px;padding:12px;cursor:pointer;font-size:12.5px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-2)">'
         +'<input type="checkbox" id="mVirt" checked style="width:16px;height:16px;margin-top:1px;accent-color:var(--brand)">'
-        +'<span><b>Create a Google Meet link automatically</b><br><span style="font-size:11.5px;color:var(--ink-3)">'
-        +'When you submit, Google asks you to choose your own account. The access token stays only in this browser session.</span></span></label>'
+        +'<span><b>Create an official Google Calendar invitation + Google Meet</b><br><span style="font-size:11.5px;color:var(--ink-3)">'
+        +'Google adds the event to your calendar and emails every valid invitee address. The access token stays only in this browser session.</span></span></label>'
         +'<div class="hint" style="margin-top:7px">During OAuth Testing, each employee Gmail address must be added by Admin as a Google test user.</div></div>'
       +approvalRouteSummary('room')
     +'</div>'
@@ -1444,20 +1511,23 @@ async function saveMeet(){
   if(c){ meetConflict(); toast('That room is already booked at that time',false); return; }
 
   var meetSpace=null,saveBtn=document.getElementById('mSave');
-  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent=virt?'Creating Google Meet…':'Saving…';}
-  if(virt){
-    try{meetSpace=await createGoogleMeetSpace();}
-    catch(error){
-      if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Create & Send Invitation';}
-      toast(googleMeetErrorText(error),false);return;
-    }
+  var inviteEmails=splitList(val('mEmails'));
+  var calendarInfo={title:t,date:date,from:from,to:to,agenda:val('mAg'),emails:inviteEmails,virtual:virt,
+    location:room?((STORE.rooms.find(function(r){return r.id===room;})||{}).name||''):''};
+  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='Creating Calendar invitation…';}
+  try{meetSpace=await createGoogleMeetSpace(calendarInfo);}
+  catch(error){
+    if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Create & Send Invitation';}
+    toast(googleMeetErrorText(error),false);return;
   }
   var b={id:uid('b'),roomId:room||'',date:date,start:from,end:to,title:t,
          by:ME.name,byId:ME.id,dept:ME.dept,
-         attendees:splitList(val('mWho')),emails:splitList(val('mEmails')),phones:splitList(val('mPhones')),
+         attendees:splitList(val('mWho')),emails:inviteEmails,phones:splitList(val('mPhones')),
          directoryIds:selectedDirectoryIds('m'),agenda:val('mAg'),virtual:!!virt,vroomId:'',
-         meetingProvider:meetSpace?'google_meet':'',meetUri:meetSpace?meetSpace.meetingUri:'',
+         meetingProvider:(meetSpace&&meetSpace.meetingUri)?'google_meet':'',meetUri:meetSpace?meetSpace.meetingUri:'',
          meetSpaceName:meetSpace?(meetSpace.name||''):'',meetCode:meetSpace?(meetSpace.meetingCode||''):'',
+         calendarEventId:meetSpace?(meetSpace.calendarEventId||''):'',calendarHtmlLink:meetSpace?(meetSpace.calendarHtmlLink||''):'',
+         calendarOrganizer:meetSpace?(meetSpace.calendarOrganizer||''):'',
          meetCreatedAt:meetSpace?nowISO():''};
   STORE.bookings.push(b);
   if(room){
@@ -1465,9 +1535,10 @@ async function saveMeet(){
     room:(STORE.rooms.find(function(r){return r.id===room;})||{}).name,
     attendees:b.attendees.length,agenda:b.agenda,bookingId:b.id},'medium',date+' '+from,b.agenda,approvals);
     b.requestId=rr.id;
-    save();
-  } else save();
-  toast('Meeting booked'+(virt?' with Google Meet':''),true);
+  }
+  auditRecord('create','meeting',b.id,t+(virt?' · Google Calendar invitation sent':''));
+  save();
+  toast('Meeting booked · Google Calendar invitations sent'+(virt?' · Meet link ready':''),true);
   openShareMeeting(b.id,true);
 }
 function openBooking(id){
@@ -1504,7 +1575,7 @@ function openBooking(id){
   if(mine||isAdmin()){
     m.querySelector('#bs').onclick=function(){ close(); openShareMeeting(b.id,false); };
     m.querySelector('#be').onclick=function(){ close(); editMeeting(b.id); };
-    m.querySelector('#bd').onclick=function(){ if(cancelMeeting(b.id)){ close(); } };
+    m.querySelector('#bd').onclick=function(){ cancelMeeting(b.id).then(function(ok){if(ok)close();}); };
   }
 }
 
@@ -1681,17 +1752,26 @@ function editMeeting(id){
     var clash=overlaps(room,date,from,to,b.id);
     if(clash){toast('That room is already booked for '+clash.start+'–'+clash.end,false);return;}
     var meetSpace=null,saveEdit=m.querySelector('#es');
-    if(virt&&!b.meetUri&&!b.vroomId){
-      saveEdit.disabled=true;saveEdit.textContent='Creating Google Meet…';
-      try{meetSpace=await createGoogleMeetSpace();}
-      catch(error){saveEdit.disabled=false;saveEdit.textContent='Save changes';toast(googleMeetErrorText(error),false);return;}
-    }
+    var inviteEmails=splitList(m.querySelector('#eEmails').value);
+    var calendarInfo={title:title,date:date,from:from,to:to,agenda:m.querySelector('#eAg').value.trim(),
+      emails:inviteEmails,virtual:virt,location:room?((STORE.rooms.find(function(r){return r.id===room;})||{}).name||''):''};
+    saveEdit.disabled=true;saveEdit.textContent='Updating Calendar invitation…';
+    try{
+      if(b.calendarEventId){
+        var updatedEvent=await updateGoogleCalendarEvent(b,calendarInfo);
+        meetSpace={meetingUri:virt?calendarMeetLink(updatedEvent):'',name:updatedEvent.id||b.calendarEventId,
+          meetingCode:'',calendarEventId:updatedEvent.id||b.calendarEventId,calendarHtmlLink:updatedEvent.htmlLink||b.calendarHtmlLink||'',
+          calendarOrganizer:(updatedEvent.organizer&&updatedEvent.organizer.email)||b.calendarOrganizer||''};
+      }else meetSpace=await createGoogleMeetSpace(calendarInfo);
+    }catch(error){saveEdit.disabled=false;saveEdit.textContent='Save changes';toast(googleMeetErrorText(error),false);return;}
     b.title=title;b.date=date;b.start=from;b.end=to;b.roomId=room;
-    b.attendees=splitList(m.querySelector('#eWho').value);b.emails=splitList(m.querySelector('#eEmails').value);
+    b.attendees=splitList(m.querySelector('#eWho').value);b.emails=inviteEmails;
     b.phones=splitList(m.querySelector('#ePhones').value);b.directoryIds=selectedDirectoryIds('e');b.agenda=m.querySelector('#eAg').value.trim();
     if(meetSpace){
-      b.meetingProvider='google_meet';b.meetUri=meetSpace.meetingUri;
-      b.meetSpaceName=meetSpace.name||'';b.meetCode=meetSpace.meetingCode||'';b.meetCreatedAt=nowISO();
+      b.meetingProvider=meetSpace.meetingUri?'google_meet':'';b.meetUri=meetSpace.meetingUri||'';
+      b.meetSpaceName=meetSpace.name||'';b.meetCode=meetSpace.meetingCode||'';b.meetCreatedAt=b.meetCreatedAt||nowISO();
+      b.calendarEventId=meetSpace.calendarEventId||b.calendarEventId||'';b.calendarHtmlLink=meetSpace.calendarHtmlLink||b.calendarHtmlLink||'';
+      b.calendarOrganizer=meetSpace.calendarOrganizer||b.calendarOrganizer||'';
     }
     if(!virt&&b.virtual){
       var old=STORE.vrooms.find(function(v){return v.id===b.vroomId;});if(old)old.open=false;
@@ -1699,18 +1779,22 @@ function editMeeting(id){
     }
     b.virtual=virt;
     var currentVr=STORE.vrooms.find(function(v){return v.id===b.vroomId;});if(currentVr)currentVr.name=title;
-    syncMeetingRequest(b); save(); close(); render(); toast('Meeting updated',true);
+    syncMeetingRequest(b);auditRecord('update','meeting',b.id,title+' · Calendar guests notified');save();close();render();toast('Meeting and Calendar invitation updated',true);
   };
 }
-function cancelMeeting(id){
+async function cancelMeeting(id){
   var b=STORE.bookings.find(function(x){return x.id===id;}); if(!b) return false;
   if(!(isAdmin()||(ME&&b.byId===ME.id))){toast('Only the organiser or Admin can cancel this meeting',false);return false;}
   if(!confirm('Cancel "'+b.title+'"? Everyone invited will lose the slot.')) return false;
+  try{await deleteGoogleCalendarEvent(b);}
+  catch(error){
+    if(!confirm(googleMeetErrorText(error)+'\n\nCancel only inside this portal anyway?'))return false;
+  }
   var r=b.requestId?STORE.requests.find(function(x){return x.id===b.requestId;}):null;
   if(r){r.status='cancelled';r.history=(r.history||[]).concat([{at:nowISO(),who:ME?ME.name:'',what:'Meeting cancelled'}]);}
   var vr=STORE.vrooms.find(function(v){return v.id===b.vroomId;});if(vr)vr.open=false;
   STORE.bookings=STORE.bookings.filter(function(x){return x.id!==b.id;});
-  save(); render(); toast('Meeting cancelled',true); return true;
+  auditRecord('delete','meeting',b.id,b.title+' · Calendar cancellation sent');save();render();toast('Meeting cancelled · Calendar guests notified',true);return true;
 }
 
 /* ── Supplies (stationery / warehouse) ───────────────────────────────────── */
@@ -2028,12 +2112,13 @@ function adminDenied(){
     '<button class="btn btn-p" onclick="openAdminAccess()">Unlock Admin</button>');
 }
 function directoryAdminRows(){
-  return (STORE.contacts||[]).map(function(c){return '<tr data-directory-row data-search="'+esc((c.name+' '+c.dept+' '+c.title+' '+c.email+' '+c.phone).toLowerCase())+'">'
-    +'<td><b>'+esc(c.name)+'</b><br><span style="font-size:11px;color:var(--muted)">'+esc(c.title||'')+'</span></td>'
+  return (STORE.contacts||[]).map(function(c){var source=c.sourceResourceId?'<br><span style="font-size:10.5px;color:#2f6db1">Synced from Resources'+(c.sourceActive===false?' · inactive':'')+'</span>':'';
+    return '<tr data-directory-row data-search="'+esc((c.name+' '+c.dept+' '+c.title+' '+c.email+' '+c.phone).toLowerCase())+'">'
+    +'<td><b>'+esc(c.name)+'</b><br><span style="font-size:11px;color:var(--muted)">'+esc(c.title||'')+'</span>'+source+'</td>'
     +'<td>'+esc(c.dept||'—')+'</td><td>'+esc(c.email||'—')+'</td><td>'+esc(c.phone||'—')+'</td>'
     +'<td>'+(c.approvalLevel?'<span class="chip c-ok"><i></i>Level '+esc(c.approvalLevel)+'</span>':'—')+'</td><td>'+esc(approvalScopeSummary(c))+'</td>'
     +'<td style="white-space:nowrap"><button class="btn btn-sm" onclick="adminMaster(\'contacts\',\''+c.id+'\')">'+ico('edit')+'Edit</button> '
-    +'<button class="btn btn-sm btn-d" onclick="adminRemove(\'contacts\',\''+c.id+'\')">'+ico('trash')+'</button></td></tr>';}).join('');
+    +(c.sourceResourceId?'<span class="chip '+(c.email?'c-ok':'c-wait')+'"><i></i>'+(c.email?'Configured':'Add email')+'</span>':'<button class="btn btn-sm btn-d" onclick="adminRemove(\'contacts\',\''+c.id+'\')">'+ico('trash')+'</button>')+'</td></tr>';}).join('');
 }
 function approvalRoutingRows(){
   return APPROVAL_TYPE_KEYS.map(function(type){
@@ -2053,10 +2138,10 @@ function filterDirectoryTable(q){
   q=String(q||'').toLowerCase();document.querySelectorAll('[data-directory-row]').forEach(function(r){r.style.display=!q||r.dataset.search.indexOf(q)>=0?'':'none';});
 }
 function vDirectory(){
-  if(!isAdmin())return adminDenied();var rows=directoryAdminRows(),approvers=STORE.contacts.filter(function(c){return +c.approvalLevel>0;}).length;
-  return pageHead('Company Directory & Approvals','Add employees, assign their approval level, and choose the categories each person must approve. Requesters cannot change this route.',
+  if(!isAdmin())return adminDenied();var rows=directoryAdminRows(),approvers=STORE.contacts.filter(function(c){return +c.approvalLevel>0;}).length,setup=resourceSetupSummary();
+  return pageHead('Company Directory & Approvals','Names, departments and job titles sync from Resources. Admin adds company emails and configures approval levels and categories.',
       '<button class="btn btn-p" onclick="adminMaster(\'contacts\',\'\')">'+ico('plus')+'Add employee</button>')
-    +'<div class="kpis"><div class="kpi"><b>'+STORE.contacts.length+'</b><span>Employees</span></div><div class="kpi k-good"><b>'+approvers+'</b><span>Approvers</span></div></div>'
+    +'<div class="kpis"><div class="kpi"><b>'+STORE.contacts.length+'</b><span>Employees</span></div><div class="kpi k-info"><b>'+setup.total+'</b><span>Synced from Resources</span></div><div class="kpi k-good"><b>'+setup.ready+'</b><span>Email configured</span></div><div class="kpi k-warn"><b>'+setup.missing+'</b><span>Missing email</span></div><div class="kpi"><b>'+approvers+'</b><span>Approvers</span></div></div>'
     +'<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('check')+'</span>Who approves each category?</div></div>'
     +'<div class="card-b" style="padding:10px 16px;font-size:11.5px;color:var(--ink-3)">Approvals run from Level 1 to Level 5. If more than one employee appears at the same level, all of them must approve before the request moves forward.</div>'
     +'<div class="tw" style="border:0;border-radius:0"><table class="t"><thead><tr><th>Category</th><th>Level 1</th><th>Level 2</th><th>Level 3</th><th>Level 4</th><th>Level 5</th><th>Status</th></tr></thead><tbody>'
@@ -2147,7 +2232,7 @@ function adminMaster(kind,id,catKind){
   }else if(kind==='contacts'){
     title=isNew?'Add company employee':'Edit company employee';
     form=fld('aName','Full name <span class="req">*</span>','<input id="aName" value="'+esc(o.name||'')+'">','',true)
-      +fld('aDept','Department','<select id="aDept">'+DEPTS.map(function(d){return '<option'+(o.dept===d?' selected':'')+'>'+d+'</option>';}).join('')+'</select>')
+      +fld('aDept','Department','<select id="aDept">'+departmentOptions(o.dept)+'</select>')
       +fld('aTitle','Job title','<input id="aTitle" value="'+esc(o.title||'')+'">')
       +fld('aEmail','Company email <span class="req">*</span>','<input id="aEmail" type="email" value="'+esc(o.email||'')+'" placeholder="name@company.com">')
       +fld('aPhone','Phone','<input id="aPhone" type="tel" value="'+esc(o.phone||'')+'">')
@@ -2156,7 +2241,7 @@ function adminMaster(kind,id,catKind){
   }else if(kind==='people'){
     title=isNew?'Add user':'Edit user';
     form=fld('aName','Full name','<input id="aName" value="'+esc(o.name||'')+'">','',true)
-      +fld('aDept','Department','<select id="aDept">'+DEPTS.map(function(d){return '<option'+(o.dept===d?' selected':'')+'>'+d+'</option>';}).join('')+'</select>')
+      +fld('aDept','Department','<select id="aDept">'+departmentOptions(o.dept)+'</select>')
       +fld('aRole','Role','<select id="aRole"><option value="requester"'+(o.role==='requester'?' selected':'')+'>Requester</option>'
         +'<option value="approver"'+(o.role==='approver'?' selected':'')+'>Approver</option><option value="admin"'+(o.role==='admin'?' selected':'')+'>Admin</option></select>')
       +fld('aLevel','Approval level','<select id="aLevel">'+approvalLevelOptions(o.approvalLevel||0)+'</select>',
@@ -2220,9 +2305,14 @@ function adminMaster(kind,id,catKind){
     }else{
       n.name=val('aName');n.unit=val('aUnit');if(!n.name||!n.unit){toast('Enter the item name and unit',false);return;}
     }
+    if(!isNew&&o.sourceResourceId){
+      n.sourceResourceId=o.sourceResourceId;n.source=o.source;n.sourceActive=o.sourceActive;
+      n.employeeId=o.employeeId||'';n.nameAr=o.nameAr||'';n.company=o.company||'';n.resourceStatus=o.resourceStatus||'';
+    }
     if(isNew)list.push(n);else Object.keys(n).forEach(function(k){o[k]=n[k];});
     if(kind==='people'&&ME&&n.id===ME.id){ME=JSON.parse(JSON.stringify(n));try{localStorage.setItem('kp_services_me',JSON.stringify(ME));}catch(e){}
       if(ME.role!=='admin')try{sessionStorage.removeItem(ADMIN_SESSION_KEY);}catch(e){}}
+    auditRecord(isNew?'create':'update',kind==='item'?(catKind+' item'):kind,n.id,n.name||n.model||n.plate||'');
     save();close();render();toast(title.replace('Add','Added').replace('Edit','Updated'),true);
   };
 }
@@ -2231,9 +2321,11 @@ function adminRemove(kind,id,catKind){
   if(kind==='people'&&ME&&ME.id===id){toast('You cannot delete the user currently signed in',false);return false;}
   var list=kind==='item'?(STORE.catalog[catKind]||[]):STORE[kind];
   var o=list.find(function(x){return x.id===id;});if(!o)return false;
+  if(kind==='contacts'&&o.sourceResourceId){toast('This employee is synced from Resources. Remove the employee from Resources instead.',false);return false;}
   var label=o.name||o.model||o.plate||id;
   if(!confirm('Delete "'+label+'"? This change will sync to everyone.'))return false;
   if(kind==='item')STORE.catalog[catKind]=list.filter(function(x){return x.id!==id;});else STORE[kind]=list.filter(function(x){return x.id!==id;});
+  auditRecord('delete',kind==='item'?(catKind+' item'):kind,id,label);
   save();render();toast(label+' deleted',true);return true;
 }
 function adminEditRequest(id){
@@ -2285,14 +2377,14 @@ function adminEditRequest(id){
     else if(r.type==='it')r.details={category:val('qCat'),subject:val('qSub'),description:val('qDesc'),location:val('qLoc'),asset:val('qAsset')};
     else if(r.type==='custom')r.details=Object.assign({},d,{serviceName:val('qService'),subject:val('qSub'),description:val('qDesc'),location:val('qLoc')});
     else r.details={items:val('qItems').split(/\n+/).map(function(line){var p=line.split('|');return {qty:+(p[0]||0)||0,name:(p[1]||'').trim(),unit:(p[2]||'').trim()};}).filter(function(i){return i.name&&i.qty>0;}),deliverTo:val('qDeliver')};
-    r.history=(r.history||[]).concat([{at:nowISO(),who:ME.name,what:'Edited by Admin'}]);save();close();render();toast(r.ref+' updated',true);
+    r.history=(r.history||[]).concat([{at:nowISO(),who:ME.name,what:'Edited by Admin'}]);auditRecord('update','request',r.id,r.ref+' · Admin edit');save();close();render();toast(r.ref+' updated',true);
   };
 }
 function adminDeleteRequest(id){
   if(!isAdmin()){toast('Admin access is required',false);return false;}
   var r=STORE.requests.find(function(x){return x.id===id;});if(!r)return false;
   if(!confirm('Permanently delete request '+r.ref+'?'))return false;
-  STORE.requests=STORE.requests.filter(function(x){return x.id!==id;});save();render();toast(r.ref+' deleted',true);return true;
+  STORE.requests=STORE.requests.filter(function(x){return x.id!==id;});auditRecord('delete','request',r.id,r.ref);save();render();toast(r.ref+' deleted',true);return true;
 }
 
 
@@ -3399,6 +3491,7 @@ function bootstrapSync(){
   SY.ref.once('value').then(function(snap){
     if(settled) return; settled=true; clearTimeout(timer);
     var d=snap&&snap.val();
+    var remoteContacts=JSON.stringify((d&&d.contacts)||[]);
     if(d&&d.v){
       STORE=d; normalise();
       try{ localStorage.setItem(SK,JSON.stringify(STORE)); }catch(e){}
@@ -3407,6 +3500,11 @@ function bootstrapSync(){
     SY.base=JSON.parse(JSON.stringify(strip(STORE)));
     SY.writable=true; paintSync();
     if(!d||!d.v) pushLeaves();      /* first use of an empty room */
+    else if(JSON.stringify(STORE.contacts||[])!==remoteContacts){
+      /* Persist complete derived contact records once so later Admin edits
+         never create partial Firebase rows. */
+      SY.ref.child('contacts').set(STORE.contacts||[]).catch(function(e){console.warn('directory sync failed',e);});
+    }
     watchLive();
     render();
     toast('Connected to '+SY.room,true);
@@ -3419,17 +3517,25 @@ function bootstrapSync(){
 function strip(o){
   var c=JSON.parse(JSON.stringify(o||{}));
   delete c.vroomLive;
+  /* Resource Directory is published by the main projects portal.  The Work
+     Place Hub consumes it but never writes it back, so Admin edits to email
+     and approval fields cannot accidentally overwrite the source roster. */
+  delete c.resourceDirectory;
   return c;
 }
 /* Watch shared operational and Admin-managed branches. */
 function watchLive(){
-  ['people','contacts','services','requests','bookings','vrooms','rooms','fleet','catalog'].forEach(function(k){
+  ['people','contacts','resourceDirectory','announcements','auditLog','services','requests','bookings','vrooms','rooms','fleet','catalog'].forEach(function(k){
     SY.ref.child(k).on('value',function(s){
       var v=s.val();
       if(k==='catalog'){ if(!v||typeof v!=='object') return; }
       else {if(v==null)v=[];if(!Array.isArray(v)) return;}
       if(JSON.stringify(STORE[k])===JSON.stringify(v)) return;
       STORE[k]=v;
+      var resourceMerged=k==='resourceDirectory'&&mergeResourceDirectory();
+      if(resourceMerged&&SY.ref&&SY.writable){
+        SY.ref.child('contacts').set(STORE.contacts||[]).catch(function(e){console.warn('directory sync failed',e);});
+      }
       SY.base=JSON.parse(JSON.stringify(strip(STORE)));
       try{ localStorage.setItem(SK,JSON.stringify(STORE)); }catch(e){}
       if(PORTAL_LINK&&!PORTAL_LINK.handled){applyPortalLink();render();}
@@ -3483,6 +3589,156 @@ function pushLeaves(){
     toast('Your change was saved on this device but not shared: '+(e&&e.message||e),false);
   });
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   V18 — RESOURCE DIRECTORY BRIDGE, ANNOUNCEMENTS & AUDIT LOG
+   ═══════════════════════════════════════════════════════════════════════════ */
+function resourceNameKey(v){return String(v||'').toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g,' ').trim();}
+function resourceContactId(r){
+  var raw=String((r&&r.id)||(r&&r.empId)||(r&&r.name)||'employee'),h=5381;
+  for(var i=0;i<raw.length;i++)h=((h<<5)+h)^raw.charCodeAt(i);
+  return 'ctres_'+(h>>>0).toString(36);
+}
+/* Source-owned fields are refreshed from Resources.  Admin-owned fields
+   (email, phone and approval routing) are deliberately preserved. */
+function mergeResourceDirectory(){
+  if(!STORE)return false;
+  var src=Array.isArray(STORE.resourceDirectory)?STORE.resourceDirectory:[];
+  var list=Array.isArray(STORE.contacts)?STORE.contacts:(STORE.contacts=[]),seen={},changed=false;
+  src.forEach(function(r){
+    if(!r||!String(r.name||'').trim())return;
+    var sid=String(r.id||r.empId||resourceNameKey(r.name)),key=resourceNameKey(r.name);
+    var c=list.find(function(x){return x.sourceResourceId===sid;})
+      ||list.find(function(x){return r.empId&&x.employeeId&&String(x.employeeId)===String(r.empId);})
+      ||list.find(function(x){return !x.sourceResourceId&&resourceNameKey(x.name)===key;});
+    if(!c){
+      c={id:resourceContactId(r),name:'',nameAr:'',title:'',dept:'',company:'',employeeId:'',email:'',phone:'',
+        approvalLevel:0,approvalTypes:[],canApprove:false,sourceResourceId:sid,source:'resources',sourceActive:true};
+      list.push(c);changed=true;
+    }
+    var owned={name:String(r.name||''),nameAr:String(r.nameAr||''),title:String(r.position||''),
+      dept:String(r.dept||''),company:String(r.company||''),employeeId:String(r.empId||''),
+      resourceStatus:String(r.status||''),sourceResourceId:sid,source:'resources',sourceActive:true};
+    Object.keys(owned).forEach(function(k){if(c[k]!==owned[k]){c[k]=owned[k];changed=true;}});
+    if(c.email==null)c.email='';if(c.phone==null)c.phone='';
+    if(c.approvalLevel==null)c.approvalLevel=0;if(!Array.isArray(c.approvalTypes))c.approvalTypes=[];
+    c.canApprove=(+c.approvalLevel||0)>0&&c.approvalTypes.length>0;seen[sid]=1;
+  });
+  list.forEach(function(c){
+    if(c.sourceResourceId&&!seen[c.sourceResourceId]&&c.sourceActive!==false){c.sourceActive=false;changed=true;}
+  });
+  return changed;
+}
+function departmentOptions(selected){
+  var all=DEPTS.slice();
+  (STORE&&STORE.resourceDirectory||[]).forEach(function(r){if(r.dept&&all.indexOf(r.dept)<0)all.push(r.dept);});
+  if(selected&&all.indexOf(selected)<0)all.push(selected);
+  return all.map(function(d){return '<option'+(selected===d?' selected':'')+'>'+esc(d)+'</option>';}).join('');
+}
+function resourceSetupSummary(){
+  var synced=(STORE.contacts||[]).filter(function(c){return !!c.sourceResourceId&&c.sourceActive!==false;});
+  var ready=synced.filter(function(c){return c.email&&c.email.indexOf('@')>0;}).length;
+  return {total:synced.length,ready:ready,missing:Math.max(0,synced.length-ready)};
+}
+
+function auditRecord(action,entity,entityId,details){
+  if(!STORE)return;
+  if(!Array.isArray(STORE.auditLog))STORE.auditLog=[];
+  STORE.auditLog.unshift({id:uid('au'),at:nowISO(),actor:(ME&&ME.name)||'System',actorId:(ME&&ME.id)||'',
+    role:(ME&&ME.role)||'system',action:action||'update',entity:entity||'portal',entityId:entityId||'',details:String(details||'')});
+  if(STORE.auditLog.length>2000)STORE.auditLog.length=2000;
+}
+function auditActionLabel(a){return ({create:'Created',update:'Updated',delete:'Deleted',approve:'Approved',decline:'Declined',fulfill:'Fulfilled',cancel:'Cancelled',publish:'Published',read:'Read'}[a]||a||'Updated');}
+function filterAuditTable(){
+  var q=String(val('auditSearch')||'').toLowerCase(),a=val('auditAction'),e=val('auditEntity');
+  document.querySelectorAll('[data-audit-row]').forEach(function(r){
+    r.style.display=(!q||r.dataset.search.indexOf(q)>=0)&&(!a||r.dataset.action===a)&&(!e||r.dataset.entity===e)?'':'none';
+  });
+}
+function exportAuditCsv(){
+  if(!isAdmin())return;
+  var rows=[['Timestamp','User','Role','Action','Entity','Entity ID','Details']].concat((STORE.auditLog||[]).map(function(x){return [x.at,x.actor,x.role,x.action,x.entity,x.entityId,x.details];}));
+  var csv=rows.map(function(row){return row.map(function(v){var s=String(v==null?'':v);return '"'+s.replace(/"/g,'""')+'"';}).join(',');}).join('\r\n');
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));
+  a.download='Knowledge_Papers_Audit_Log_'+todayISO()+'.csv';document.body.appendChild(a);a.click();a.remove();
+}
+function vAudit(){
+  if(!isAdmin())return adminDenied();
+  var actions=uniqueList((STORE.auditLog||[]).map(function(x){return x.action;}));
+  var entities=uniqueList((STORE.auditLog||[]).map(function(x){return x.entity;}));
+  var rows=(STORE.auditLog||[]).map(function(x){var search=(x.actor+' '+x.action+' '+x.entity+' '+x.entityId+' '+x.details).toLowerCase();return '<tr data-audit-row data-action="'+esc(x.action)+'" data-entity="'+esc(x.entity)+'" data-search="'+esc(search)+'">'
+    +'<td style="white-space:nowrap">'+fmtWhen(x.at)+'</td><td><b>'+esc(x.actor)+'</b><br><span style="font-size:11px;color:var(--muted)">'+esc(roleName(x.role))+'</span></td>'
+    +'<td><span class="chip c-done"><i></i>'+esc(auditActionLabel(x.action))+'</span></td><td>'+esc(x.entity)+'</td><td class="ref">'+esc(x.entityId||'—')+'</td><td>'+esc(x.details||'—')+'</td></tr>';}).join('');
+  return pageHead('Audit log','A permanent operational history of portal changes.','<button class="btn" onclick="exportAuditCsv()">'+ico('download')+'Export CSV</button>')
+    +'<div class="fbar"><div class="fsearch" style="margin-left:0">'+ico('search')+'<input id="auditSearch" placeholder="Search user, action or record" oninput="filterAuditTable()"></div>'
+    +'<select id="auditAction" onchange="filterAuditTable()"><option value="">All actions</option>'+actions.map(function(x){return '<option value="'+esc(x)+'">'+esc(auditActionLabel(x))+'</option>';}).join('')+'</select>'
+    +'<select id="auditEntity" onchange="filterAuditTable()"><option value="">All records</option>'+entities.map(function(x){return '<option value="'+esc(x)+'">'+esc(x)+'</option>';}).join('')+'</select></div>'
+    +'<div class="tw"><table class="t"><thead><tr><th>When</th><th>User</th><th>Action</th><th>Record</th><th>ID</th><th>Details</th></tr></thead><tbody>'
+    +(rows||emptyRow(6,'No activity yet','New changes will be recorded here.'))+'</tbody></table></div>';
+}
+
+function announcementIsLive(a){
+  var now=Date.now(),start=a.publishAt?new Date(a.publishAt).getTime():0,end=a.expiresAt?new Date(a.expiresAt).getTime():0;
+  return a.active!==false&&(!start||isNaN(start)||start<=now)&&(!end||isNaN(end)||end>=now);
+}
+function announcementVisible(a){
+  if(!announcementIsLive(a))return false;
+  if(!a.audience||a.audience==='all')return true;
+  return !!(ME&&a.audience==='dept:'+ME.dept);
+}
+function visibleAnnouncements(){return (STORE.announcements||[]).filter(announcementVisible).sort(function(a,b){return String(b.publishAt||b.created||'').localeCompare(String(a.publishAt||a.created||''));});}
+function announcementRead(a){return !!(ME&&a.readBy&&a.readBy[ME.id]);}
+function unreadAnnouncements(){return visibleAnnouncements().filter(function(a){return !announcementRead(a);});}
+function announcementCard(a,compact){
+  var cls=a.priority==='urgent'?'c-no':(a.priority==='important'?'c-wait':'c-info');
+  return '<div class="card announcement-card" style="border-left:4px solid '+(a.priority==='urgent'?'#b42318':(a.priority==='important'?'#c08a2e':'#2f6db1'))+'"><div class="card-h"><div class="card-t"><span class="ico">'+ico('bell')+'</span>'+esc(a.title)+'</div><span class="chip '+cls+'"><i></i>'+esc(a.priority||'normal')+'</span></div>'
+    +'<div class="card-b"><div style="white-space:pre-wrap;line-height:1.65">'+esc(a.message||'')+'</div><div style="display:flex;gap:8px;align-items:center;margin-top:12px;color:var(--muted);font-size:11px">'
+    +'<span>'+fmtWhen(a.publishAt||a.created)+'</span><span>·</span><span>'+esc(a.audience==='all'?'Everyone':String(a.audience||'').replace('dept:',''))+'</span><span class="grow"></span>'
+    +(!announcementRead(a)?'<button class="btn btn-sm" onclick="markAnnouncementRead(\''+a.id+'\')">Mark as read</button>':'<span class="chip c-ok"><i></i>Read</span>')+'</div></div></div>';
+}
+function announcementDashboard(){
+  var a=unreadAnnouncements().slice(0,3);if(!a.length)return '';
+  return '<div style="margin-bottom:16px"><div class="page-h" style="margin-bottom:10px"><div><div class="page-t" style="font-size:18px">Company announcements</div><div class="page-s">Latest notices for you</div></div><button class="btn btn-sm" onclick="go(\'announcements\')">View all</button></div>'
+    +'<div class="stack">'+a.map(function(x){return announcementCard(x,true);}).join('')+'</div></div>';
+}
+function vAnnouncements(){
+  var list=visibleAnnouncements();
+  return pageHead('Announcements','Official company updates published through Work Place Hub.',isAdmin()?'<button class="btn btn-p" onclick="announcementEditor()">'+ico('plus')+'New announcement</button>':'')
+    +'<div class="stack">'+(list.map(function(a){return announcementCard(a,false);}).join('')||'<div class="card"><div class="t-empty"><b>No announcements</b>Published company notices will appear here.</div></div>')+'</div>';
+}
+function markAnnouncementRead(id){
+  if(!ME){openWho(true);return;}var a=(STORE.announcements||[]).find(function(x){return x.id===id;});if(!a)return;
+  if(!a.readBy||typeof a.readBy!=='object')a.readBy={};a.readBy[ME.id]=nowISO();save();render();
+}
+function adminAnnouncementPanel(){
+  if(!isAdmin())return '';
+  var rows=(STORE.announcements||[]).map(function(a){return '<tr><td><b>'+esc(a.title)+'</b><br><span style="font-size:11px;color:var(--muted)">'+esc(a.message||'').slice(0,90)+'</span></td><td>'+esc(a.priority||'normal')+'</td><td>'+esc(a.audience==='all'?'Everyone':String(a.audience||'').replace('dept:',''))+'</td><td>'+fmtWhen(a.publishAt||a.created)+'</td><td>'+(a.active!==false?'<span class="chip c-ok"><i></i>Active</span>':'<span class="chip c-done"><i></i>Hidden</span>')+'</td><td style="white-space:nowrap"><button class="btn btn-sm" onclick="announcementEditor(\''+a.id+'\')">'+ico('edit')+'Edit</button> <button class="btn btn-sm btn-d" onclick="removeAnnouncement(\''+a.id+'\')">'+ico('trash')+'</button></td></tr>';}).join('');
+  return '<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('bell')+'</span>Announcements</div><button class="btn btn-sm btn-p" onclick="announcementEditor()">'+ico('plus')+'New announcement</button></div><div class="tw" style="border:0;border-radius:0"><table class="t"><thead><tr><th>Announcement</th><th>Priority</th><th>Audience</th><th>Publish</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+(rows||emptyRow(6,'No announcements','Publish the first company notice.'))+'</tbody></table></div></div>';
+}
+function announcementEditor(id){
+  if(!isAdmin()){toast('Admin access is required',false);return;}var a=(STORE.announcements||[]).find(function(x){return x.id===id;})||{},isNew=!a.id;
+  var audiences='<option value="all">Everyone</option>'+uniqueList(DEPTS.concat((STORE.resourceDirectory||[]).map(function(r){return r.dept;}).filter(Boolean))).map(function(d){return '<option value="dept:'+esc(d)+'"'+(a.audience==='dept:'+d?' selected':'')+'>'+esc(d)+'</option>';}).join('');
+  var m=document.createElement('div');m.className='mod';m.innerHTML='<div class="mod-in"><div class="mod-h"><div><div class="mod-t">'+(isNew?'New':'Edit')+' announcement</div><div class="mod-s">The notice will sync to every connected device.</div></div><button class="mod-x" id="anx">&times;</button></div><div class="mod-b"><div class="form">'
+    +fld('anTitle','Title <span class="req">*</span>','<input id="anTitle" value="'+esc(a.title||'')+'">','',true)
+    +fld('anMessage','Message <span class="req">*</span>','<textarea id="anMessage" style="min-height:130px">'+esc(a.message||'')+'</textarea>','',true)
+    +fld('anPriority','Priority','<select id="anPriority"><option value="normal"'+(a.priority==='normal'?' selected':'')+'>Normal</option><option value="important"'+(a.priority==='important'?' selected':'')+'>Important</option><option value="urgent"'+(a.priority==='urgent'?' selected':'')+'>Urgent</option></select>')
+    +fld('anAudience','Audience','<select id="anAudience">'+audiences+'</select>')
+    +fld('anPublish','Publish date & time','<input id="anPublish" type="datetime-local" value="'+esc((a.publishAt||'').slice(0,16))+'">')
+    +fld('anExpires','Expiry date & time','<input id="anExpires" type="datetime-local" value="'+esc((a.expiresAt||'').slice(0,16))+'">')
+    +'<div class="fld wide"><label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0"><input id="anActive" type="checkbox" style="width:16px;height:16px"'+(a.active!==false?' checked':'')+'> Active</label></div></div></div><div class="mod-f"><div class="grow"></div><button class="btn" id="anc">Cancel</button><button class="btn btn-p" id="ans">Save announcement</button></div></div>';
+  document.body.appendChild(m);var close=function(){m.remove();};m.querySelector('#anx').onclick=close;m.querySelector('#anc').onclick=close;
+  m.querySelector('#ans').onclick=function(){var title=val('anTitle'),message=val('anMessage');if(!title||!message){toast('Enter the title and message',false);return;}
+    var n={id:a.id||uid('an'),title:title,message:message,priority:val('anPriority'),audience:val('anAudience')||'all',publishAt:val('anPublish')?new Date(val('anPublish')).toISOString():nowISO(),expiresAt:val('anExpires')?new Date(val('anExpires')).toISOString():'',active:document.getElementById('anActive').checked,created:a.created||nowISO(),createdBy:a.createdBy||(ME&&ME.name)||'',readBy:a.readBy||{}};
+    if(isNew)STORE.announcements.unshift(n);else Object.keys(n).forEach(function(k){a[k]=n[k];});auditRecord(isNew?'publish':'update','announcement',n.id,n.title);save();close();render();toast('Announcement saved',true);};
+}
+function removeAnnouncement(id){
+  if(!isAdmin())return;var a=(STORE.announcements||[]).find(function(x){return x.id===id;});if(!a||!confirm('Delete announcement "'+a.title+'"?'))return;
+  STORE.announcements=STORE.announcements.filter(function(x){return x.id!==id;});auditRecord('delete','announcement',id,a.title);save();render();toast('Announcement deleted',true);
+}
+
+/* Enhance the existing dashboard and Admin centre without duplicating them. */
+var vHomeCoreV18=vHome;vHome=function(){return announcementDashboard()+vHomeCoreV18();};
+var vAdminCoreV18=vAdmin;vAdmin=function(){return vAdminCoreV18()+adminAnnouncementPanel();};
 
 /* ═══════════════════════════════════════════════════════════════════════════
    EXPORT

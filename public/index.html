@@ -4971,7 +4971,7 @@ body{
     ['virtual','booking'].forEach(function(k){
       var v=incoming.get(k);if(v)target.searchParams.set(k,v);
     });
-    target.searchParams.set('v','15');
+    target.searchParams.set('v','18');
     return target.href;
   }
   async function unpackHub(){
@@ -7428,15 +7428,42 @@ function resImportRows(p,rows){
   if(!p||!rows||!rows.length)return false;
   function sv(v){return String(v==null?'':v).trim();}
   function dOnly(v){var t=sv(v);var m=t.match(/(\d{4}-\d{2}-\d{2})/);return m?m[1]:t;}
+  function hk(v){return sv(v).toLowerCase().replace(/[\s_\-\/()]+/g,' ').trim();}
   var hr=-1;
-  for(var i=0;i<Math.min(rows.length,15);i++){ var a=sv((rows[i]||[])[0]).toLowerCase(), b=sv((rows[i]||[])[1]).toLowerCase(); if((/employee\s*id|^id$|رقم|^#$|^no$/.test(a))&&/name|employee|الاسم|الموظف/.test(b)){ hr=i; break; } }
-  if(hr<0)return false;
-  var out=[];
-  for(var j=hr+1;j<rows.length;j++){ var r=rows[j]||[]; var nm=sv(r[1]); if(!nm)continue;
-    out.push({id:'r'+(out.length+1)+'_'+Date.now(),empId:sv(r[0]),name:nm,nameAr:sv(r[2]),position:sv(r[3]),positionAr:sv(r[4]),dept:sv(r[5]),company:sv(r[6]),project:sv(r[7]),manager:sv(r[8]),managerTitle:sv(r[9]),status:sv(r[10])||'Active',resType:sv(r[11])||'Employee',empType:sv(r[12])||'Full-time',workload:40,overtime:0,joinDate:dOnly(r[13]),custom:{}});
+  for(var i=0;i<Math.min(rows.length,20);i++){
+    var hs=(rows[i]||[]).map(hk),hasId=hs.some(function(x){return /employee id|staff id|^id$|رقم|^#$|^no$/.test(x);}),hasName=hs.some(function(x){return /employee.*name|full.*name|^name$|الاسم|الموظف/.test(x);});
+    if(hasId&&hasName){hr=i;break;}
   }
-  if(out.length){ p.resources=out; return true; }
-  return false;
+  if(hr<0)return false;
+  var header=(rows[hr]||[]).map(sv),used={},idx={};
+  function find(field,re){for(var z=0;z<header.length;z++){if(!used[z]&&re.test(hk(header[z]))){idx[field]=z;used[z]=1;return;}}idx[field]=-1;}
+  find('empId',/employee id|staff id|^id$|رقم|^#$|^no$/);
+  find('nameAr',/full name ar|employee name ar|name ar|arabic.*name|الاسم.*العربي/);
+  find('name',/full name en|employee.*name|full.*name|^name$|الاسم|الموظف/);
+  find('positionAr',/job title ar|title ar|arabic.*title|المسمى.*العربي/);
+  find('position',/job title en|job title|position|المسمى الوظيفي/);
+  find('dept',/^department$|^dept$|القسم/);find('company',/^company$|الشركة/);
+  find('project',/assigned project|^project$|المشروع/);find('managerTitle',/manager job title|manager title|مسمى.*المدير/);
+  find('manager',/direct manager|line manager|^manager$|المدير المباشر/);find('status',/^status$|الحالة/);
+  find('resType',/^resource type$|^type$|نوع المورد/);find('empType',/^employment$|employment type|نوع التوظيف/);
+  find('joinDate',/starting date|start date|join date|joining date|تاريخ المباشرة/);
+  /* The first two exported columns remain a safe fallback if only their
+     display labels were renamed. */
+  if(idx.empId<0&&header.length)idx.empId=0;if(idx.name<0&&header.length>1)idx.name=1;
+  used[idx.empId]=1;used[idx.name]=1;
+  var oldCols=Array.isArray(p.customCols)?p.customCols:[],customCols=[];
+  header.forEach(function(label,col){if(!label||used[col])return;var match=oldCols.find(function(c){return hk(c.label)===hk(label);});customCols.push({key:match?match.key:('c'+Date.now().toString(36)+'_'+col),label:label,col:col});});
+  var old=(p.resources||[]).slice(),out=[];
+  function cv(row,field){return idx[field]>=0?sv(row[idx[field]]):'';}
+  for(var j=hr+1;j<rows.length;j++){
+    var row=rows[j]||[],nm=cv(row,'name'),eid=cv(row,'empId');if(!nm&&!eid)continue;
+    var prev=old.find(function(x){return (eid&&String(x.empId||'')===eid)||(!eid&&nm&&hk(x.name)===hk(nm));})||{};
+    var custom={};customCols.forEach(function(c){custom[c.key]=sv(row[c.col]);});
+    out.push({id:prev.id||('r'+(out.length+1)+'_'+Date.now()),empId:eid,name:nm||prev.name||'',nameAr:cv(row,'nameAr'),position:cv(row,'position'),positionAr:cv(row,'positionAr'),dept:cv(row,'dept'),company:cv(row,'company'),project:cv(row,'project'),manager:cv(row,'manager'),managerTitle:cv(row,'managerTitle'),status:cv(row,'status')||'Active',resType:cv(row,'resType')||'Employee',empType:cv(row,'empType')||'Full-time',workload:+prev.workload||40,overtime:+prev.overtime||0,joinDate:dOnly(cv(row,'joinDate')),custom:custom});
+  }
+  p.customCols=customCols.map(function(c){return {key:c.key,label:c.label};});p.resources=out;
+  p.meta=p.meta||{};p.meta.lastExcelImport=(typeof nowISO==='function'?nowISO():new Date().toISOString());
+  return true;
 }
 
 /* ---- svg charts (responsive) ---- */
@@ -7665,10 +7692,7 @@ function resAddCol(){ var p=resProj(); if(!p)return; var name=window.prompt('Nam
 function resDelCol(key){ var p=resProj(); if(!p||!Array.isArray(p.customCols))return; var c=p.customCols.find(function(x){return x.key===key;}); if(!c)return; if(!window.confirm('Remove column "'+c.label+'"? Any data in it will be deleted.'))return; p.customCols=p.customCols.filter(function(x){return x.key!==key;}); (p.resources||[]).forEach(function(r){ if(r.custom)delete r.custom[key]; }); resSave(true); }
 
 function resDownloadExcel(){
-  var p=resProj(); var R=(p&&p.resources)||[]; var CC=(p&&Array.isArray(p.customCols))?p.customCols:[];
-  var head=['Employee ID','Employee Full Name (EN)','Job Title (EN)','Job Title (AR)','Company','Assigned Project','Direct Manager','Manager Job Title','Status','Type','Employment','Starting Date'].concat(CC.map(function(c){return c.label;}));
-  var body=R.map(function(r){ return [r.empId||'',r.name||'',r.position||'',r.positionAr||'',r.company||'',r.project||'',r.manager||'',r.managerTitle||'',r.status||'',r.resType||'',r.empType||'',r.joinDate||''].concat(CC.map(function(c){return (r.custom&&r.custom[c.key])||'';})); });
-  var aoa=[head].concat(body);
+  var p=resProj();var aoa=resExportRows(p),head=aoa[0]||[];
   function csvFallback(){
     var csv=aoa.map(function(row){return row.map(function(c){var s=String(c==null?'':c);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}).join(',');}).join('\n');
     var blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}); var a=document.createElement('a');
@@ -18736,6 +18760,92 @@ setTimeout(function(){
   ['renderProjectView','renderFloors','openProject','openFloors','renderSurvey'].forEach(wrap); bind();
 },3200);
 setTimeout(bind,5200);
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   v518 — Resources → Work Place Hub bridge + safe Excel import preview
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function(){
+if(window.__kpV518)return;window.__kpV518=true;
+
+/* Publish only the employee roster to the Services Firebase room.  The Hub
+   owns emails and approval settings and never sends those fields back here. */
+var resourcePublishTimer=null,resourceLast='';
+function resourceDirectorySnapshot(){
+  var p=null;try{p=typeof projByID==='function'?projByID('p9'):null;}catch(e){}
+  return ((p&&p.resources)||[]).filter(function(r){return r&&String(r.name||'').trim();}).map(function(r){return {
+    id:String(r.id||''),empId:String(r.empId||''),name:String(r.name||''),nameAr:String(r.nameAr||''),
+    position:String(r.position||''),positionAr:String(r.positionAr||''),dept:String(r.dept||''),
+    company:String(r.company||''),status:String(r.status||''),project:String(r.project||''),
+    manager:String(r.manager||''),updatedAt:new Date().toISOString()
+  };});
+}
+function publishResourceDirectory(force){
+  var rows=resourceDirectorySnapshot(),clean=rows.map(function(r){var x=Object.assign({},r);delete x.updatedAt;return x;}),sig=JSON.stringify(clean);
+  if(!force&&sig===resourceLast)return Promise.resolve(false);
+  if(!window.firebase||!firebase.database||!firebase.apps||!firebase.apps.length)return Promise.reject(new Error('Firebase is not ready'));
+  return firebase.database().ref('portals/asimati-services/resourceDirectory').set(rows).then(function(){resourceLast=sig;return true;});
+}
+function scheduleResourcePublish(){
+  clearTimeout(resourcePublishTimer);resourcePublishTimer=setTimeout(function(){publishResourceDirectory(false).catch(function(){});},900);
+}
+window.publishResourceDirectory=publishResourceDirectory;
+var originalPersist=window.persist;
+if(typeof originalPersist==='function'){
+  window.persist=function(){var r=originalPersist.apply(this,arguments);scheduleResourcePublish();return r;};
+}
+document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){publishResourceDirectory(true).catch(function(){setTimeout(function(){publishResourceDirectory(true).catch(function(){});},5000);});},2200);});
+setTimeout(function(){publishResourceDirectory(true).catch(function(){});},8500);
+
+/* Every workbook is inspected before its existing importer receives it. */
+var approvedImports=typeof WeakSet==='function'?new WeakSet():null;
+function importEsc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function workbookPreview(file,done,fail){
+  function read(){
+    var rd=new FileReader();rd.onerror=function(){fail(new Error('Could not read the workbook'));};
+    rd.onload=function(e){try{
+      var wb=XLSX.read(e.target.result,{type:'array',raw:false,cellDates:false}),sheets=[],warnings=[];
+      wb.SheetNames.forEach(function(name){
+        var rows=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:false,defval:'',blankrows:false}),header=(rows[0]||[]).map(function(x){return String(x||'').trim();});
+        var nonBlankHeader=header.filter(Boolean),seen={},dups=[];nonBlankHeader.forEach(function(h){var k=h.toLowerCase();if(seen[k])dups.push(h);seen[k]=1;});
+        var blanks=header.filter(function(h){return !h;}).length;
+        if(!rows.length)warnings.push(name+': empty sheet');if(dups.length)warnings.push(name+': duplicate headers — '+dups.join(', '));if(blanks&&header.length)warnings.push(name+': '+blanks+' blank header(s)');
+        sheets.push({name:name,rows:Math.max(0,rows.length-1),columns:header.length,headers:nonBlankHeader});
+      });
+      try{
+        var p=typeof projByID==='function'?projByID(typeof CUR_PROJ!=='undefined'?CUR_PROJ:''):null;
+        if(p&&typeof hasResourceModel==='function'&&hasResourceModel(p)&&sheets.length&&sheets[0].rows<(p.resources||[]).length){warnings.push('Resources: '+((p.resources||[]).length-sheets[0].rows)+' existing row(s) will be removed if this is the Resources sheet.');}
+      }catch(x){}
+      done({sheets:sheets,warnings:warnings});
+    }catch(err){fail(err);}};rd.readAsArrayBuffer(file);
+  }
+  if(window.XLSX)read();else if(typeof loadXLSX==='function')loadXLSX(read);else fail(new Error('Excel library is unavailable'));
+}
+function downloadPreImportBackup(file){
+  var payload={version:'v18',createdAt:new Date().toISOString(),beforeImport:file&&file.name||'',store:STORE};
+  window.__kpLastImportBackup=JSON.parse(JSON.stringify(payload));
+  var a=document.createElement('a'),stamp=payload.createdAt.replace(/[:.]/g,'-');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));
+  a.download='Knowledge_Papers_PreImport_Backup_'+stamp+'.json';document.body.appendChild(a);a.click();a.remove();
+}
+function showImportPreview(file,proceed){
+  workbookPreview(file,function(info){
+    var ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;background:rgba(16,24,40,.62);z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:20px';
+    var sheetRows=info.sheets.map(function(s){return '<tr><td><b>'+importEsc(s.name)+'</b></td><td>'+s.rows+'</td><td>'+s.columns+'</td><td style="max-width:440px;white-space:normal">'+importEsc(s.headers.join(' · ')||'No headers')+'</td></tr>';}).join('');
+    var warns=info.warnings.length?'<div style="background:#fff6e5;border:1px solid #f0c36d;border-radius:10px;padding:12px 14px;margin-top:14px"><b>Review before import</b><ul style="margin:7px 0 0;padding-left:20px">'+info.warnings.map(function(w){return '<li>'+importEsc(w)+'</li>';}).join('')+'</ul></div>':'<div style="background:#eaf6ef;color:#24613e;border-radius:10px;padding:11px 14px;margin-top:14px"><b>Validation passed:</b> no structural warnings found.</div>';
+    ov.innerHTML='<div style="background:#fff;color:#20242b;width:min(900px,96vw);max-height:88vh;overflow:auto;border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.28);font-family:Arial,sans-serif"><div style="padding:20px 24px;border-bottom:1px solid #e5e7eb"><div style="font-size:21px;font-weight:800">Excel import preview</div><div style="color:#667085;margin-top:5px">'+importEsc(file.name)+' · review the structure before replacing portal data.</div></div><div style="padding:20px 24px"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="text-align:left;background:#f4f6f8"><th style="padding:9px">Sheet</th><th>Rows</th><th>Columns</th><th>Detected headers</th></tr></thead><tbody>'+sheetRows+'</tbody></table>'+warns+'<div style="font-size:12px;color:#667085;line-height:1.6;margin-top:14px">A JSON backup of the complete portal will download automatically before the import starts. Added, changed and deleted Excel rows are then applied to the selected section.</div></div><div style="padding:16px 24px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:10px"><button id="kpImportCancel" style="padding:10px 16px;border:1px solid #cfd4dc;border-radius:8px;background:#fff;font-weight:700;cursor:pointer">Cancel</button><button id="kpImportGo" style="padding:10px 16px;border:0;border-radius:8px;background:#991b2b;color:#fff;font-weight:700;cursor:pointer">Download backup & import</button></div></div>';
+    document.body.appendChild(ov);ov.querySelector('#kpImportCancel').onclick=function(){ov.remove();};ov.querySelector('#kpImportGo').onclick=function(){downloadPreImportBackup(file);if(approvedImports)approvedImports.add(file);ov.remove();proceed();};
+  },function(err){
+    if(window.confirm('The workbook preview could not be generated ('+(err&&err.message||err)+'). Download a backup and continue anyway?')){downloadPreImportBackup(file);if(approvedImports)approvedImports.add(file);proceed();}
+  });
+}
+function wrapImporter(name,fileIndex){
+  var original=window[name];if(typeof original!=='function'||original.__kpV518)return;
+  var wrapped=function(){var ctx=this,args=arguments,file=args[fileIndex];if(!file||(approvedImports&&approvedImports.has(file)))return original.apply(ctx,args);
+    showImportPreview(file,function(){original.apply(ctx,args);});};wrapped.__kpV518=true;window[name]=wrapped;
+}
+[['handleExcelUpload',0],['finImportXlsx',0],['trImport',0],['importAllSiteTrackers',0],['importSiteDepartments',1],['dcImportExcel',0]].forEach(function(x){wrapImporter(x[0],x[1]);});
 })();
 
 
