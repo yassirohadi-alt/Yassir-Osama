@@ -2980,17 +2980,22 @@ function statusFromText(s){
 
 function excelSerialToISO(v){
   if(v===null || v===undefined || v==='') return '';
+  let d = null;
   if(typeof v === 'number'){
-    const d = new Date(Math.round((v - 25569) * 86400 * 1000));
-    if(isNaN(d)) return '';
-    return d.toISOString().slice(0,10);
+    // Real Excel dates are large serial values. Small placeholders such as "2"
+    // must stay blank instead of becoming dates in 1900.
+    if(!isFinite(v) || v < 30000 || v > 80000) return '';
+    d = new Date(Math.round((v - 25569) * 86400 * 1000));
   }
-  if(v instanceof Date) return v.toISOString().slice(0,10);
+  else if(v instanceof Date) d = v;
   if(typeof v === 'string'){
-    const d = new Date(v);
-    if(!isNaN(d)) return d.toISOString().slice(0,10);
+    const s = v.trim();
+    if(!/^\d{4}[-/]\d{1,2}[-/]\d{1,2}(?:[ T].*)?$/.test(s)) return '';
+    d = new Date(s);
   }
-  return '';
+  if(!d || isNaN(d)) return '';
+  const year = d.getUTCFullYear();
+  return year >= 2000 && year <= 2100 ? d.toISOString().slice(0,10) : '';
 }
 
 function sysProgress(phases){
@@ -3058,11 +3063,20 @@ function importP1FromRows(rows){
     // Sub-milestone row (1.1, 2.3, ...) -> attach to the current parent system.
     if(/^\d+\.\d+$/.test(idxStr)){
       if(curParent){
+        const subPhases = P1_PHASE_COLS.map(pc=>({
+          name: pc.key, nameAr: pc.ar,
+          status: statusFromText(r[pc.stCol-1]),
+          planStart: excelSerialToISO(r[pc.stCol]),
+          planEnd: excelSerialToISO(r[pc.stCol+1]),
+        }));
+        const firstStart = subPhases.find(p=>p.planStart);
+        const lastEnd = subPhases.slice().reverse().find(p=>p.planEnd);
         (curParent.subs=curParent.subs||[]).push({
           name: name.replace(/^[\u21b3\s]+/,'').trim(),
-          status: statusFromText(r[2]),
-          planStart: excelSerialToISO(r[3]),
-          planEnd: excelSerialToISO(r[4]),
+          status: sysStatus(subPhases),
+          planStart: firstStart ? firstStart.planStart : '',
+          planEnd: lastEnd ? lastEnd.planEnd : '',
+          phases: subPhases,
         });
       }
       continue;

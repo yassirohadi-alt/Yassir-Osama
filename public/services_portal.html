@@ -447,12 +447,12 @@ table.t .ref{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--
 
 var SK='kp_services_v1';
 var ROOM_DEFAULT='asimati-services';
-var PORTAL_BUILD='2026.08.26.23';
+var PORTAL_BUILD='2026.08.26.24';
 /* Meeting invitations must open the standalone hosted page. Loading the hub
    through an iframe/srcdoc gives it an about: URL, which is confusing for
    browser permission checks and makes troubleshooting microphone access much
    harder. Keep the meeting on the real Firebase HTTPS origin instead. */
-var PUBLIC_PORTAL_URL='https://knowledge-papers.web.app/services_portal.html?v=23';
+var PUBLIC_PORTAL_URL='https://knowledge-papers.web.app/services_portal.html?v=24';
 var MAIN_PORTAL_URL='https://knowledge-papers.web.app/';
 var ANNOUNCEMENT_EMAIL_ENDPOINT='https://me-central1-knowledge-papers.cloudfunctions.net/announcementEmail';
 var GOOGLE_OAUTH_CLIENT_ID='602139029671-81nqjdon7ek9f5vlsbjmff1d2pqd5nq9.apps.googleusercontent.com';
@@ -689,7 +689,7 @@ function paintWho(){
   var role=ME?(ME.role==='admin'?'Admin':(level||ME.role==='approver'?'Approver':'Requester')):'';
   document.getElementById('whoAv').textContent=ME?initials(ME.name):'?';
   document.getElementById('whoName').textContent=ME?ME.name.split(' ')[0]:'Sign in';
-  document.getElementById('abSub').textContent=(ME?(ME.dept+' · '+role+(level?' · Approval L'+level:'')+(ME.role==='admin'&&!isAdmin()?' (locked)':'')):'Internal requests & meetings')+' · v23';
+  document.getElementById('abSub').textContent=(ME?(ME.dept+' · '+role+(level?' · Approval L'+level:'')+(ME.role==='admin'&&!isAdmin()?' (locked)':'')):'Internal requests & meetings')+' · v24';
   var ab=document.getElementById('adminAccessBtn');if(ab)ab.textContent=isAdmin()?'Admin centre':'Admin access';
 }
 function adminSessionOK(){
@@ -3438,7 +3438,7 @@ function vrLeave(goBack){
    ═══════════════════════════════════════════════════════════════════════════ */
 var SY={ cfg:null, room:null, ref:null, announcementRef:null, on:false, base:null, writable:false };
 var ANNOUNCEMENT_OUTBOX_KEY='kp_services_announcements_outbox_v1';
-var ANNOUNCEMENT_MIGRATION_KEY='kp_services_announcements_v23_migrated';
+var ANNOUNCEMENT_MIGRATION_KEY='kp_services_announcements_v24_migrated';
 
 function announcementListCopy(list){
   return JSON.parse(JSON.stringify(Array.isArray(list)?list:[]));
@@ -3876,6 +3876,18 @@ function adminAnnouncementPanel(){
   var rows=(STORE.announcements||[]).map(function(a){return '<tr><td><b>'+esc(a.title)+'</b><br><span style="font-size:11px;color:var(--muted)">'+esc(a.message||'').slice(0,90)+'</span></td><td>'+esc(a.priority||'normal')+'</td><td>'+esc(a.audience==='all'?'Everyone':String(a.audience||'').replace('dept:',''))+'</td><td>'+fmtWhen(a.publishAt||a.created)+'</td><td>'+(a.active!==false?'<span class="chip c-ok"><i></i>Active</span>':'<span class="chip c-done"><i></i>Hidden</span>')+'</td><td>'+(a.emailSentAt?'<span class="chip c-ok"><i></i>Sent to '+esc(a.emailRecipientCount||'team')+'</span><br><span style="font-size:10px;color:var(--muted)">'+fmtWhen(a.emailSentAt)+'</span>':'<span class="chip c-wait"><i></i>Not sent</span>')+'</td><td style="white-space:nowrap"><button class="btn btn-sm" onclick="announcementEditor(\''+a.id+'\')">'+ico('edit')+'Edit</button> <button class="btn btn-sm" onclick="emailAnnouncement(\''+a.id+'\',this)">'+ico('mail')+'Email</button> <button class="btn btn-sm btn-d" onclick="removeAnnouncement(\''+a.id+'\')">'+ico('trash')+'</button></td></tr>';}).join('');
   return '<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('bell')+'</span>Announcements</div><button class="btn btn-sm btn-p" onclick="announcementEditor()">'+ico('plus')+'New announcement</button></div><div class="tw" style="border:0;border-radius:0"><table class="t"><thead><tr><th>Announcement</th><th>Priority</th><th>Audience</th><th>Publish</th><th>Status</th><th>Email</th><th>Actions</th></tr></thead><tbody>'+(rows||emptyRow(7,'No announcements','Publish the first company notice.'))+'</tbody></table></div></div>';
 }
+function baghdadInputFromISO(iso){
+  if(!iso)return '';
+  var d=new Date(iso);if(isNaN(d))return '';
+  var parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Baghdad',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(d).reduce(function(o,p){o[p.type]=p.value;return o;},{});
+  return parts.year+'-'+parts.month+'-'+parts.day+'T'+parts.hour+':'+parts.minute;
+}
+function baghdadInputToISO(value){
+  var m=String(value||'').match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if(!m)return '';
+  // Baghdad is UTC+03:00 throughout the year. Parse independently of the PC timezone.
+  return new Date(Date.UTC(+m[1],+m[2]-1,+m[3],+m[4]-3,+m[5])).toISOString();
+}
 function announcementEditor(id){
   if(!isAdmin()){toast('Admin access is required',false);return;}var a=(STORE.announcements||[]).find(function(x){return x.id===id;})||{},isNew=!a.id;
   var audiences='<option value="all">Everyone</option>'+uniqueList(DEPTS.concat((STORE.resourceDirectory||[]).map(function(r){return r.dept;}).filter(Boolean))).map(function(d){return '<option value="dept:'+esc(d)+'"'+(a.audience==='dept:'+d?' selected':'')+'>'+esc(d)+'</option>';}).join('');
@@ -3884,14 +3896,14 @@ function announcementEditor(id){
     +fld('anMessage','Message <span class="req">*</span>','<textarea id="anMessage" style="min-height:130px">'+esc(a.message||'')+'</textarea>','',true)
     +fld('anPriority','Priority','<select id="anPriority"><option value="normal"'+(a.priority==='normal'?' selected':'')+'>Normal</option><option value="important"'+(a.priority==='important'?' selected':'')+'>Important</option><option value="urgent"'+(a.priority==='urgent'?' selected':'')+'>Urgent</option></select>')
     +fld('anAudience','Audience','<select id="anAudience">'+audiences+'</select>')
-    +fld('anPublish','Publish date & time','<input id="anPublish" type="datetime-local" value="'+esc((a.publishAt||'').slice(0,16))+'">')
-    +fld('anExpires','Expiry date & time','<input id="anExpires" type="datetime-local" value="'+esc((a.expiresAt||'').slice(0,16))+'">')
+    +fld('anPublish','Publish date & time','<input id="anPublish" type="datetime-local" value="'+esc(baghdadInputFromISO(a.publishAt||''))+'">','Leave blank to publish immediately (Baghdad time).')
+    +fld('anExpires','Expiry date & time','<input id="anExpires" type="datetime-local" value="'+esc(baghdadInputFromISO(a.expiresAt||''))+'">','Baghdad time.')
     +'<div class="fld wide"><label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0"><input id="anActive" type="checkbox" style="width:16px;height:16px"'+(a.active!==false?' checked':'')+'> Active</label></div>'
     +'<div class="fld wide"><label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0"><input id="anEmail" type="checkbox" style="width:16px;height:16px"'+(isNew?' checked':'')+'> Email this announcement to the selected audience</label><div class="hint">Recipients come from Company Directory. Employees without a company email are skipped.</div></div></div></div><div class="mod-f"><div class="grow"></div><button class="btn" id="anc">Cancel</button><button class="btn btn-p" id="ans">Publish announcement</button></div></div>';
   document.body.appendChild(m);var close=function(){m.remove();};m.querySelector('#anx').onclick=close;m.querySelector('#anc').onclick=close;
   m.querySelector('#ans').onclick=async function(){var title=val('anTitle'),message=val('anMessage');if(!title||!message){toast('Enter the title and message',false);return;}
     var sendEmail=document.getElementById('anEmail').checked,saveButton=this;saveButton.disabled=true;
-    var n={id:a.id||uid('an'),title:title,message:message,priority:val('anPriority'),audience:val('anAudience')||'all',publishAt:val('anPublish')?new Date(val('anPublish')).toISOString():nowISO(),expiresAt:val('anExpires')?new Date(val('anExpires')).toISOString():'',active:document.getElementById('anActive').checked,created:a.created||nowISO(),updated:nowISO(),createdBy:a.createdBy||(ME&&ME.name)||'',readBy:a.readBy||{}};
+    var n={id:a.id||uid('an'),title:title,message:message,priority:val('anPriority'),audience:val('anAudience')||'all',publishAt:val('anPublish')?baghdadInputToISO(val('anPublish')):'',expiresAt:val('anExpires')?baghdadInputToISO(val('anExpires')):'',active:document.getElementById('anActive').checked,created:a.created||nowISO(),updated:nowISO(),createdBy:a.createdBy||(ME&&ME.name)||'',readBy:a.readBy||{}};
     if(isNew)STORE.announcements.unshift(n);else Object.keys(n).forEach(function(k){a[k]=n[k];});auditRecord(isNew?'publish':'update','announcement',n.id,n.title);queueAnnouncementsForSync();save();
     var shared=await syncAnnouncementsNow();
     if(!shared){saveButton.disabled=false;return;}
