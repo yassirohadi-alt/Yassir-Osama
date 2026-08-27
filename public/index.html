@@ -19827,7 +19827,18 @@ window.renderSurveyDailyTracker=renderSurveyDailyTracker;
 
 function installSurveyV29(){
   if(typeof window.renderSurvey==='function'&&!window.renderSurvey.__svDailyV29){
-    var base=window.renderSurvey,wrap=function(p){var h=base.apply(this,arguments);if(!p||!p.meta||!p.meta.surveyModel)return h;h=h.replace('<th>Daily Number</th>','<th title="Running total, updated by the daily tracker">Completed Total</th>');var at=h.lastIndexOf('</div>');return at<0?h:(h.slice(0,at)+renderSurveyDailyTracker(p)+h.slice(at));};wrap.__svDailyV29=true;window.renderSurvey=wrap;
+    var base=window.renderSurvey,wrap=function(p){
+      var h=base.apply(this,arguments);
+      if(!p||!p.meta||!p.meta.surveyModel)return h;
+      h=h.replace('<th>Daily Number</th>','<th title="Running total, updated by the daily tracker">Completed Total</th>');
+      /* A late portal hook can replace renderSurvey and cause this installer to
+         wrap it again. If an inner wrapper already added the tracker, return it
+         unchanged so the section can never be emitted twice. */
+      if(h.indexOf('class="res-sec svd-section"')>=0)return h;
+      var at=h.lastIndexOf('</div>');
+      return at<0?h:(h.slice(0,at)+renderSurveyDailyTracker(p)+h.slice(at));
+    };
+    wrap.__svDailyV29=true;window.renderSurvey=wrap;
   }
   if(typeof window.svNum==='function'&&!window.svNum.__svDailyV29){
     var oldNum=window.svNum,wrappedNum=function(id,field,val){if(field!=='daily')return oldNum.apply(this,arguments);if(typeof isEditor==='function'&&!isEditor())return;var p=(typeof surveyProj==='function')?surveyProj():null,r=svdSite(p,id);if(!p||!r)return;r.daily=Math.max(0,Math.round(v29Num(val)));r.update=svdToday();try{p.progress=(typeof overallPct==='function')?overallPct(p):(p.progress||0);}catch(e){}try{surveySave(true);}catch(e){try{persist();svdRerender();}catch(x){}};};wrappedNum.__svDailyV29=true;window.svNum=wrappedNum;
@@ -19837,7 +19848,16 @@ function installSurveyV29(){
   }
 }
 
-function v29Install(){v29EnsureFeedButtons();v29EnsureFeedDrawer();installSurveyV29();try{refreshNewsBanner();}catch(e){}if(typeof CUR_PROJ!=='undefined'&&CUR_PROJ)svdRerender();}
+function svdRemoveDuplicateSections(){
+  try{
+    var seen=[];
+    Array.prototype.forEach.call(document.querySelectorAll('.svd-section'),function(section){
+      var host=(section.closest&&section.closest('.res-dash'))||section.parentNode||document.body;
+      if(seen.indexOf(host)>=0)section.remove();else seen.push(host);
+    });
+  }catch(e){}
+}
+function v29Install(){v29EnsureFeedButtons();v29EnsureFeedDrawer();installSurveyV29();try{refreshNewsBanner();}catch(e){}if(typeof CUR_PROJ!=='undefined'&&CUR_PROJ)svdRerender();setTimeout(svdRemoveDuplicateSections,0);}
 document.addEventListener('keydown',function(e){if(e.key==='Escape'&&document.getElementById('kpProgressFeedOverlay')&&document.getElementById('kpProgressFeedOverlay').style.display!=='none')window.closeProgressFeedDrawer();});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(v29Install,80);});else setTimeout(v29Install,80);
 setTimeout(v29Install,1000);
