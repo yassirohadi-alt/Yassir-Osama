@@ -10017,6 +10017,58 @@ window.kpPptFull=function(){
   });
 };
 
+/* v3 - one unified Power BI-style deck: one slide per visible project.
+   Deliberately excludes Team, Risks, QA and other hidden detail sections. */
+window.kpPptFull=function(){
+  window.closePortfolioPPT();
+  try{toast('Preparing project dashboard PowerPoint...',true);}catch(e){}
+  kpPptLoad(function(){
+    try{
+      var projects=kpPptProjects();if(!projects.length){try{toast('No project data available',false);}catch(e){}return;}
+      var pptx=new PptxGenJS();pptx.layout='LAYOUT_WIDE';pptx.author='Knowledge Papers';pptx.company='Knowledge Papers company';pptx.subject='Live Project Dashboard';pptx.title='Project Dashboard Portfolio';
+      var C={brand:'B12836',deep:'7F1722',teal:'2C7A8A',ink:'30343B',muted:'747D8B',line:'DDE2EA',bg:'F4F6FA',green:'218657',amber:'C58B2A',red:'B0202E',grey:'8A93A2',white:'FFFFFF'};
+      var date=new Date().toISOString().slice(0,10);
+      function tx(v,n){var s=String(v==null?'':v).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g,' ').replace(/\s+/g,' ').trim();return n&&s.length>n?s.slice(0,n-3)+'...':s;}
+      function num(v){v=Number(v);return Number.isFinite(v)?v:0;}
+      function clamp(v){return Math.max(0,Math.min(100,Math.round(num(v))));}
+      function rect(s,x,y,w,h,fill,line){s.addShape(pptx.ShapeType.rect,{x:x,y:y,w:w,h:h,fill:{color:fill||C.white},line:{color:line||fill||C.white,width:.45}});}
+      function text(s,v,x,y,w,h,size,color,bold,align){s.addText(tx(v,170),{x:x,y:y,w:w,h:h,fontFace:'Arial',fontSize:size||10,color:color||C.ink,bold:!!bold,align:align||'left',valign:'mid',margin:.03});}
+      function color(p){return p>=70?C.green:p>=35?C.amber:p>0?C.red:C.grey;}
+      function state(v){v=String(v||'').toLowerCase();return v==='d'||v==='done'||v==='completed'||v==='closed'?100:v==='p'||v.indexOf('progress')>=0||v==='started'?50:0;}
+      function context(p){var m=p.meta||{};if(m.surveyModel)return 'survey';if(m.trainingModel)return 'training';if(m.resourceModel||Array.isArray(p.resources))return 'resources';if(m.paymentModel||Array.isArray(p.payments))return 'payments';if(m.serviceOfficeModel)return 'offices';if(m.dcModel||Array.isArray(p.items))return 'items';if(Array.isArray(p.sites)&&p.sites.length)return 'sites';return 'phases';}
+      function visibleRows(p){var k=context(p),a=[];
+        if(k==='survey')a=(p.survey||[]).map(function(r){var t=num(r.assignees),d=num(r.daily),v=t?Math.min(100,d/t*100):num(r.completion);return {label:(r.code?r.code+' - ':'')+(r.name||r.nameAr||'Municipality'),value:v,note:Math.round(d).toLocaleString()+' / '+Math.round(t).toLocaleString()};});
+        else if(k==='training')a=(p.training||[]).map(function(r){var v=typeof trRowPct==='function'?trRowPct(r):([r.dataPrep,r.teamAssign,r.dueDate,r.workshop,r.training].reduce(function(z,x){return z+state(x);},0)/5);return {label:r.name||'Training track',value:v,note:num(r.trainers)+' attendees'};});
+        else if(k==='resources')a=(p.resources||[]).map(function(r){return {label:r.name||r.empId||r.position||'Resource',value:r.progress!=null?num(r.progress):Math.min(100,num(r.workload)),note:r.position||r.dept||''};});
+        else if(k==='payments')a=(p.payments||[]).map(function(r){return {label:r.paymentno||r.pono||r.order||'Payment',value:r.progress!=null?num(r.progress):state(r.status),note:r.status||''};});
+        else if(k==='offices')a=(p.sites||[]).map(function(r){var v=typeof soPct==='function'?soPct(r):num(r.progress);return {label:r.name||'Service office',value:v,note:r.notes||''};});
+        else if(k==='items')a=(p.items||[]).map(function(r){return {label:r.name||r.group||'Item',value:r.progress!=null?num(r.progress):state(r.status),note:r.group||r.status||''};});
+        else if(k==='sites')a=(p.sites||[]).map(function(r){var vals=[r.survey,r.design,r.submit].map(state),v=r.progress!=null?num(r.progress):(vals.reduce(function(x,y){return x+y;},0)/vals.length);return {label:r.name||r.code||'Site',value:v,note:r.notes||''};});
+        else a=(p.phases||[]).map(function(r){return {label:r.name||r.nameAr||'Phase',value:num(r.actualPct!=null?r.actualPct:r.pct),note:r.nameAr||''};});
+        return a.map(function(r){r.value=clamp(r.value);return r;});
+      }
+      function projectMetrics(p,rows){var k=context(p),pct=kpPptPct(p),done=rows.filter(function(r){return r.value>=100;}).length,active=rows.filter(function(r){return r.value>0&&r.value<100;}).length;
+        if(k==='survey'){var t=0,d=0;(p.survey||[]).forEach(function(r){t+=num(r.assignees);d+=Math.min(num(r.daily),num(r.assignees));});return [['MUNICIPALITIES',rows.length,C.teal],['TOTAL ASSIGNED',Math.round(t).toLocaleString(),C.brand],['COMPLETED',Math.round(d).toLocaleString(),C.green],['COMPLETION',pct+'%',color(pct)]];}
+        if(k==='training'){var target=typeof trTarget==='function'?trTarget(p):700,att=(p.training||[]).reduce(function(z,r){return z+num(r.trainers);},0);return [['TRAINING TRACKS',rows.length,C.teal],['TARGET TRAINEES',target,C.brand],['ATTENDANCE',Math.round(att).toLocaleString(),C.green],['PROGRESS',pct+'%',color(pct)]];}
+        return [['OVERALL PROGRESS',pct+'%',color(pct)],['VISIBLE ITEMS',rows.length,C.teal],['COMPLETED',done,C.green],['IN PROGRESS',active,C.amber]];
+      }
+      function card(s,x,name,value,col){rect(s,x,1.13,2.93,1.02,C.white,C.line);rect(s,x,1.13,.06,1.02,col,col);text(s,name,x+.18,1.22,2.55,.2,9,C.muted,true);text(s,value,x+.18,1.49,2.55,.42,22,col,true);}
+      function dashboard(p,index){var rows=visibleRows(p),pct=kpPptPct(p),s=pptx.addSlide(),name=p.nameEn||p.name||('Project '+(index+1));s.background={color:C.bg};rect(s,0,0,13.333,.82,C.deep,C.deep);rect(s,0,.74,13.333,.08,C.brand,C.brand);text(s,name,.43,.16,8.65,.38,24,C.white,true);text(s,p.name&&p.name!==name?p.name:'Live project dashboard',.45,.51,8.4,.18,8.5,C.white,false);text(s,'PROJECT '+(index+1)+' / '+projects.length,10.8,.18,2.05,.24,9,C.white,true,'right');text(s,date,10.8,.48,2.05,.18,8.5,C.white,false,'right');
+        projectMetrics(p,rows).forEach(function(m,i){card(s,.43+i*3.12,m[0],m[1],m[2]);});
+        text(s,'Progress performance',.47,2.38,5,.32,15,C.ink,true);text(s,pct>=100?'Completed':pct>0?'In Progress':'Not Started',10.6,2.38,2.2,.32,11,color(pct),true,'right');
+        if(!rows.length){rect(s,.47,2.92,12.4,3.55,C.white,C.line);text(s,'No visible progress data available for this project',.8,4.35,11.7,.45,14,C.muted,false,'center');}
+        else{var two=rows.length>9,max=two?18:9,show=rows.slice(0,max),per=two?9:show.length;show.forEach(function(r,i){var col=two?Math.floor(i/9):0,pos=two?i%9:i,x=two?(col===0?.48:6.88):.58,y=2.92+pos*.42,labelW=two?2.3:3.45,barX=x+labelW+.08,barW=two?2.65:7.25; text(s,r.label,x,y,labelW,.22,two?8.3:9.2,C.ink,true);rect(s,barX,y+.04,barW,.14,C.line,C.line);if(r.value>0)rect(s,barX,y+.04,barW*r.value/100,.14,color(r.value),color(r.value));text(s,r.value+'%',barX+barW+.08,y-.02,.62,.26,8.5,color(r.value),true,'right');if(r.note)text(s,r.note,x,y+.21,labelW,.14,7,C.muted,false);});if(rows.length>max)text(s,'+'+(rows.length-max)+' additional visible items',.55,6.78,12.2,.2,8.5,C.muted,false,'center');}
+        text(s,'Source: current live portal data - generated '+date,.45,7.16,12.4,.18,8,C.muted,false);
+      }
+      var cover=pptx.addSlide();cover.background={color:C.deep};rect(cover,0,0,13.333,7.5,C.deep,C.deep);rect(cover,.72,5.55,11.88,.08,C.brand,C.brand);text(cover,'KNOWLEDGE PAPERS COMPANY',.75,1.55,8.5,.3,12,C.white,true);text(cover,'Project Dashboard Portfolio',.75,2.08,11.7,.72,36,C.white,true);text(cover,'One Power BI-style dashboard slide for every live project',.75,3.02,11.4,.4,17,C.white,false);text(cover,projects.length+' projects - generated '+date,.75,3.72,8.5,.3,13,C.white,true);text(cover,'Live portal data',.75,6.72,4,.25,10,C.white,false);
+      projects.forEach(dashboard);
+      var file='Knowledge_Papers_Project_Dashboards_'+date+'.pptx';Promise.resolve(pptx.writeFile({fileName:file})).then(function(){try{toast('PowerPoint downloaded - '+projects.length+' project slides',true);}catch(e){}}).catch(function(err){console.error(err);try{toast('PowerPoint export failed: '+err.message,false);}catch(e){}});
+    }catch(err){console.error(err);try{toast('PowerPoint export failed: '+err.message,false);}catch(e){}}
+  });
+};
+window.kpPptExecutive=window.kpPptFull;
+window.openPortfolioPPT=function(){window.kpPptFull();};
+
 document.addEventListener('keydown',function(e){if(e.key==='Escape')window.closePortfolioPPT();});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',kpPptEnsureDialog);else setTimeout(kpPptEnsureDialog,0);
 })();
@@ -25653,6 +25705,12 @@ function svToday(){ try{return new Date().toISOString().slice(0,10);}catch(e){re
 
 function surveyExportRows(p){
 
+  /* Always prefer the authoritative live-table schema.  It preserves every
+     imported/renamed/reordered custom column and every current row. */
+  if(typeof window.__kpExportRows==='function'){
+    try{var exact=window.__kpExportRows(p,'survey');if(Array.isArray(exact)&&exact.length)return exact;}catch(e){console.warn('[Field Survey exact export fallback]',e);}
+  }
+
 
   var R=(p&&p.survey)||[];
 
@@ -30685,6 +30743,9 @@ function exportExcel(){
 
 
       if(data[0])ws['!cols']=data[0].map((_,i)=>({wch:Math.min(46,Math.max(11,String(data[0][i]||'').length+4))}));
+
+      const keyRow=data.findIndex(r=>Array.isArray(r)&&String(r[0]||'').trim()==='__kp_keys__');
+      if(keyRow>=0){ws['!rows']=ws['!rows']||[];ws['!rows'][keyRow]={hidden:true};const idCol=(data[keyRow]||[]).findIndex(v=>String(v||'').trim()==='__kp_row_id__');if(idCol>=0)ws['!cols'][idCol]={hidden:true};ws['!autofilter']={ref:XLSX.utils.encode_cell({r:Math.max(0,keyRow-1),c:0})+':'+XLSX.utils.encode_cell({r:Math.max(0,keyRow-1),c:Math.max(0,(data[0]||[]).length-1)})};}
 
 
       XLSX.utils.book_append_sheet(wb,ws,name);
