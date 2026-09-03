@@ -7997,7 +7997,56 @@ body.role-pm .tr-tn-v:hover{background:#E3EAF3;border-color:#C6D1DE}
 .phase-matrix-wrap{ max-height:min(78vh,calc(100vh - 190px)) !important; }
 
 
-.sv-table-wrap,.res-table-wrap{ max-height:min(72vh,calc(100vh - 220px)); overflow:auto; }
+.sv-table-wrap,.res-table-wrap{ max-height:min(72vh,calc(100vh - 220px)); overflow:auto; position:relative; }
+
+
+
+/* Field Survey: keep the column labels visible while scrolling down, and keep
+
+
+   the municipality / building name visible while scrolling sideways. */
+
+
+.sv-table{ border-collapse:separate !important; border-spacing:0 !important; }
+
+
+.sv-table thead th{
+
+
+  position:sticky; top:0; z-index:5; background:#f6f7f9;
+
+
+}
+
+
+.sv-table .sv-freeze-name{
+
+
+  position:sticky; left:0; z-index:4; background:#fff;
+
+
+  min-width:210px; box-shadow:1px 0 0 var(--line,#E5E9F1);
+
+
+}
+
+
+.sv-table thead .sv-freeze-name{ z-index:8; background:#f6f7f9; }
+
+
+.sv-table tbody tr:nth-child(even) .sv-freeze-name{ background:#FAFBFC; }
+
+
+.res-table-wrap.is-scrolled .sv-table .sv-freeze-name,
+
+
+.sv-table-wrap.is-scrolled .sv-table .sv-freeze-name{
+
+
+  box-shadow:4px 0 10px -5px rgba(16,24,40,.38);
+
+
+}
 
 
 
@@ -8018,13 +8067,19 @@ body.role-pm .tr-tn-v:hover{background:#E3EAF3;border-color:#C6D1DE}
 .fl-table thead th{ box-shadow:0 1px 0 rgba(16,24,40,.08); }
 
 
-.phase-matrix-wrap.is-vscrolled thead th,
-
-
-.site-table-wrap.is-vscrolled thead th,
-
-
-.fl-table-wrap.is-vscrolled thead th{
+.phase-matrix-wrap.is-vscrolled thead th,
+
+
+.site-table-wrap.is-vscrolled thead th,
+
+
+.fl-table-wrap.is-vscrolled thead th,
+
+
+.sv-table-wrap.is-vscrolled .sv-table thead th,
+
+
+.res-table-wrap.is-vscrolled .sv-table thead th{
 
 
   box-shadow:0 3px 10px -4px rgba(16,24,40,.34);
@@ -9825,8 +9880,8 @@ function finalExport(){var p=project();if(!p)return;if(p.id==='p8'&&window.__smE
 
 function value(row,key){if(key.indexOf('.')<0)return row[key];var z=key.split('.');return row[z[0]]&&row[z[0]][z[1]];}
 window.kpExcelCellEdit=function(ctx,id,key,val){if(!canEdit())return;var p=project(),lk={survey:'survey',training:'training',resources:'resources',payments:'payments',offices:'sites',items:'items',phases:'phases',milestones:'milestones',qa:'qa',risks:'risks',team:'team'}[ctx],r=p&&Array.isArray(p[lk])&&p[lk].find(function(x){return String(x.id)===String(id);}),col=schema(p,ctx).find(function(x){return x.key===key;});if(!r||!col)return;var v=T(val);if(col.type==='number')v=v===''?0:(Number(v.replace(/[,٬]/g,''))||0);if(key.indexOf('.')<0)r[key]=v;else{var z=key.split('.');r[z[0]]=r[z[0]]||{};r[z[0]][z[1]]=v;}if(ctx==='survey'&&key==='daily')r.update=new Date().toISOString().slice(0,10);if(ctx==='training'&&typeof trOverall==='function')p.progress=trOverall(p);persist(p.id);try{renderProjectView(p.id);renderHub();}catch(e){}};
-function surveyTable(p){var cols=schema(p,'survey'),list=(p.survey||[]),pm=canEdit();try{if(typeof surveyFilterList==='function')list=surveyFilterList(list);}catch(e){}if(!cols.length)return '';function cell(r,c){var key=c.key,v=value(r,key),colName=C(c.label||key),isProgress=key==='completion'||colName==='completion'||colName.indexOf('progress')>=0||colName.indexOf('نسبةالانجاز')>=0||colName.indexOf('نسبةالإنجاز')>=0;if(isProgress){var pct;if(key==='completion'){var a=Number(r.assignees)||0,d=Number(r.daily)||0;pct=a?Math.min(100,Math.round(d/a*100)):0;}else{pct=Math.round(Number(String(v==null?'0':v).replace(/[%٪,٬]/g,''))||0);pct=Math.max(0,Math.min(100,pct));}var col=pct>=100?'#2E7D5B':pct>=50?'#2F6DB1':pct>0?'#C08A2E':'#9ca3af';return '<td class="sv-progress-cell"><div class="sv-prog"><div class="sv-bar"><i style="width:'+pct+'%;background:'+col+'"></i></div><span class="sv-pct" style="color:'+col+'">'+pct+'%</span></div></td>';}if(c.type==='number')return '<td><input class="kp-xl-input" type="number" value="'+E(v==null?'':v)+'" '+(pm?'onchange="kpExcelCellEdit(\'survey\',\''+E(r.id)+'\',\''+E(key)+'\',this.value)"':'readonly')+'></td>';if(c.type==='date')return '<td><input class="kp-xl-input" type="date" value="'+E(v||'')+'" '+(pm?'onchange="kpExcelCellEdit(\'survey\',\''+E(r.id)+'\',\''+E(key)+'\',this.value)"':'readonly')+'></td>';return '<td><span class="kp-xl-text" contenteditable="'+(pm?'true':'false')+'" '+(pm?'onblur="kpExcelCellEdit(\'survey\',\''+E(r.id)+'\',\''+E(key)+'\',this.textContent)"':'')+'>'+E(v==null?'':v)+'</span></td>';}
-  var head=cols.map(function(c){return '<th>'+E(c.label||c.key)+'</th>';}).join('')+(pm?'<th></th>':''),body=list.map(function(r){return '<tr>'+cols.map(function(c){return cell(r,c);}).join('')+(pm?'<td><button class="res-del" onclick="svDel(\''+E(r.id)+'\')">✕</button></td>':'')+'</tr>';}).join('');return '<div class="res-table-wrap"><table class="sv-table"><thead><tr>'+head+'</tr></thead><tbody>'+(body||'<tr><td colspan="'+(cols.length+(pm?1:0))+'" style="text-align:center;padding:18px;color:#8a8f98">No rows. Import Excel or add a municipality.</td></tr>')+'</tbody></table></div>';}
+function surveyTable(p){var cols=schema(p,'survey'),list=(p.survey||[]),pm=canEdit();try{if(typeof surveyFilterList==='function')list=surveyFilterList(list);}catch(e){}if(!cols.length)return '';function cell(r,c){var key=c.key,v=value(r,key),freezeAttr=key==='name'?' class="sv-freeze-name"':'',colName=C(c.label||key),isProgress=key==='completion'||colName==='completion'||colName.indexOf('progress')>=0||colName.indexOf('نسبةالانجاز')>=0||colName.indexOf('نسبةالإنجاز')>=0;if(isProgress){var pct;if(key==='completion'){var a=Number(r.assignees)||0,d=Number(r.daily)||0;pct=a?Math.min(100,Math.round(d/a*100)):0;}else{pct=Math.round(Number(String(v==null?'0':v).replace(/[%٪,٬]/g,''))||0);pct=Math.max(0,Math.min(100,pct));}var col=pct>=100?'#2E7D5B':pct>=50?'#2F6DB1':pct>0?'#C08A2E':'#9ca3af';return '<td class="sv-progress-cell"><div class="sv-prog"><div class="sv-bar"><i style="width:'+pct+'%;background:'+col+'"></i></div><span class="sv-pct" style="color:'+col+'">'+pct+'%</span></div></td>';}if(c.type==='number')return '<td'+freezeAttr+'><input class="kp-xl-input" type="number" value="'+E(v==null?'':v)+'" '+(pm?'onchange="kpExcelCellEdit(\'survey\',\''+E(r.id)+'\',\''+E(key)+'\',this.value)"':'readonly')+'></td>';if(c.type==='date')return '<td'+freezeAttr+'><input class="kp-xl-input" type="date" value="'+E(v||'')+'" '+(pm?'onchange="kpExcelCellEdit(\'survey\',\''+E(r.id)+'\',\''+E(key)+'\',this.value)"':'readonly')+'></td>';return '<td'+freezeAttr+'><span class="kp-xl-text" contenteditable="'+(pm?'true':'false')+'" '+(pm?'onblur="kpExcelCellEdit(\'survey\',\''+E(r.id)+'\',\''+E(key)+'\',this.textContent)"':'')+'>'+E(v==null?'':v)+'</span></td>';}
+  var head=cols.map(function(c){return '<th'+(c.key==='name'?' class="sv-freeze-name"':'')+'>'+E(c.label||c.key)+'</th>';}).join('')+(pm?'<th></th>':''),body=list.map(function(r){return '<tr>'+cols.map(function(c){return cell(r,c);}).join('')+(pm?'<td><button class="res-del" onclick="svDel(\''+E(r.id)+'\')">✕</button></td>':'')+'</tr>';}).join('');return '<div class="res-table-wrap"><table class="sv-table"><thead><tr>'+head+'</tr></thead><tbody>'+(body||'<tr><td colspan="'+(cols.length+(pm?1:0))+'" style="text-align:center;padding:18px;color:#8a8f98">No rows. Import Excel or add a municipality.</td></tr>')+'</tbody></table></div>';}
 function installSurvey(){var cur=window.renderSurvey;if(typeof cur!=='function'||cur.__kpExcelV30)return;var wrap=function(p){var h=cur.apply(this,arguments);if(!p||!(p.meta&&p.meta.surveyModel))return h;var table=surveyTable(p);return h.replace(/<div class="res-table-wrap"><table class="sv-table">[\s\S]*?<\/table><\/div>/,table);};wrap.__kpExcelV30=true;window.renderSurvey=wrap;}
 function install(){if(window.handleExcelUpload&&window.handleExcelUpload!==finalImport&&!specialImport)specialImport=window.handleExcelUpload;window.handleExcelUpload=finalImport;window.exportExcel=finalExport;window.trImport=function(file){var p=typeof trProj==='function'?trProj():project();if(p)importWorkbook(file,p);};window.trExport=finalExport;installSurvey();try{document.querySelectorAll('#kpExcelLiveData').forEach(function(x){x.remove();});}catch(e){}}
 window.__kpExcelV30={exportWorkbook:exportWorkbook,importWorkbook:importWorkbook,detect:detect,normalizeNewRows:normalizeNewRows,primary:primary,install:install};
@@ -47449,10 +47504,10 @@ if(window.__v502) return; window.__v502=true;
 
 
 
-var SCROLLERS='.pv-body,.site-table-wrap,.phase-matrix-wrap,.gantt-wrap,.st-list,.tbl-wrap,'
-
-
-  +'.pm-matrix-wrap,.fl-table-wrap,.fl-modal-body,.so-table-wrap,.dc-table-wrap,.modal-body';
+var SCROLLERS='.pv-body,.site-table-wrap,.phase-matrix-wrap,.gantt-wrap,.st-list,.tbl-wrap,'
+
+
+  +'.pm-matrix-wrap,.fl-table-wrap,.sv-table-wrap,.res-table-wrap,.fl-modal-body,.so-table-wrap,.dc-table-wrap,.modal-body';
 
 
 
