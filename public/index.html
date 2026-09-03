@@ -58831,6 +58831,8 @@ body.kpdc-open{overflow:hidden!important}
 .kpdc-drop-ico{width:42px;height:42px;border-radius:10px;background:#f5e4e7;color:#8b1e2d;display:grid;place-items:center;flex:0 0 auto}.kpdc-drop-ico svg{width:21px;height:21px}
 .kpdc-drop b{display:block;color:#3a424e;font-size:10.5px}.kpdc-drop span{display:block;color:#8a939f;font-size:8.8px;margin-top:4px;line-height:1.4}
 .kpdc-progress{display:none;margin-top:13px}.kpdc-progress.show{display:block}.kpdc-progress-line{height:7px;border-radius:99px;background:#edf0f4;overflow:hidden}.kpdc-progress-line i{display:block;width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#8b1e2d,#c13a4d);transition:width .18s}.kpdc-progress-text{display:flex;justify-content:space-between;margin-top:5px;color:#7b8491;font-size:8.8px;font-weight:700}
+.kpdc-progress.error .kpdc-progress-line i{background:#b42318}.kpdc-progress.error .kpdc-progress-text{color:#b42318}
+.kpdc-upload-error{display:none;margin-top:12px;padding:10px 12px;border:1px solid #efb3b8;border-radius:9px;background:#fff1f2;color:#971b2b;font-size:10px;font-weight:650;line-height:1.55}.kpdc-upload-error.show{display:block}
 .kpdc-form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:17px;padding-top:15px;border-top:1px solid #e7eaee}
 .kpdc-secondary{height:38px;border:1px solid #d5dae1;border-radius:9px;background:#fff;color:#4b5562;padding:0 14px;font:800 10px/1 'Montserrat','Segoe UI',sans-serif;cursor:pointer}.kpdc-secondary:hover{background:#f5f7f9}
 
@@ -58855,7 +58857,9 @@ body.kpdc-open{overflow:hidden!important}
 if(window.__kpDocumentCenterV30)return;window.__kpDocumentCenterV30=true;
 
 var dcDocs=[],dcById={},dcRef=null,dcStorage=null,dcListener=null,dcReady=false,dcError='',dcUploading=false;
+var dcUploadTask=null,dcUploadTimer=null,dcUploadTimedOut=false,dcUploadCancelled=false,dcUploadLastBytes=0;
 var DC_MAX_SIZE=50*1024*1024;
+var DC_UPLOAD_IDLE_MS=20000;
 
 function dcEsc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function dcRoom(){try{return String((window.SYNC&&SYNC.room)||'asimati-hub-v2').replace(/[.#$\[\]/]/g,'_');}catch(e){return 'asimati-hub-v2';}}
@@ -58883,6 +58887,7 @@ async function dcEnsureFirebase(){
   if(!firebase.storage)await dcLoadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js');
   dcRef=firebase.database().ref('documentCenters/'+dcRoom()+'/documents');
   dcStorage=firebase.storage();
+  try{dcStorage.setMaxUploadRetryTime(15000);dcStorage.setMaxOperationRetryTime(10000);}catch(e){}
   return true;
 }
 
@@ -58900,7 +58905,7 @@ function dcMarkup(){
   layer.innerHTML='<section class="kpdc-upload-card" role="dialog" aria-modal="true" aria-labelledby="kpdcUploadTitle"><div class="kpdc-upload-head"><div><h3 id="kpdcUploadTitle">Upload Official Document</h3><p>The file is stored in Firebase Storage; searchable details are stored in the database.</p></div><button class="kpdc-upload-x" type="button" aria-label="Close upload form" data-kpdc-upload-close>&times;</button></div><form class="kpdc-form" id="kpdcForm"><div class="kpdc-form-grid">'+
   '<div class="kpdc-field"><label>Document Number <i>*</i></label><input class="kpdc-input" id="kpdcNo" maxlength="80" required placeholder="e.g. 145/IT"></div><div class="kpdc-field"><label>Document Date <i>*</i></label><input class="kpdc-input" id="kpdcDate" type="date" required></div>'+
   '<div class="kpdc-field full"><label>Subject / Title <i>*</i></label><input class="kpdc-input" id="kpdcSubject" maxlength="240" required placeholder="Official document subject"></div><div class="kpdc-field"><label>Type <i>*</i></label><select class="kpdc-select" id="kpdcDirection" required><option value="incoming">Incoming</option><option value="outgoing">Outgoing</option><option value="internal">Internal</option></select></div><div class="kpdc-field"><label>Correspondent / Party</label><input class="kpdc-input" id="kpdcParty" maxlength="180" placeholder="From or to"></div><div class="kpdc-field full"><label>Department / Project</label><input class="kpdc-input" id="kpdcDepartment" maxlength="180" placeholder="Related department or project"></div><div class="kpdc-field full"><label>Notes</label><textarea class="kpdc-textarea" id="kpdcNotes" maxlength="800" placeholder="Optional notes"></textarea></div>'+
-  '<div class="kpdc-field full"><label>File <i>*</i></label><label class="kpdc-drop"><input id="kpdcFile" type="file" required accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"><span class="kpdc-drop-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 14v5h14v-5"/></svg></span><span><b id="kpdcFileName">Choose PDF, image or Office file</b><span id="kpdcFileHint">Maximum file size: 50 MB</span></span></label></div></div><div class="kpdc-progress" id="kpdcProgress"><div class="kpdc-progress-line"><i id="kpdcProgressBar"></i></div><div class="kpdc-progress-text"><span id="kpdcProgressStatus">Preparing upload…</span><b id="kpdcProgressPct">0%</b></div></div><div class="kpdc-form-actions"><button class="kpdc-secondary" type="button" data-kpdc-upload-close>Cancel</button><button class="kpdc-primary" id="kpdcSubmit" type="submit">Upload to Archive</button></div></form></section>';
+  '<div class="kpdc-field full"><label>File <i>*</i></label><label class="kpdc-drop"><input id="kpdcFile" type="file" required accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"><span class="kpdc-drop-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 14v5h14v-5"/></svg></span><span><b id="kpdcFileName">Choose PDF, image or Office file</b><span id="kpdcFileHint">Maximum file size: 50 MB</span></span></label></div></div><div class="kpdc-upload-error" id="kpdcUploadError" role="alert"></div><div class="kpdc-progress" id="kpdcProgress"><div class="kpdc-progress-line"><i id="kpdcProgressBar"></i></div><div class="kpdc-progress-text"><span id="kpdcProgressStatus">Preparing upload…</span><b id="kpdcProgressPct">0%</b></div></div><div class="kpdc-form-actions"><button class="kpdc-secondary" type="button" data-kpdc-upload-close>Cancel</button><button class="kpdc-primary" id="kpdcSubmit" type="submit">Upload to Archive</button></div></form></section>';
   document.body.appendChild(layer);
 
   try{var original=document.querySelector('.ch-brand img'),logo=document.getElementById('kpdcLogo');if(original&&logo){var im=document.createElement('img');im.src=original.src;im.alt='Knowledge Papers';logo.textContent='';logo.appendChild(im);}}catch(e){}
@@ -58964,25 +58969,34 @@ async function dcDelete(id){
 }
 
 function dcOpenUpload(){
-  if(!dcCanEdit()){dcNotify('Switch to Project Manager or Developer mode from the header before uploading.',false);return;}var layer=document.getElementById('kpdcUploadLayer');if(!layer)return;var form=document.getElementById('kpdcForm');if(form)form.reset();document.getElementById('kpdcDate').value=dcToday();document.getElementById('kpdcDirection').value='incoming';document.getElementById('kpdcFileName').textContent='Choose PDF, image or Office file';document.getElementById('kpdcFileHint').textContent='Maximum file size: 50 MB';document.getElementById('kpdcProgress').classList.remove('show');document.getElementById('kpdcProgressBar').style.width='0%';layer.classList.add('show');layer.setAttribute('aria-hidden','false');setTimeout(function(){document.getElementById('kpdcNo').focus();},30);
+  if(!dcCanEdit()){dcNotify('Switch to Project Manager or Developer mode from the header before uploading.',false);return;}var layer=document.getElementById('kpdcUploadLayer');if(!layer)return;var form=document.getElementById('kpdcForm');if(form)form.reset();dcResetUploadState();document.getElementById('kpdcDate').value=dcToday();document.getElementById('kpdcDirection').value='incoming';document.getElementById('kpdcFileName').textContent='Choose PDF, image or Office file';document.getElementById('kpdcFileHint').textContent='Maximum file size: 50 MB';layer.classList.add('show');layer.setAttribute('aria-hidden','false');setTimeout(function(){document.getElementById('kpdcNo').focus();},30);
 }
-function dcCloseUpload(){if(dcUploading)return;var layer=document.getElementById('kpdcUploadLayer');if(layer){layer.classList.remove('show');layer.setAttribute('aria-hidden','true');}}
+function dcClearUploadTimer(){if(dcUploadTimer){clearTimeout(dcUploadTimer);dcUploadTimer=null;}}
+function dcResetUploadState(){dcClearUploadTimer();dcUploadTask=null;dcUploadTimedOut=false;dcUploadCancelled=false;dcUploadLastBytes=0;dcUploading=false;var submit=document.getElementById('kpdcSubmit'),progress=document.getElementById('kpdcProgress'),error=document.getElementById('kpdcUploadError');if(submit)submit.disabled=false;if(progress){progress.classList.remove('show','error');var bar=document.getElementById('kpdcProgressBar');if(bar)bar.style.width='0%';}if(error){error.textContent='';error.classList.remove('show');}}
+function dcHideUpload(){var layer=document.getElementById('kpdcUploadLayer');if(layer){layer.classList.remove('show');layer.setAttribute('aria-hidden','true');}}
+function dcCancelUpload(){
+  dcUploadCancelled=true;dcClearUploadTimer();var task=dcUploadTask;dcUploadTask=null;try{if(task&&typeof task.cancel==='function')task.cancel();}catch(e){}dcUploading=false;var submit=document.getElementById('kpdcSubmit');if(submit)submit.disabled=false;dcHideUpload();dcNotify('Upload cancelled.',true);
+}
+function dcCloseUpload(){if(dcUploading){dcCancelUpload();return;}dcClearUploadTimer();dcHideUpload();}
 function dcFileChanged(){var f=this.files&&this.files[0],name=document.getElementById('kpdcFileName'),hint=document.getElementById('kpdcFileHint');if(!f){name.textContent='Choose PDF, image or Office file';hint.textContent='Maximum file size: 50 MB';return;}name.textContent=f.name;hint.textContent=dcBytes(f.size)+(f.size>DC_MAX_SIZE?' · File is too large':' · Ready to upload');}
-function dcProgress(p,status){document.getElementById('kpdcProgress').classList.add('show');document.getElementById('kpdcProgressBar').style.width=Math.max(0,Math.min(100,p))+'%';document.getElementById('kpdcProgressPct').textContent=Math.round(p)+'%';document.getElementById('kpdcProgressStatus').textContent=status||'Uploading…';}
+function dcProgress(p,status,isError){var progress=document.getElementById('kpdcProgress');progress.classList.add('show');progress.classList.toggle('error',!!isError);document.getElementById('kpdcProgressBar').style.width=Math.max(0,Math.min(100,p))+'%';document.getElementById('kpdcProgressPct').textContent=Math.round(p)+'%';document.getElementById('kpdcProgressStatus').textContent=status||'Uploading…';}
+function dcShowUploadError(msg){var el=document.getElementById('kpdcUploadError');if(el){el.textContent=msg;el.classList.add('show');}dcProgress(0,'Upload failed',true);}
+function dcArmUploadTimer(){dcClearUploadTimer();dcUploadTimer=setTimeout(function(){if(!dcUploading||!dcUploadTask)return;dcUploadTimedOut=true;try{dcUploadTask.cancel();}catch(e){}},DC_UPLOAD_IDLE_MS);}
 
 async function dcSubmit(e){
   e.preventDefault();if(dcUploading)return;if(!dcCanEdit()){dcNotify('Editor role is required to upload documents.',false);return;}
   var file=document.getElementById('kpdcFile').files[0],docNo=document.getElementById('kpdcNo').value.trim(),subject=document.getElementById('kpdcSubject').value.trim(),docDate=document.getElementById('kpdcDate').value;
-  if(!file||!docNo||!subject||!docDate){dcNotify('Complete the required fields and choose a file.',false);return;}if(file.size>DC_MAX_SIZE){dcNotify('This file is larger than 50 MB. Compress it before uploading.',false);return;}
-  var submit=document.getElementById('kpdcSubmit');dcUploading=true;submit.disabled=true;dcProgress(0,'Connecting to Firebase…');
+  if(!file||!docNo||!subject||!docDate){dcNotify('Complete the required fields and choose a file.',false);return;}if(file.size<=0){dcShowUploadError('The selected file is empty (0 B). Choose the original PDF or a non-empty file.');return;}if(file.size>DC_MAX_SIZE){dcShowUploadError('This file is larger than 50 MB. Compress it before uploading.');return;}
+  var submit=document.getElementById('kpdcSubmit'),error=document.getElementById('kpdcUploadError');if(error){error.textContent='';error.classList.remove('show');}dcUploadCancelled=false;dcUploadTimedOut=false;dcUploading=true;submit.disabled=true;dcProgress(0,'Connecting to Firebase…',false);
   var storageRef=null;
   try{
-    await dcEnsureFirebase();var id=dcRef.push().key,path='document-center/'+dcRoom()+'/'+id+'/'+dcSafeName(file.name);storageRef=dcStorage.ref(path);var task=storageRef.put(file,{contentType:file.type||'application/octet-stream',customMetadata:{documentNumber:docNo}});
-    await new Promise(function(resolve,reject){task.on('state_changed',function(s){var p=s.totalBytes?100*s.bytesTransferred/s.totalBytes:0;dcProgress(p,'Uploading '+file.name);},reject,resolve);});
+    await dcEnsureFirebase();if(dcUploadCancelled)return;var id=dcRef.push().key,path='document-center/'+dcRoom()+'/'+id+'/'+dcSafeName(file.name);storageRef=dcStorage.ref(path);dcUploadLastBytes=0;dcUploadTask=storageRef.put(file,{contentType:file.type||'application/octet-stream',customMetadata:{documentNumber:docNo}});dcArmUploadTimer();
+    await new Promise(function(resolve,reject){dcUploadTask.on('state_changed',function(s){var bytes=Number(s.bytesTransferred)||0,p=s.totalBytes?100*bytes/s.totalBytes:0;dcProgress(p,'Uploading '+file.name,false);if(bytes>dcUploadLastBytes){dcUploadLastBytes=bytes;dcArmUploadTimer();}},reject,resolve);});
+    dcClearUploadTimer();if(dcUploadCancelled)return;
     dcProgress(100,'Saving searchable details…');var url=await storageRef.getDownloadURL();var record={docNo:docNo,subject:subject,docDate:docDate,direction:document.getElementById('kpdcDirection').value||'incoming',party:document.getElementById('kpdcParty').value.trim(),department:document.getElementById('kpdcDepartment').value.trim(),notes:document.getElementById('kpdcNotes').value.trim(),originalName:file.name,mimeType:file.type||'',size:file.size,storagePath:path,downloadURL:url,createdAt:firebase.database.ServerValue.TIMESTAMP,createdBy:dcRole()};
     try{await dcRef.child(id).set(record);}catch(dbErr){try{await storageRef.delete();}catch(cleanErr){}throw dbErr;}
-    dcUploading=false;submit.disabled=false;dcCloseUpload();dcNotify('Document uploaded successfully.',true);
-  }catch(err){dcUploading=false;submit.disabled=false;dcProgress(0,'Upload failed');dcNotify(dcFriendlyError(err),false);}
+    dcUploadTask=null;dcUploading=false;submit.disabled=false;dcHideUpload();dcNotify('Document uploaded successfully.',true);
+  }catch(err){dcClearUploadTimer();dcUploadTask=null;dcUploading=false;submit.disabled=false;if(dcUploadCancelled||String(err&&err.code)==='storage/canceled'&&!dcUploadTimedOut)return;var message=dcUploadTimedOut?'The upload did not start within 20 seconds. Firebase Storage is probably not activated yet, or its Storage Rules are blocking uploads.':dcFriendlyError(err);dcShowUploadError(message);try{alert(message);}catch(e){}}
 }
 
 document.addEventListener('keydown',function(e){if(e.key!=='Escape')return;var layer=document.getElementById('kpdcUploadLayer');if(layer&&layer.classList.contains('show'))dcCloseUpload();else{var root=document.getElementById('kpDocumentCenterOverlay');if(root&&root.classList.contains('show'))window.closeDocumentCenter();}});
