@@ -108857,65 +108857,76 @@ window.__diffLeaves=diffLeaves;
 
 
 function sanitizePaths(map){
+  /* An RTDB path may not contain  .  #  $  [  ]  . This used to `continue`,
+     i.e. silently DROP the path, and the fallout was worse than a lost field:
+        diffLeaves finds a change -> sanitizePaths drops it -> pushLeaves sees
+        n===0 -> concludes "the server already matches us" -> clears the
+        unsent-edit flag -> the next refresh lets the SERVER copy win and the
+        local work is overwritten, with no error shown anywhere.
+     Column keys from keyFor() are already [a-z0-9_] so this is rare, but when
+     it does happen the data must not vanish. Lift the path to the nearest
+     ancestor whose segments are all legal and write that node whole.
+     IMPORTANT: only lift when the lifted VALUE is itself free of illegal keys,
+     because RTDB rejects illegal characters in key names anywhere in the
+     payload, not just in the path. If it cannot be lifted safely it is still
+     dropped (old behaviour) but recorded on window.__kpSyncDropped so it is
+     visible instead of silent.                                              */
+  var out={},k,i,
+      ILL=/[.#$\[\]]/,
+      SKIP=/(^|\/)(activity|_activityLog)(\/|$)/,
+      dropped=[];
 
-
-
-
-
-  var out={},n=0;
-
-
-
-
-
-  for(var k in map){
-
-
-
-
-
-    if(!k) continue;
-
-
-
-
-
-    if(/(^|\/)(activity|_activityLog)(\/|$)/.test(k)) continue;
-
-
-
-
-
-    if(/[.#$\[\]]/.test(k)) continue;                 /* illegal in an RTDB path */
-
-
-
-
-
-    out[k]=map[k]===undefined?null:map[k];
-
-
-
-
-
-    n++;
-
-
-
-
-
+  function valueAt(path){
+    var cur=STORE,parts=path?path.split('/'):[],i;
+    for(i=0;i<parts.length;i++){
+      if(cur==null||typeof cur!=='object') return undefined;
+      cur=cur[parts[i]];
+    }
+    return cur;
+  }
+  /* Every key anywhere inside the value must be writable. */
+  function legalValue(v,depth){
+    if(depth>14) return false;
+    if(v===null||typeof v!=='object') return true;
+    if(Array.isArray(v)){
+      for(var i=0;i<v.length;i++) if(!legalValue(v[i],depth+1)) return false;
+      return true;
+    }
+    for(var kk in v){
+      if(ILL.test(kk)||kk.indexOf('/')>=0) return false;
+      if(!legalValue(v[kk],depth+1)) return false;
+    }
+    return true;
   }
 
+  for(k in map){
+    if(!k||SKIP.test(k)) continue;
+    if(ILL.test(k)){
+      var parts=k.split('/'),safe=[];
+      for(i=0;i<parts.length;i++){ if(ILL.test(parts[i])) break; safe.push(parts[i]); }
+      var anc=safe.join('/');
+      if(!anc){ dropped.push(k); continue; }
+      var val=valueAt(anc);
+      if(val===undefined||!legalValue(val,0)){ dropped.push(k); continue; }
+      out[anc]=val;
+      continue;
+    }
+    out[k]=map[k]===undefined?null:map[k];
+  }
 
-
-
-
-  return {map:out,n:n};
-
-
-
-
-
+  /* update() rejects a payload holding both a node and a descendant of it. */
+  var keys=Object.keys(out).sort(function(a,b){ return a.length-b.length; }),
+      final={},n=0;
+  keys.forEach(function(key){
+    var seg=key.split('/');
+    for(var d=1;d<seg.length;d++){
+      if(final[seg.slice(0,d).join('/')]!==undefined) return;
+    }
+    final[key]=out[key]; n++;
+  });
+  try{ window.__kpSyncDropped=dropped; }catch(e){}
+  if(dropped.length) try{ console.warn('[sync] '+dropped.length+' path(s) are not writable to Firebase and were skipped:',dropped.slice(0,8)); }catch(e){}
+  return {map:final,n:n,dropped:dropped.length};
 }
 
 
@@ -109121,35 +109132,20 @@ function pushLeaves(){
 
 
   if(!s.n){
-
-
-
-
-
-    /* No diff means the server already matches us. */
-
-
-
-
-
+    /* Nothing writable in the diff. That USUALLY means the server already
+       matches us — but it also happens when every changed path had to be
+       skipped as unwritable. Treating that second case as "already in sync"
+       cleared the unsent-edit flag, and the next refresh then let the server
+       copy overwrite the local work with no error shown anywhere. Only
+       declare success when the diff was genuinely empty. */
+    if(s.dropped){
+      console.warn('[sync] keeping the unsent-edit flag: '+s.dropped+' path(s) could not be written to Firebase');
+      try{ toast('This change could NOT be uploaded to Firebase ('+s.dropped+' unsupported field name'+(s.dropped===1?'':'s')+'). It stays on this device and will not be overwritten when you refresh.',false); }catch(e){}
+      paintGate(); return;
+    }
     try{ if(typeof __syncClearDirty==='function') __syncClearDirty(); }catch(e){}
-
-
-
-
-
     try{ if(typeof window.__syncClearPending==='function') window.__syncClearPending(pendingRev); }catch(e){}
-
-
-
-
-
     SYNCX.lastSent=SYNCX.lastSent||new Date(); paintGate(); return;
-
-
-
-
-
   }
 
 
@@ -117998,58 +117994,107 @@ setTimeout(dcInstall,1200);setTimeout(dcInstallButton,4000);
 </script>
 <script id="kpXlsCloudSyncFix">
 /* ═══════════════════════════════════════════════════════════════════════════
-   EXCEL IMPORT → FIREBASE AUTO-UPLOAD FIX  (v1)
+   EXCEL IMPORT → FIREBASE:  UNSENT-IMPORT VAULT  (v2)
 
-   PROBLEM
-   ───────
-   Importing an Excel file changed the data on screen and in localStorage, but
-   teammates never saw it. Two independent causes:
+   THE SYMPTOM
+   ───────────
+   Import an Excel file (worst on Network & Infrastructure / p5): the change
+   shows on this machine, teammates never receive it, and after a refresh the
+   local copy reverts to the server's older version. The work is gone.
 
-   1. sanitizePaths() in the v510 leaf-sync SILENTLY DROPS any leaf path that
-      contains  .  #  $  [  ]  — these are illegal in a Realtime Database path.
-      Excel column keys are derived from the sheet headers, so a header such as
-      "No." or "Qty." produces a key with a dot, and every value under it was
-      discarded before the write. The push then reported success, because it
-      succeeded — it just wasn't carrying the imported data.
+   WHY A VAULT INSTEAD OF ANOTHER POINT FIX
+   ────────────────────────────────────────
+   The upload can fail at several independent points — the write gate being
+   shut, a baseline that never bootstrapped, a path the database will not
+   accept, a listener re-applying the server copy over a local edit, or the
+   in-memory "unsent edit" flag being lost on reload because it lives in a
+   plain variable. Every one of those ends the same way: the browser forgets
+   that this machine holds work the server has never seen, so the next
+   snapshot overwrites it.
 
-   2. pushLeaves() refuses to write when the write-gate is closed or no
-      bootstrap baseline exists. It only logs a console warning, so the import
-      toast still said "cloud sync queued" while nothing was ever queued.
+   So instead of guarding each path, this keeps the imported project in
+   localStorage and refuses to let go of it until the SERVER has confirmed it.
+     • On import  — the changed project is copied into the vault first, then
+                    uploaded.
+     • On reload  — if the vault still holds work, it is re-applied over
+                    whatever the server sent, then uploaded again.
+     • Clearing   — only after reading the project back from Firebase and
+                    confirming it matches. A failed or partial upload keeps the
+                    vault, so the data cannot be lost by refreshing.
 
-   WHAT THIS DOES
-   ──────────────
-   After any Excel import finishes, it force-uploads the changed project(s):
-     • reads the CURRENT server copy of that one project,
-     • diffs it against the local copy to get only the fields that changed,
-     • rewrites illegal paths up to their nearest legal ancestor instead of
-       dropping them,
-     • writes with update() scoped to  projects/<key>/…  only,
-     • reads back to verify, and reports the real result in a toast.
-
-   WHAT IT DELIBERATELY DOES NOT DO
-   ────────────────────────────────
-   • No set() at the room root — other projects, activity, progressFeed,
-     _deletedIds and every other root key are never included in the payload
-     and are therefore left exactly as they are on the server.
-   • No writes to any project the import did not touch.
-   • No seeding, no migration, no schema change, no deletion of unknown keys
-     outside the changed project.
+   WHAT IT WILL NOT DO
+   ───────────────────
+   • No set() on the room, no remove(), no deletes. Every write is update()
+     with keys scoped to  projects/<key>/… , so other projects, activity,
+     progressFeed and _deletedIds on the server are never in the payload and
+     are left exactly as they are.
+   • It never writes a project the import did not change.
    ═══════════════════════════════════════════════════════════════════════════ */
 (function(){
-if(window.__kpXlsCloudFixV1) return; window.__kpXlsCloudFixV1=true;
+if(window.__kpXlsVaultV2) return; window.__kpXlsVaultV2=true;
 
-var ILLEGAL=/[.#$\[\]]/;
+var VAULT='kp_unsent_imports';
+var LOGK='kp_sync_blackbox';
+var BUILD='XLS-VAULT-v3';
+var ILL=/[.#$\[\]]/;
 
-function say(msg,ok){ try{ toast(msg,!!ok); }catch(e){ try{console.log('[xls-cloud]',msg);}catch(_){}} }
-function log(){ try{ console.info.apply(console,['[xls-cloud]'].concat([].slice.call(arguments))); }catch(e){} }
+/* ── Black box ───────────────────────────────────────────────────────────
+   The interesting events straddle a page refresh, so an in-memory log is
+   useless here. Everything is appended to localStorage instead and survives
+   reloads. Run kpSyncReport() to print it. */
+function rec(ev,data){
+  try{
+    var a=[]; try{ a=JSON.parse(localStorage.getItem(LOGK)||'[]')||[]; }catch(e){}
+    a.push({t:new Date().toISOString().slice(11,23),ev:ev,d:data===undefined?null:data});
+    while(a.length>260) a.shift();
+    localStorage.setItem(LOGK,JSON.stringify(a));
+  }catch(e){}
+  try{ console.info('[vault]',ev,data===undefined?'':data); }catch(e){}
+}
+window.kpSyncReport=function(){
+  var a=[]; try{ a=JSON.parse(localStorage.getItem(LOGK)||'[]')||[]; }catch(e){}
+  var txt='=== PORTAL SYNC REPORT ('+BUILD+') ===\n';
+  try{ txt+='connected='+!!(window.SYNC&&SYNC.ref)+' room='+((window.SYNC&&SYNC.room)||'-')+'\n'; }catch(e){}
+  try{ txt+='gate='+JSON.stringify((typeof window.__syncGate==='function')?window.__syncGate():'n/a')+'\n'; }catch(e){}
+  try{ txt+='openProject='+(window.CUR_PROJ||'-')+'\n'; }catch(e){}
+  try{ txt+='vault='+JSON.stringify(Object.keys(readVault()))+'\n'; }catch(e){}
+  try{ txt+='projectsInStore='+((window.STORE&&STORE.projects&&STORE.projects.length)||0)+'\n'; }catch(e){}
+  txt+='--- events ---\n';
+  a.forEach(function(e){ txt+=e.t+'  '+e.ev+(e.d!==null?('  '+JSON.stringify(e.d)):'')+'\n'; });
+  console.log(txt);
+  try{ if(navigator.clipboard) navigator.clipboard.writeText(txt); }catch(e){}
+  try{ toast('Sync report printed to the console and copied to your clipboard.',true); }catch(e){}
+  return txt;
+};
+window.kpSyncReportClear=function(){ try{ localStorage.removeItem(LOGK); }catch(e){} return 'cleared'; };
+
+function say(m,ok){ try{ toast(m,!!ok); }catch(e){ try{console.log('[vault]',m);}catch(_){}} }
+function log(){ try{ console.info.apply(console,['[vault]'].concat([].slice.call(arguments))); }catch(e){} }
 function clone(o){ try{ return JSON.parse(JSON.stringify(o)); }catch(e){ return null; } }
 function connected(){ return !!(window.SYNC && SYNC.ref); }
 
-/* ── Leaf diff ────────────────────────────────────────────────────────────
-   Same shape as the built-in __diffLeaves, but re-implemented locally so the
-   fix keeps working if that helper is ever renamed. Deletions become null. */
+/* ── Vault storage ──────────────────────────────────────────────────────── */
+function readVault(){
+  try{ var v=JSON.parse(localStorage.getItem(VAULT)||'{}'); return (v&&typeof v==='object')?v:{}; }
+  catch(e){ return {}; }
+}
+function writeVault(v){
+  try{ localStorage.setItem(VAULT,JSON.stringify(v)); }catch(e){
+    try{ console.warn('[vault] could not be saved (storage full?)',e); }catch(_){}
+  }
+}
+function stash(pid,projObj,source){
+  var v=readVault();
+  v[pid]={at:new Date().toISOString(),source:source||'Excel import',project:clone(projObj)};
+  writeVault(v);
+  log('stashed',pid);
+}
+function unstash(pid){ var v=readVault(); if(v[pid]){ delete v[pid]; writeVault(v); log('cleared',pid); } }
+window.kpUnsentImports=function(){ return Object.keys(readVault()); };
+
+/* ── Leaf diff (local copy, independent of the sync module) ─────────────── */
 function isObj(v){ return v && typeof v==='object' && !Array.isArray(v); }
-function diffLeaves(base,next,prefix,out,depth){
+function diff(base,next,prefix,out,depth){
   out=out||{}; prefix=prefix||''; depth=depth||0;
   if(depth>12){ out[prefix]=next; return out; }
   if(Array.isArray(base)||Array.isArray(next)){
@@ -118057,7 +118102,7 @@ function diffLeaves(base,next,prefix,out,depth){
       if(JSON.stringify(base)!==JSON.stringify(next)) out[prefix]=next;
       return out;
     }
-    for(var i=0;i<next.length;i++) diffLeaves(base[i],next[i],prefix+'/'+i,out,depth+1);
+    for(var i=0;i<next.length;i++) diff(base[i],next[i],prefix+'/'+i,out,depth+1);
     return out;
   }
   if(isObj(base)&&isObj(next)){
@@ -118068,260 +118113,284 @@ function diffLeaves(base,next,prefix,out,depth){
       var p=prefix?(prefix+'/'+k):k;
       if(!(k in next)){ out[p]=null; continue; }
       if(!(k in base)){ out[p]=next[k]; continue; }
-      diffLeaves(base[k],next[k],p,out,depth+1);
+      diff(base[k],next[k],p,out,depth+1);
     }
     return out;
   }
-  if(base!==next){ out[prefix]=(next===undefined?null:next); }
+  if(base!==next) out[prefix]=(next===undefined?null:next);
   return out;
 }
-
-/* ── Fix #1: never drop an illegal path, lift it to a legal ancestor ──────
-   "sites/0/Qty./done" cannot be written. The nearest ancestor whose own
-   segments are all legal is "sites/0", so that whole node is written instead.
-   The value comes from the LOCAL object, so nothing is lost. */
-function liftIllegal(map,localRoot){
-  var out={},lifted=0,k;
-  function valueAt(path){
-    if(!path) return localRoot;
-    var cur=localRoot,parts=path.split('/');
-    for(var i=0;i<parts.length;i++){
-      if(cur==null||typeof cur!=='object') return null;
-      cur=cur[parts[i]];
-    }
-    return cur===undefined?null:cur;
+/* Every key anywhere in a value must be storable, or the write is rejected. */
+function legalValue(v,d){
+  d=d||0; if(d>14) return false;
+  if(v===null||typeof v!=='object') return true;
+  if(Array.isArray(v)){
+    for(var i=0;i<v.length;i++) if(!legalValue(v[i],d+1)) return false;
+    return true;
   }
-  for(k in map){
-    if(!k){ continue; }
-    if(!ILLEGAL.test(k)){ out[k]=map[k]===undefined?null:map[k]; continue; }
-    /* Walk up until every remaining segment is legal. */
-    var parts=k.split('/'),safe=[];
-    for(var i=0;i<parts.length;i++){
-      if(ILLEGAL.test(parts[i])) break;
-      safe.push(parts[i]);
-    }
-    var anc=safe.join('/');
-    if(!anc){ return {whole:true}; }          /* illegal right at the top */
-    out[anc]=valueAt(anc);
-    lifted++;
+  for(var k in v){
+    if(ILL.test(k)||k.indexOf('/')>=0) return false;
+    if(!legalValue(v[k],d+1)) return false;
   }
-  return {map:out,lifted:lifted};
+  return true;
 }
 
-/* ── Locate the project on the server by id, not by index ────────────────
-   Firebase may store "projects" as an array or as an object, and the index
-   can differ from the local one, so matching on id is the only safe way. */
+/* ── Server lookup by id, never by index ────────────────────────────────── */
 function locate(pid){
   return SYNC.ref.child('projects').once('value').then(function(snap){
-    var val=snap&&snap.val();
+    var val=snap&&snap.val(),k;
     if(val==null) return {key:null,remote:null,absent:true};
-    var k;
     if(Array.isArray(val)){
-      for(var i=0;i<val.length;i++){
+      for(var i=0;i<val.length;i++)
         if(val[i]&&String(val[i].id)===String(pid)) return {key:String(i),remote:val[i]};
-      }
     }else{
-      for(k in val){
+      for(k in val)
         if(val[k]&&String(val[k].id)===String(pid)) return {key:k,remote:val[k]};
-      }
     }
     return {key:null,remote:null,absent:true};
   });
 }
-
 function localProject(pid){
   try{
     if(!window.STORE||!Array.isArray(STORE.projects)) return null;
-    for(var i=0;i<STORE.projects.length;i++){
+    for(var i=0;i<STORE.projects.length;i++)
       if(STORE.projects[i]&&String(STORE.projects[i].id)===String(pid))
         return {obj:STORE.projects[i],index:i};
-    }
   }catch(e){}
   return null;
 }
 
-/* ── Push ONE project, scoped, verified ─────────────────────────────────── */
-function pushProject(pid){
+/* ── Upload one project and verify it landed ────────────────────────────── */
+function uploadProject(pid){
   var loc=localProject(pid);
-  if(!loc) return Promise.resolve({ok:false,reason:'project not found locally'});
+  if(!loc) return Promise.resolve({ok:false,pid:pid,reason:'project not found on this device'});
   var local=clone(loc.obj);
-  if(!local) return Promise.resolve({ok:false,reason:'project could not be packaged'});
+  if(!local) return Promise.resolve({ok:false,pid:pid,reason:'project could not be packaged'});
+  if(!legalValue(local)) return Promise.resolve({ok:false,pid:pid,reason:'this project contains a field name Firebase cannot store'});
 
   return locate(pid).then(function(found){
     var key=found.absent?String(loc.index):found.key;
     var base=found.absent?{}:found.remote;
-    var payload={},n=0,lifted=0,k;
+    var raw=diff(base,local,'',{},0),payload={},n=0,k;
 
-    var raw=diffLeaves(base,local,'',{},0);
-    var fixed=liftIllegal(raw,local);
-
-    if(fixed.whole){
-      payload['projects/'+key]=local;
-      n=1;
-    }else{
-      lifted=fixed.lifted;
-      for(k in fixed.map){
-        payload[(k?('projects/'+key+'/'+k):('projects/'+key))]=fixed.map[k];
-        n++;
-      }
+    for(k in raw){
+      if(!k){ payload['projects/'+key]=local; n=1; break; }
+      if(ILL.test(k)){ payload={}; payload['projects/'+key]=local; n=1; break; }
+      payload['projects/'+key+'/'+k]=raw[k]; n++;
     }
-    if(!n) return {ok:true,unchanged:true,key:key};
+    if(!n) return {ok:true,pid:pid,key:key,already:true};
 
-    var bytes=0; try{ bytes=JSON.stringify(payload).length; }catch(e){}
-    log('writing '+n+' path(s), '+lifted+' lifted, '+bytes+' bytes to projects/'+key);
+    /* An update() may not hold both a node and a descendant of it. */
+    var keys=Object.keys(payload).sort(function(a,b){ return a.length-b.length; }),clean={},c=0;
+    keys.forEach(function(key2){
+      var seg=key2.split('/');
+      for(var d=1;d<seg.length;d++) if(clean[seg.slice(0,d).join('/')]!==undefined) return;
+      clean[key2]=payload[key2]; c++;
+    });
 
-    return SYNC.ref.update(payload).then(function(){
-      /* Verify: read the project back and confirm it now matches. */
+    var bytes=0; try{ bytes=JSON.stringify(clean).length; }catch(e){}
+    rec('upload-try',{pid:pid,serverKey:key,paths:c,bytes:bytes,sample:Object.keys(clean).slice(0,4)});
+
+    return SYNC.ref.update(clean).then(function(){
+      /* Verify against the server rather than trusting the write. */
       return SYNC.ref.child('projects/'+key).once('value').then(function(s){
         var back=s&&s.val();
-        var same=JSON.stringify(back)===JSON.stringify(local);
-        return {ok:true,key:key,paths:n,lifted:lifted,bytes:bytes,verified:same};
+        var remaining=0,d2=diff(back||{},local,'',{},0);
+        for(var q in d2) remaining++;
+        rec(remaining===0?'upload-VERIFIED':'upload-UNVERIFIED',{pid:pid,remaining:remaining});
+        return {ok:remaining===0,pid:pid,key:key,paths:c,bytes:bytes,
+                remaining:remaining,
+                reason:remaining?('the server still differs in '+remaining+' field(s) after the write'):''};
       });
+    },function(err){
+      var why=(err&&(err.message||err.code))||'the write was rejected';
+      rec('upload-REJECTED',{pid:pid,reason:why});
+      return {ok:false,pid:pid,reason:why};
     });
+  },function(err){
+    return {ok:false,pid:pid,reason:'could not read the project from Firebase ('+((err&&(err.message||err.code))||'unknown')+')'};
   });
 }
 
-/* ── Public: force-sync the given projects (or the open one) ─────────────── */
-function forceSync(pids){
+/* ── Public: upload everything the vault is holding ─────────────────────── */
+function flush(quiet){
+  var ids=Object.keys(readVault());
+  if(!ids.length) return Promise.resolve({ok:true,nothing:true});
+  rec('flush',{waiting:ids,connected:connected(),gate:(function(){try{return window.__syncGate?window.__syncGate():'n/a';}catch(e){return 'n/a';}})()});
   if(!connected()){
-    say('Not connected to Firebase — the import is saved on this device only. Open Sync Settings, connect, then press Sync now.',false);
+    if(!quiet) say('Not connected to Firebase — '+ids.length+' Excel import'+(ids.length===1?' is':'s are')+' still waiting on this device. Connect in Sync Settings; nothing is lost.',false);
     return Promise.resolve({ok:false,reason:'not connected'});
   }
-  var list=(pids&&pids.length)?pids.slice():[];
-  if(!list.length){
-    try{ if(window.CUR_PROJ) list=[CUR_PROJ]; }catch(e){}
-  }
-  if(!list.length){
-    say('Nothing to upload — no project is open.',false);
-    return Promise.resolve({ok:false,reason:'no project'});
-  }
-
-  say('Uploading the imported data to Firebase…',true);
+  if(!quiet) say('Uploading '+ids.length+' Excel import'+(ids.length===1?'':'s')+' to Firebase…',true);
 
   var results=[],chain=Promise.resolve();
-  list.forEach(function(pid){
+  ids.forEach(function(pid){
     chain=chain.then(function(){
-      return pushProject(pid).then(function(r){ r.pid=pid; results.push(r); },
-      function(err){
-        results.push({ok:false,pid:pid,reason:(err&&(err.message||err.code))||'unknown error'});
+      return uploadProject(pid).then(function(r){
+        results.push(r);
+        if(r.ok) unstash(pid);        /* only after the server confirmed it */
       });
     });
   });
 
   return chain.then(function(){
     var bad=results.filter(function(r){ return !r.ok; });
-    var wrote=results.filter(function(r){ return r.ok&&!r.unchanged; });
-    var paths=wrote.reduce(function(a,r){ return a+(r.paths||0); },0);
-    var lifted=wrote.reduce(function(a,r){ return a+(r.lifted||0); },0);
-    var unverified=wrote.filter(function(r){ return r.verified===false; });
-
+    var sent=results.filter(function(r){ return r.ok&&!r.already; });
     if(bad.length){
-      say('Firebase upload FAILED — your team did NOT receive this import ('+(bad[0].reason||'unknown error')+'). The data is still safe on this device; fix the connection and press Sync now.',false);
+      say('Firebase upload FAILED — '+(bad[0].reason||'unknown error')+'. Your import is SAFE on this device and will be retried; refreshing will not lose it.',false);
       return {ok:false,results:results};
     }
-    if(!wrote.length){
-      say('Firebase already matches this project — nothing needed uploading.',true);
-      /* Keep the local baseline in step so the next edit diffs correctly. */
-      try{ if(typeof pushNow==='function') pushNow(); }catch(e){}
-      return {ok:true,unchanged:true,results:results};
-    }
-    var bits=[paths+' field'+(paths===1?'':'s')];
-    if(lifted) bits.push(lifted+' recovered from unsupported column name'+(lifted===1?'':'s'));
-    if(unverified.length) bits.push('verify pending');
-    say('Uploaded to Firebase — your team can see this now · '+bits.join(' · '),true);
-
-    /* Refresh the sync baseline so ordinary edits keep working normally. */
-    try{ if(typeof pushNow==='function') setTimeout(pushNow,400); }catch(e){}
+    if(!sent.length){ if(!quiet) say('Firebase already has this data.',true); return {ok:true,results:results}; }
+    var paths=sent.reduce(function(a,r){ return a+(r.paths||0); },0);
+    say('Uploaded to Firebase and verified — your team can see this now ('+paths+' field'+(paths===1?'':'s')+').',true);
     try{ if(typeof setSyncUI==='function') setSyncUI('live'); }catch(e){}
     return {ok:true,results:results};
   });
 }
-window.kpForceCloudSync=forceSync;
+window.kpForceCloudSync=function(){ 
+  /* Re-stash the open project so a manual press always has something to send. */
+  try{
+    var pid=window.CUR_PROJ, l=pid&&localProject(pid);
+    if(l) stash(pid,l.obj,'manual sync');
+  }catch(e){}
+  return flush(false);
+};
 
-/* ── Watch STORE after an import, then upload what actually changed ─────── */
-function snapshotProjects(){
+/* ── On reload: put the vault back over whatever the server sent ─────────── */
+function restore(){
+  var v=readVault(),ids=Object.keys(v);
+  rec('restore-check',{vault:ids});
+  if(!ids.length) return;
+  var restored=[];
+  ids.forEach(function(pid){
+    var saved=v[pid]&&v[pid].project;
+    if(!saved) return;
+    var loc=localProject(pid);
+    if(!loc){
+      try{ if(window.STORE&&Array.isArray(STORE.projects)){ STORE.projects.push(clone(saved)); restored.push(pid); } }catch(e){}
+      return;
+    }
+    var cur=''; try{ cur=JSON.stringify(loc.obj); }catch(e){}
+    if(cur===JSON.stringify(saved)) return;              /* already correct */
+    try{
+      var live=loc.obj;
+      Object.keys(live).forEach(function(k){ if(!(k in saved)) delete live[k]; });
+      Object.keys(saved).forEach(function(k){ live[k]=clone(saved[k]); });
+      restored.push(pid);
+    }catch(e){}
+  });
+  rec('restore',{projects:restored,vaultHeld:ids});
+  if(!restored.length) return;
+  try{ if(typeof persist==='function') persist(restored[0]); }catch(e){}
+  try{ if(typeof renderHub==='function') renderHub(); }catch(e){}
+  try{ if(window.CUR_PROJ&&typeof renderProjectView==='function') renderProjectView(CUR_PROJ); }catch(e){}
+  say('Restored an Excel import that had not reached Firebase yet. Re-uploading…',true);
+}
+
+/* ── Watch STORE after an import, stash, then upload ─────────────────────── */
+function snapProjects(){
   var m={};
   try{
-    if(window.STORE&&Array.isArray(STORE.projects)){
-      STORE.projects.forEach(function(p){
-        if(p&&p.id) m[p.id]=JSON.stringify(p);
-      });
-    }
+    if(window.STORE&&Array.isArray(STORE.projects))
+      STORE.projects.forEach(function(p){ if(p&&p.id) m[p.id]=JSON.stringify(p); });
   }catch(e){}
   return m;
 }
-function changedSince(before){
-  var now=snapshotProjects(),out=[],k;
-  for(k in now){ if(before[k]!==now[k]) out.push(k); }
-  return out;
-}
-
 var watching=false;
-function watchAndPush(before,hintPid){
+function watchAndPush(before){
   if(watching) return; watching=true;
-  var tries=0,MAX=32;              /* ≈13s: FileReader + parse + persist */
-  var settle=0,lastSig='';
-  var timer=setInterval(function(){
+  var tries=0,settle=0,lastSig='';
+  var t=setInterval(function(){
     tries++;
-    var ch=changedSince(before);
+    var now=snapProjects(),ch=[],k;
+    for(k in now) if(before[k]!==now[k]) ch.push(k);
     var sig=ch.join(',');
     if(ch.length){
-      /* Wait for two consecutive identical reads so a multi-sheet import
-         is not uploaded halfway through. */
-      if(sig===lastSig){ settle++; } else { settle=0; lastSig=sig; }
+      if(sig===lastSig) settle++; else { settle=0; lastSig=sig; }
       if(settle>=2){
-        clearInterval(timer); watching=false;
-        forceSync(ch);
+        clearInterval(t); watching=false;
+        rec('import-detected',{projects:ch,afterMs:tries*400});
+        ch.forEach(function(pid){ var l=localProject(pid); if(l) stash(pid,l.obj,'Excel import'); });
+        flush(false);
         return;
       }
     }
-    if(tries>=MAX){
-      clearInterval(timer); watching=false;
-      if(!ch.length){
-        /* Import produced no change, or it failed — say nothing, the
-           importer's own toast already explained what happened. */
-        log('no project change detected after import');
-      }else{
-        forceSync(ch);
-      }
+    if(tries>=32){
+      clearInterval(t); watching=false;
+      if(ch.length){
+        ch.forEach(function(pid){ var l=localProject(pid); if(l) stash(pid,l.obj,'Excel import'); });
+        flush(false);
+      }else rec('import-NO-CHANGE',{note:'STORE.projects was not modified by the import — the importer never wrote to the shared store'});
     }
   },400);
 }
 
-/* ── Wrap every import entry point ──────────────────────────────────────── */
 function wrap(name){
   var orig=window[name];
-  if(typeof orig!=='function'||orig.__kpXlsCloudFix) return;
+  if(typeof orig!=='function'||orig.__kpVault) return;
   var w=function(){
-    var before=snapshotProjects();
-    var hint=null; try{ hint=window.CUR_PROJ||null; }catch(e){}
-    var r;
+    var before=snapProjects(),r;
     try{ r=orig.apply(this,arguments); }
-    finally{ try{ watchAndPush(before,hint); }catch(e){} }
+    finally{ try{ watchAndPush(before); }catch(e){} }
     return r;
   };
-  w.__kpXlsCloudFix=true;
+  w.__kpVault=true;
   try{ w.__kpV518=orig.__kpV518; }catch(e){}
   window[name]=w;
-  log('wrapped '+name);
+}
+var TARGETS=['handleExcelUpload','runImport','importAllSiteTrackers','importSiteDepartments',
+             'trImport','finImportXlsx','supplyImportExcel','importWorkbook','dcImportExcel'];
+function install(){
+  var found=[],missing=[];
+  TARGETS.forEach(function(n){
+    if(typeof window[n]==='function'){ found.push(n+(window[n].__kpVault?'*':'')); wrap(n); }
+    else missing.push(n);
+  });
+  if(!install.__logged||install.__last!==found.join(',')){
+    install.__logged=true; install.__last=found.join(',');
+    rec('wrap',{wrapped:found,absent:missing});
+  }
 }
 
-var TARGETS=['handleExcelUpload','runImport','importAllSiteTrackers',
-             'importSiteDepartments','trImport','finImportXlsx',
-             'supplyImportExcel','importWorkbook','dcImportExcel'];
+/* ── Diagnostics ────────────────────────────────────────────────────────── */
+window.kpSyncDiag=function(){
+  var out={};
+  try{ out.connected=connected(); }catch(e){ out.connected=false; }
+  try{ out.room=(window.SYNC&&SYNC.room)||null; }catch(e){}
+  try{ out.gate=(typeof window.__syncGate==='function')?window.__syncGate():'n/a'; }catch(e){}
+  try{ out.openProject=window.CUR_PROJ||null; }catch(e){}
+  try{ out.unsentImports=Object.keys(readVault()); }catch(e){}
+  try{ out.pendingFlags=(typeof window.__syncPendingMap==='function')?window.__syncPendingMap():'n/a'; }catch(e){}
+  try{ out.unwritablePaths=window.__kpSyncDropped||[]; }catch(e){}
+  try{
+    var l=out.openProject&&localProject(out.openProject);
+    out.projectLegalForFirebase=l?legalValue(clone(l.obj)):'n/a';
+  }catch(e){}
+  console.log('%c[sync diagnostics]','font-weight:bold',out);
+  var why = !out.connected ? 'NOT CONNECTED to Firebase — connect in Sync Settings.'
+    : (out.gate&&out.gate.writable===false) ? ('WRITES BLOCKED — '+(out.gate.reason||'unknown')+'.')
+    : (out.projectLegalForFirebase===false) ? 'This project has a field name Firebase cannot store — send me the console output.'
+    : (out.unsentImports&&out.unsentImports.length) ? ('Waiting to upload: '+out.unsentImports.join(', ')+' — run kpForceCloudSync().')
+    : 'Nothing is waiting to upload.';
+  console.log('%c'+why,'color:#B12836;font-weight:bold');
+  try{ toast(why,out.connected); }catch(e){}
+  return out;
+};
 
-function install(){ TARGETS.forEach(wrap); }
-
-/* The importers are themselves re-wrapped by several later modules, so run
-   after them and then re-check a few times. Wrapping is idempotent. */
+/* ── Boot ───────────────────────────────────────────────────────────────── */
 if(document.readyState==='loading')
   document.addEventListener('DOMContentLoaded',function(){ setTimeout(install,400); });
 else setTimeout(install,400);
-setTimeout(install,1500);
-setTimeout(install,4000);
-setTimeout(install,9000);
+setTimeout(install,1500); setTimeout(install,4000); setTimeout(install,9000);
 
-log('Excel → Firebase auto-upload fix armed');
+/* Restore after the bootstrap read has had time to land, then keep retrying. */
+setTimeout(function(){ try{ restore(); }catch(e){} },6000);
+setTimeout(function(){ flush(true); },9000);
+setInterval(function(){ flush(true); },60000);
+
+rec('boot',{build:BUILD,vault:Object.keys(readVault()),
+            projects:(function(){try{return STORE&&STORE.projects?STORE.projects.length:0;}catch(e){return 'n/a';}})()});
+setTimeout(function(){ try{ toast('Portal sync build '+BUILD+' active.',true); }catch(e){} },2500);
 })();
 </script>
 
