@@ -19677,9 +19677,9 @@ function importWorkbook(file,p){
 
     var sm=wb.SheetNames.find(function(sn){return C(sn)==='summary';});if(sm)(all[sm]||[]).forEach(function(r){var k=N(r[0]),v=T(r[1]);if(!v)return;if(/project name.*arabic|اسم.*عرب/.test(k))work.name=v;if(/project name.*english|اسم.*انج/.test(k))work.nameEn=v;});var ts=wb.SheetNames.find(function(sn){return C(sn)==='trainingsettings';});if(ts&&work.meta&&work.meta.trainingModel)(all[ts]||[]).forEach(function(r){if(C(r[0])==='targettrainees'){var n=Number(T(r[1]).replace(/[,٬]/g,''));if(!Number.isSafeInteger(n)||n<=0)throw new Error('Target Trainees must be a positive whole number');work.meta.targetTrainees=n;}});
 
-    work.meta=work.meta||{};work.meta.sourceFile=file.name;work.meta.lastExcelImport=new Date().toISOString();delete work.meta.excelVisibleContexts;if(work.meta.trainingModel&&typeof trOverall==='function')work.progress=trOverall(work);Object.keys(live).forEach(function(k){if(k!=='id'&&!Object.prototype.hasOwnProperty.call(work,k))delete live[k];});Object.keys(work).forEach(function(k){live[k]=work[k];});persist(live.id);if(typeof window.kpCommitExcelProject==='function')window.kpCommitExcelProject(live.id,file.name);try{renderProjectView(live.id);renderHub();}catch(e){}
+    work.meta=work.meta||{};work.meta.sourceFile=file.name;work.meta.lastExcelImport=new Date().toISOString();delete work.meta.excelVisibleContexts;if(work.meta.trainingModel&&typeof trOverall==='function')work.progress=trOverall(work);Object.keys(live).forEach(function(k){if(k!=='id'&&!Object.prototype.hasOwnProperty.call(work,k))delete live[k];});Object.keys(work).forEach(function(k){live[k]=work[k];});persist(live.id);try{renderProjectView(live.id);renderHub();}catch(e){}
 
-    var total=reports.reduce(function(a,x){a.rows+=x.rows||0;a.added+=x.added;a.removed+=x.removed;a.renamed+=x.renamed;a.deleted+=x.deleted||0;return a;},{rows:0,added:0,removed:0,renamed:0,deleted:0});try{toast('Excel applied locally · verifying Firebase before it is marked permanent…',true);}catch(e){}
+    var total=reports.reduce(function(a,x){a.rows+=x.rows||0;a.added+=x.added;a.removed+=x.removed;a.renamed+=x.renamed;a.deleted+=x.deleted||0;return a;},{rows:0,added:0,removed:0,renamed:0,deleted:0});try{toast('Excel applied permanently · '+reports.length+' table(s) · '+total.rows+' row(s) · '+total.added+' added · '+total.renamed+' renamed · '+total.removed+' removed',true);}catch(e){}
 
   }catch(err){console.error('[Excel v30 import]',err);try{toast('Excel import failed; no changes applied: '+err.message,false);}catch(e){}}};rd.readAsArrayBuffer(file);});
 
@@ -49240,6 +49240,26 @@ function resCSS(){ return '<style id="resCSS">'+
 
 
 
+'.survey-chart-row{grid-template-columns:minmax(500px,2.2fr) minmax(250px,1fr) minmax(250px,1fr);align-items:stretch}'+
+
+
+
+'.survey-chart-row>.mini{min-width:0;min-height:232px;height:100%}.survey-chart-row .survey-bar{display:flex;flex-direction:column}.survey-chart-row .survey-bar>svg{flex:1}'+
+
+
+
+'.survey-chart-row .survey-donut{display:flex;flex-direction:column}.survey-chart-row .survey-donut>div{flex:1;min-height:184px;align-content:center;flex-wrap:nowrap!important;gap:8px!important}.survey-chart-row .survey-donut svg{width:116px!important;height:116px!important}.survey-chart-row .survey-donut>div>div{min-width:0!important}'+
+
+
+
+'@media(max-width:1120px){.survey-chart-row{grid-template-columns:1fr 1fr}.survey-chart-row .survey-bar{grid-column:1/-1}}'+
+
+
+
+'@media(max-width:680px){.survey-chart-row{grid-template-columns:1fr}.survey-chart-row .survey-bar{grid-column:auto}.survey-chart-row>.mini{min-height:0}.survey-chart-row .survey-donut>div{min-height:0;flex-wrap:wrap!important}.survey-chart-row .survey-donut svg{width:140px!important;height:140px!important}}'+
+
+
+
 
 
 '.mini{border:1px solid #ececf0;border-radius:12px;padding:12px 13px;background:#fafbfc}.mini h4{margin:0 0 9px;font-size:12.5px;font-weight:800;color:#374151}'+
@@ -52294,25 +52314,25 @@ function renderSurvey(p){
 
 
 
-    '<div class="res-cols">'+
+    '<div class="res-cols survey-chart-row">'+
 
 
 
 
 
-    '<div class="mini" style="grid-column:1/-1"><h4>Completion by municipality (%)</h4>'+(typeof resBarV==='function'?resBarV(byPct,'%'):'')+'</div>'+
+    '<div class="mini survey-bar"><h4>Completion by municipality (%)</h4>'+(typeof resBarV==='function'?resBarV(byPct,'%'):'')+'</div>'+
 
 
 
 
 
-    '<div class="mini"><h4>Completed vs Remaining (records)</h4>'+(typeof resPie==='function'?resPie([{label:'Completed',value:totD,color:'#2E7D5B'},{label:'Remaining',value:remaining,color:'#C0392B'}]):'')+'</div>'+
+    '<div class="mini survey-donut"><h4>Completed vs Remaining (records)</h4>'+(typeof resPie==='function'?resPie([{label:'Completed',value:totD,color:'#2E7D5B'},{label:'Remaining',value:remaining,color:'#C0392B'}]):'')+'</div>'+
 
 
 
 
 
-    '<div class="mini"><h4>Site status</h4>'+(typeof resPie==='function'?resPie([{label:'Completed',value:done,color:'#2E7D5B'},{label:'In Progress',value:prog,color:'#C08A2E'},{label:'Not Started',value:notst,color:'#c3c7cd'}]):'')+'</div>'+
+    '<div class="mini survey-donut"><h4>Site status</h4>'+(typeof resPie==='function'?resPie([{label:'Completed',value:done,color:'#2E7D5B'},{label:'In Progress',value:prog,color:'#C08A2E'},{label:'Not Started',value:notst,color:'#c3c7cd'}]):'')+'</div>'+
 
 
 
@@ -108989,13 +109009,6 @@ window.__syncBaseline=function(){ return BASE; };
 
 function pushLeaves(){
 
-  /* Excel import owns its project while its authoritative write is being
-     verified. Do not let the normal debounced writer race that transaction. */
-  if(window.__kpExcelWriteBusy){
-    console.info('[sync] normal writer paused during verified Excel import');
-    return;
-  }
-
 
 
 
@@ -110174,13 +110187,6 @@ function acceptRemoteProject(snap){
 
 
   if(!v||!v.id) return;
-
-  /* An unsent Excel import is authoritative for this project. Ignore stale
-     server echoes until the verified import writer confirms the saved copy. */
-  if(window.__kpImportLocks&&window.__kpImportLocks[v.id]){
-    console.info('[sync] held stale server project during Excel import',v.id);
-    return;
-  }
 
 
 
@@ -117756,7 +117762,7 @@ body.kpdc-open{overflow:hidden!important}
 .kpdc-kpi.total{border-left:4px solid #8b1e2d}.kpdc-kpi.in{border-left:4px solid #2f6db1}.kpdc-kpi.out{border-left:4px solid #1d8153}.kpdc-kpi.size{border-left:4px solid #c08a2e}
 
 .kpdc-panel{background:#fff;border:1px solid #dfe4ea;border-radius:13px;box-shadow:0 7px 24px rgba(25,32,45,.055);overflow:hidden}
-.kpdc-toolbar{padding:13px;display:grid;grid-template-columns:minmax(220px,1fr) 145px 160px 145px 145px;gap:9px;border-bottom:1px solid #e4e8ed;background:#fbfcfd}
+.kpdc-toolbar{padding:13px;display:grid;grid-template-columns:minmax(240px,1fr) 180px 158px 158px;gap:9px;border-bottom:1px solid #e4e8ed;background:#fbfcfd}
 .kpdc-search{position:relative}
 .kpdc-search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:#7b8593;pointer-events:none}
 .kpdc-control{width:100%;height:38px;box-sizing:border-box;border:1px solid #d5dae1;border-radius:9px;background:#fff;color:#323844;padding:0 10px;font:650 10.5px/1 'Montserrat','Segoe UI',sans-serif;outline:none}
@@ -117772,7 +117778,6 @@ body.kpdc-open{overflow:hidden!important}
 .kpdc-no{display:inline-flex;padding:4px 8px;border-radius:7px;background:#f8ecee;color:#831b2a;font:800 10px/1.2 var(--mono,monospace);white-space:nowrap}
 .kpdc-subject{font-weight:800;color:#292f39;max-width:300px}.kpdc-subject small{display:block;margin-top:3px;color:#8a939f;font-size:8.8px;font-weight:550;line-height:1.35;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kpdc-kind{display:inline-flex;align-items:center;padding:4px 8px;border-radius:99px;font-size:8.7px;font-weight:900;white-space:nowrap}.kpdc-kind.incoming{color:#245e9b;background:#eaf2fb}.kpdc-kind.outgoing{color:#176a45;background:#e8f5ee}.kpdc-kind.internal{color:#805814;background:#fff4dc}
-.kpdc-dept{display:inline-flex;align-items:center;padding:4px 8px;border-radius:99px;background:#eef2f7;color:#475467;font-size:8.5px;font-weight:850;white-space:nowrap}
 .kpdc-file{display:inline-flex;align-items:center;gap:7px;color:#47505c;max-width:190px}.kpdc-file b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9.5px}.kpdc-file small{display:block;color:#929aa5;font-size:8.5px;margin-top:2px}
 .kpdc-file-ico{width:28px;height:28px;display:grid;place-items:center;border-radius:7px;background:#f1f3f6;color:#8b1e2d;font-weight:900;font-size:8px;flex:0 0 auto}
 .kpdc-file-list{display:flex;flex-direction:column;gap:6px;min-width:220px;max-width:300px}.kpdc-file-row{display:flex;align-items:center;gap:7px;padding:5px 6px;border:1px solid #e7eaee;border-radius:8px;background:#fbfcfd}.kpdc-file-row .kpdc-file{min-width:0;flex:1;max-width:none}.kpdc-file-tag{display:inline-flex!important;align-items:center;width:max-content;margin:0 0 2px!important;padding:2px 5px;border-radius:99px;background:#f5e4e7;color:#8b1e2d!important;font-size:7px!important;font-weight:900;text-transform:uppercase}.kpdc-file-tag.att{background:#eef2f7;color:#667085!important}.kpdc-file-download{border:1px solid #d6dce3;border-radius:7px;background:#fff;color:#596270;padding:6px 7px;font:800 8px/1 'Montserrat','Segoe UI',sans-serif;cursor:pointer;white-space:nowrap}.kpdc-file-download:hover{border-color:#8b1e2d;color:#8b1e2d}
@@ -117796,7 +117801,7 @@ body.kpdc-open{overflow:hidden!important}
 .kpdc-field{display:flex;flex-direction:column;gap:5px}.kpdc-field.full{grid-column:1/-1}
 .kpdc-field label{font-size:8.8px;font-weight:900;color:#626c79;text-transform:uppercase;letter-spacing:.045em}.kpdc-field label i{font-style:normal;color:#b42318}
 .kpdc-input,.kpdc-textarea,.kpdc-select{width:100%;box-sizing:border-box;border:1px solid #d4dae1;border-radius:9px;background:#fff;color:#303742;padding:0 10px;font:650 10.5px/1.3 'Montserrat','Segoe UI',sans-serif;outline:none}
-.kpdc-input,.kpdc-select{height:39px}.kpdc-textarea{min-height:76px;padding-top:10px;resize:vertical}.kpdc-department-custom{margin-top:7px}.kpdc-department-custom[hidden]{display:none!important}
+.kpdc-input,.kpdc-select{height:39px}.kpdc-textarea{min-height:76px;padding-top:10px;resize:vertical}
 .kpdc-input:focus,.kpdc-textarea:focus,.kpdc-select:focus{border-color:#9f2435;box-shadow:0 0 0 3px rgba(139,30,45,.09)}
 .kpdc-drop{position:relative;display:flex;align-items:center;gap:12px;min-height:76px;padding:12px;border:1.5px dashed #cbd2da;border-radius:11px;background:#fafbfc;cursor:pointer;box-sizing:border-box}
 .kpdc-drop:hover{border-color:#a83545;background:#fff9fa}.kpdc-drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
@@ -117829,7 +117834,7 @@ body.kpdc-open{overflow:hidden!important}
 'use strict';
 if(window.__kpDocumentCenterV30)return;window.__kpDocumentCenterV30=true;
 
-var dcDocs=[],dcById={},dcRef=null,dcStorage=null,dcListener=null,dcReady=false,dcError='',dcUploading=false,dcEditingId='',dcLinkParentId='';
+var dcDocs=[],dcById={},dcRef=null,dcStorage=null,dcListener=null,dcReady=false,dcError='',dcUploading=false,dcEditingId='';
 var dcUploadTask=null,dcUploadTimer=null,dcUploadTimedOut=false,dcUploadCancelled=false,dcUploadLastBytes=0;
 var DC_MAX_SIZE=50*1024*1024;
 var DC_UPLOAD_IDLE_MS=20000;
@@ -117844,11 +117849,10 @@ function dcDate(v){if(!v)return '—';try{return new Intl.DateTimeFormat('en-GB'
 function dcExt(name){var p=String(name||'').split('.');return p.length>1?p.pop().slice(0,5).toUpperCase():'FILE';}
 function dcSafeName(name){return String(name||'document').replace(/[^a-zA-Z0-9._-]+/g,'_').replace(/^_+|_+$/g,'').slice(-120)||'document';}
 function dcMainFile(x){x=x||{};var f=x.mainFile&&typeof x.mainFile==='object'?x.mainFile:null;return f||{originalName:x.originalName||'Document',mimeType:x.mimeType||'',size:Number(x.size)||0,storagePath:x.storagePath||'',downloadURL:x.downloadURL||''};}
-function dcTaggedFile(f,tag){if(!f||typeof f!=='object')return null;var z={};Object.keys(f).forEach(function(k){z[k]=f[k];});z._dcTag=tag;return z;}
-function dcAllFiles(x){var main=dcMainFile(x),out=[];if(main&&(main.downloadURL||main.storagePath||main.originalName))out.push(dcTaggedFile(main,'Main'));if(Array.isArray(x&&x.attachments))x.attachments.forEach(function(f,i){if(f&&typeof f==='object')out.push(dcTaggedFile(f,'Attachment '+(i+1)));});var linked=x&&x.linkedDocuments;if(linked&&typeof linked==='object')Object.keys(linked).forEach(function(id){var d=linked[id]||{},prefix=(d.direction==='outgoing'?'Outgoing reply':'Linked document')+(d.docNo?' · '+d.docNo:'');var mf=dcMainFile(d);if(mf&&(mf.downloadURL||mf.storagePath||mf.originalName))out.push(dcTaggedFile(mf,prefix));if(Array.isArray(d.attachments))d.attachments.forEach(function(f,i){if(f&&typeof f==='object')out.push(dcTaggedFile(f,prefix+' · Attachment '+(i+1)));});});return out;}
+function dcAllFiles(x){var main=dcMainFile(x),out=[];if(main&&(main.downloadURL||main.storagePath||main.originalName))out.push(main);if(Array.isArray(x&&x.attachments))x.attachments.forEach(function(f){if(f&&typeof f==='object')out.push(f);});return out;}
 function dcStoredSize(x){return dcAllFiles(x).reduce(function(n,f){return n+(Number(f.size)||0);},0);}
-function dcFileSearchText(x){var linked=x&&x.linkedDocuments,meta='';if(linked&&typeof linked==='object')Object.keys(linked).forEach(function(k){var d=linked[k]||{};meta+=' '+[d.docNo,d.subject,d.party,d.notes,d.direction].join(' ');});return dcAllFiles(x).map(function(f){return f.originalName||'';}).join(' ')+meta;}
-function dcFileListHtml(x){var files=dcAllFiles(x);if(!files.length)return '<span>—</span>';return '<div class="kpdc-file-list">'+files.map(function(f,i){var name=f.originalName||('File '+(i+1)),tag=f._dcTag||(i===0?'Main':'Attachment '+i),isLinked=/Outgoing reply|Linked document/i.test(tag);return '<div class="kpdc-file-row"><div class="kpdc-file"><span class="kpdc-file-ico">'+dcEsc(dcExt(name))+'</span><span><small class="kpdc-file-tag'+(i||isLinked?' att':'')+'">'+dcEsc(tag)+'</small><b title="'+dcEsc(name)+'">'+dcEsc(name)+'</b><small>'+dcEsc(dcBytes(f.size))+'</small></span></div><button class="kpdc-file-download" type="button" data-dc-action="download-file" data-id="'+dcEsc(x.id)+'" data-file-index="'+i+'">Download</button></div>';}).join('')+'</div>';}
+function dcFileSearchText(x){return dcAllFiles(x).map(function(f){return f.originalName||'';}).join(' ');}
+function dcFileListHtml(x){var files=dcAllFiles(x);if(!files.length)return '<span>—</span>';return '<div class="kpdc-file-list">'+files.map(function(f,i){var name=f.originalName||('File '+(i+1)),tag=i===0?'Main':'Attachment '+i;return '<div class="kpdc-file-row"><div class="kpdc-file"><span class="kpdc-file-ico">'+dcEsc(dcExt(name))+'</span><span><small class="kpdc-file-tag'+(i?' att':'')+'">'+dcEsc(tag)+'</small><b title="'+dcEsc(name)+'">'+dcEsc(name)+'</b><small>'+dcEsc(dcBytes(f.size))+'</small></span></div><button class="kpdc-file-download" type="button" data-dc-action="download-file" data-id="'+dcEsc(x.id)+'" data-file-index="'+i+'">Download</button></div>';}).join('')+'</div>';}
 
 function dcNotify(msg,ok){try{if(typeof toast==='function')toast(msg,ok!==false);else if(!ok)alert(msg);}catch(e){if(!ok)alert(msg);}}
 function dcFriendlyError(e){var code=String(e&&e.code||''),msg=String(e&&e.message||e||'Unknown error');if(/unauthorized|permission.denied|permission_denied/i.test(code+' '+msg))return 'Firebase permission denied. Enable authenticated access for Document Center in Realtime Database and Storage rules.';if(/storage\/bucket-not-found|storage\/unknown/i.test(code))return 'Firebase Storage is not ready for this project. Open Firebase Console and activate Storage first.';if(/network|failed to fetch|load/i.test(msg))return 'Could not reach Firebase. Check the internet connection and try again.';return msg;}
@@ -117877,33 +117881,30 @@ function dcMarkup(){
   '<header class="kpdc-top"><div class="kpdc-brand"><div class="kpdc-logo" id="kpdcLogo">KP</div><div><h1>Document Center</h1><p>Official Books &amp; Correspondence Archive &middot; أرشيف الكتب والمراسلات الرسمية</p></div></div><div class="kpdc-top-actions"><span class="kpdc-live" id="kpdcLive">Connecting to Firebase</span><button class="kpdc-close" type="button" aria-label="Close Document Center" title="Close" data-kpdc-close>&times;</button></div></header>'+
   '<main class="kpdc-main"><div class="kpdc-heading"><div><h2>Official Documents</h2><p>Search by document number or subject, then view or download the original file.</p></div><button class="kpdc-primary" id="kpdcUploadOpen" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 14v5h14v-5"/></svg>Upload Document</button></div>'+
   '<div class="kpdc-kpis"><div class="kpdc-kpi total"><b id="kpdcTotal">0</b><span>Total Documents</span></div><div class="kpdc-kpi in"><b id="kpdcIncoming">0</b><span>Incoming</span></div><div class="kpdc-kpi out"><b id="kpdcOutgoing">0</b><span>Outgoing</span></div><div class="kpdc-kpi size"><b id="kpdcSize">0 B</b><span>Stored Files</span></div></div>'+
-  '<section class="kpdc-panel"><div class="kpdc-toolbar"><div class="kpdc-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input class="kpdc-control" id="kpdcSearch" type="search" placeholder="Search number, subject, party or linked reply"></div><select class="kpdc-control" id="kpdcKind"><option value="">All Types</option><option value="incoming">Incoming</option><option value="outgoing">Outgoing</option><option value="internal">Internal</option></select><select class="kpdc-control" id="kpdcDepartmentFilter" aria-label="Department"><option value="">All Departments</option></select><input class="kpdc-control" id="kpdcFrom" type="date" aria-label="From date"><input class="kpdc-control" id="kpdcTo" type="date" aria-label="To date"></div><div id="kpdcResults"><div class="kpdc-empty"><div><div class="kpdc-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5a2 2 0 0 1 2-2h5l2 2h5a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M9 12h6M12 9v6"/></svg></div><b>Connecting to the archive…</b><span>Please wait while Document Center loads.</span></div></div></div></section></main>';
+  '<section class="kpdc-panel"><div class="kpdc-toolbar"><div class="kpdc-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input class="kpdc-control" id="kpdcSearch" type="search" placeholder="Search number, subject or party / ابحث بالرقم أو العنوان"></div><select class="kpdc-control" id="kpdcKind"><option value="">All Types</option><option value="incoming">Incoming</option><option value="outgoing">Outgoing</option><option value="internal">Internal</option></select><input class="kpdc-control" id="kpdcFrom" type="date" aria-label="From date"><input class="kpdc-control" id="kpdcTo" type="date" aria-label="To date"></div><div id="kpdcResults"><div class="kpdc-empty"><div><div class="kpdc-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5a2 2 0 0 1 2-2h5l2 2h5a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M9 12h6M12 9v6"/></svg></div><b>Connecting to the archive…</b><span>Please wait while Document Center loads.</span></div></div></div></section></main>';
   document.body.appendChild(root);
 
   var layer=document.createElement('div');layer.id='kpdcUploadLayer';layer.className='kpdc-upload-layer';layer.setAttribute('aria-hidden','true');
   layer.innerHTML='<section class="kpdc-upload-card" role="dialog" aria-modal="true" aria-labelledby="kpdcUploadTitle"><div class="kpdc-upload-head"><div><h3 id="kpdcUploadTitle">Upload Official Document</h3><p>The file is stored in Firebase Storage; searchable details are stored in the database.</p></div><button class="kpdc-upload-x" type="button" aria-label="Close upload form" data-kpdc-upload-close>&times;</button></div><form class="kpdc-form" id="kpdcForm"><div class="kpdc-form-grid">'+
   '<div class="kpdc-field"><label>Document Number <i>*</i></label><input class="kpdc-input" id="kpdcNo" maxlength="80" required placeholder="e.g. 145/IT"></div><div class="kpdc-field"><label>Submission Date <i>*</i></label><input class="kpdc-input" id="kpdcDate" type="date" required></div><div class="kpdc-field"><label>Feedback Date</label><input class="kpdc-input" id="kpdcFeedbackDate" type="date"></div>'+ 
-  '<div class="kpdc-field full"><label>Subject / Title <i>*</i></label><input class="kpdc-input" id="kpdcSubject" maxlength="240" required placeholder="Official document subject"></div><div class="kpdc-field"><label>Type <i>*</i></label><select class="kpdc-select" id="kpdcDirection" required><option value="incoming">Incoming</option><option value="outgoing">Outgoing</option><option value="internal">Internal</option></select></div><div class="kpdc-field"><label>Correspondent / Party</label><input class="kpdc-input" id="kpdcParty" maxlength="180" placeholder="From or to"></div><div class="kpdc-field full"><label>Department <i>*</i></label><select class="kpdc-select" id="kpdcDepartment" required aria-label="Department"></select><input class="kpdc-input kpdc-department-custom" id="kpdcDepartmentCustom" maxlength="180" placeholder="Type the new department name" hidden></div><div class="kpdc-field full"><label>Notes</label><textarea class="kpdc-textarea" id="kpdcNotes" maxlength="800" placeholder="Optional notes"></textarea></div>'+ 
+  '<div class="kpdc-field full"><label>Subject / Title <i>*</i></label><input class="kpdc-input" id="kpdcSubject" maxlength="240" required placeholder="Official document subject"></div><div class="kpdc-field"><label>Type <i>*</i></label><select class="kpdc-select" id="kpdcDirection" required><option value="incoming">Incoming</option><option value="outgoing">Outgoing</option><option value="internal">Internal</option></select></div><div class="kpdc-field"><label>Correspondent / Party</label><input class="kpdc-input" id="kpdcParty" maxlength="180" placeholder="From or to"></div><div class="kpdc-field full"><label>Department / Project</label><input class="kpdc-input" id="kpdcDepartment" maxlength="180" placeholder="Related department or project"></div><div class="kpdc-field full"><label>Notes</label><textarea class="kpdc-textarea" id="kpdcNotes" maxlength="800" placeholder="Optional notes"></textarea></div>'+
   '<div class="kpdc-field full"><label>Main Document <i>*</i></label><label class="kpdc-drop"><input id="kpdcFile" type="file" required accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"><span class="kpdc-drop-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 14v5h14v-5"/></svg></span><span><b id="kpdcFileName">Choose the main official document</b><span id="kpdcFileHint">Maximum file size: 50 MB</span></span></label></div><div class="kpdc-field full"><label>Attachments</label><label class="kpdc-drop"><input id="kpdcAttachments" type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"><span class="kpdc-drop-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 14v5h14v-5"/></svg></span><span><b id="kpdcAttachmentNames">Choose one or more attachments</b><span id="kpdcAttachmentHint">Up to 10 attachments · 50 MB per file</span></span></label></div></div><div class="kpdc-upload-error" id="kpdcUploadError" role="alert"></div><div class="kpdc-progress" id="kpdcProgress"><div class="kpdc-progress-line"><i id="kpdcProgressBar"></i></div><div class="kpdc-progress-text"><span id="kpdcProgressStatus">Preparing upload…</span><b id="kpdcProgressPct">0%</b></div></div><div class="kpdc-form-actions"><button class="kpdc-secondary" type="button" data-kpdc-upload-close>Cancel</button><button class="kpdc-primary" id="kpdcSubmit" type="submit">Upload to Archive</button></div></form></section>';
   document.body.appendChild(layer);
 
   var editLayer=document.createElement('div');editLayer.id='kpdcEditLayer';editLayer.className='kpdc-upload-layer';editLayer.setAttribute('aria-hidden','true');
   editLayer.innerHTML='<section class="kpdc-upload-card" role="dialog" aria-modal="true" aria-labelledby="kpdcEditTitle"><div class="kpdc-upload-head"><div><h3 id="kpdcEditTitle">Edit Official Document</h3><p>Update the document details without replacing the main file or attachments.</p></div><button class="kpdc-upload-x" type="button" aria-label="Close edit form" data-kpdc-edit-close>&times;</button></div><form class="kpdc-form" id="kpdcEditForm"><p class="kpdc-edit-note">Safe edit: uploaded files and attachments will remain unchanged.</p><div class="kpdc-form-grid">'+
-  '<div class="kpdc-field"><label>Document Number <i>*</i></label><input class="kpdc-input" id="kpdcEditNo" maxlength="80" required></div><div class="kpdc-field"><label>Submission Date <i>*</i></label><input class="kpdc-input" id="kpdcEditDate" type="date" required></div><div class="kpdc-field"><label>Feedback Date</label><input class="kpdc-input" id="kpdcEditFeedbackDate" type="date"></div><div class="kpdc-field full"><label>Subject / Title <i>*</i></label><input class="kpdc-input" id="kpdcEditSubject" maxlength="240" required></div><div class="kpdc-field"><label>Type <i>*</i></label><select class="kpdc-select" id="kpdcEditDirection" required><option value="incoming">Incoming</option><option value="outgoing">Outgoing</option><option value="internal">Internal</option></select></div><div class="kpdc-field"><label>Correspondent / Party</label><input class="kpdc-input" id="kpdcEditParty" maxlength="180"></div><div class="kpdc-field full"><label>Department <i>*</i></label><select class="kpdc-select" id="kpdcEditDepartment" required aria-label="Department"></select><input class="kpdc-input kpdc-department-custom" id="kpdcEditDepartmentCustom" maxlength="180" placeholder="Type the new department name" hidden></div><div class="kpdc-field full"><label>Notes</label><textarea class="kpdc-textarea" id="kpdcEditNotes" maxlength="800"></textarea></div></div><div class="kpdc-upload-error" id="kpdcEditError" role="alert"></div><div class="kpdc-form-actions"><button class="kpdc-secondary" type="button" data-kpdc-edit-close>Cancel</button><button class="kpdc-primary" id="kpdcEditSubmit" type="submit">Save Changes</button></div></form></section>';
+  '<div class="kpdc-field"><label>Document Number <i>*</i></label><input class="kpdc-input" id="kpdcEditNo" maxlength="80" required></div><div class="kpdc-field"><label>Submission Date <i>*</i></label><input class="kpdc-input" id="kpdcEditDate" type="date" required></div><div class="kpdc-field"><label>Feedback Date</label><input class="kpdc-input" id="kpdcEditFeedbackDate" type="date"></div><div class="kpdc-field full"><label>Subject / Title <i>*</i></label><input class="kpdc-input" id="kpdcEditSubject" maxlength="240" required></div><div class="kpdc-field"><label>Type <i>*</i></label><select class="kpdc-select" id="kpdcEditDirection" required><option value="incoming">Incoming</option><option value="outgoing">Outgoing</option><option value="internal">Internal</option></select></div><div class="kpdc-field"><label>Correspondent / Party</label><input class="kpdc-input" id="kpdcEditParty" maxlength="180"></div><div class="kpdc-field full"><label>Department / Project</label><input class="kpdc-input" id="kpdcEditDepartment" maxlength="180"></div><div class="kpdc-field full"><label>Notes</label><textarea class="kpdc-textarea" id="kpdcEditNotes" maxlength="800"></textarea></div></div><div class="kpdc-upload-error" id="kpdcEditError" role="alert"></div><div class="kpdc-form-actions"><button class="kpdc-secondary" type="button" data-kpdc-edit-close>Cancel</button><button class="kpdc-primary" id="kpdcEditSubmit" type="submit">Save Changes</button></div></form></section>';
   document.body.appendChild(editLayer);
-  dcRefreshDepartmentControls();
 
   try{var original=document.querySelector('.ch-brand img'),logo=document.getElementById('kpdcLogo');if(original&&logo){var im=document.createElement('img');im.src=original.src;im.alt='Knowledge Papers';logo.textContent='';logo.appendChild(im);}}catch(e){}
   root.querySelector('[data-kpdc-close]').addEventListener('click',window.closeDocumentCenter);
   document.getElementById('kpdcUploadOpen').addEventListener('click',dcOpenUpload);
-  ['kpdcSearch','kpdcKind','kpdcDepartmentFilter','kpdcFrom','kpdcTo'].forEach(function(id){var el=document.getElementById(id);el.addEventListener(id==='kpdcSearch'?'input':'change',dcRender);});
+  ['kpdcSearch','kpdcKind','kpdcFrom','kpdcTo'].forEach(function(id){var el=document.getElementById(id);el.addEventListener(id==='kpdcSearch'?'input':'change',dcRender);});
   document.getElementById('kpdcResults').addEventListener('click',dcResultClick);
   document.getElementById('kpdcForm').addEventListener('submit',dcSubmit);
   document.getElementById('kpdcFile').addEventListener('change',dcFileChanged);
   document.getElementById('kpdcAttachments').addEventListener('change',dcAttachmentsChanged);
   document.getElementById('kpdcEditForm').addEventListener('submit',dcSubmitEdit);
-  document.getElementById('kpdcDepartment').addEventListener('change',function(){dcToggleCustomDepartment('kpdcDepartment','kpdcDepartmentCustom');});
-  document.getElementById('kpdcEditDepartment').addEventListener('change',function(){dcToggleCustomDepartment('kpdcEditDepartment','kpdcEditDepartmentCustom');});
   Array.prototype.forEach.call(layer.querySelectorAll('[data-kpdc-upload-close]'),function(b){b.addEventListener('click',dcCloseUpload);});
   layer.addEventListener('click',function(e){if(e.target===layer)dcCloseUpload();});
   Array.prototype.forEach.call(editLayer.querySelectorAll('[data-kpdc-edit-close]'),function(b){b.addEventListener('click',dcCloseEdit);});
@@ -117917,16 +117918,10 @@ function dcInstallButton(){
 }
 
 function dcSetLive(text,state){var el=document.getElementById('kpdcLive');if(!el)return;el.textContent=text;el.className='kpdc-live'+(state?' '+state:'');}
-function dcDepartments(){var base=['Technical','GR','Finance','Admin','HR','Procurement','Logistics','IT','Others'],seen={};base.forEach(function(x){seen[x.toLowerCase()]=x;});dcDocs.forEach(function(x){var d=String(x.category||x.department||'').trim();if(d&&!seen[d.toLowerCase()])seen[d.toLowerCase()]=d;});return Object.keys(seen).map(function(k){return seen[k];});}
-function dcDepartmentOptions(vals){return vals.map(function(x){return '<option value="'+dcEsc(x)+'">'+dcEsc(x)+'</option>';}).join('')+'<option value="__new__">+ Add New Department</option>';}
-function dcToggleCustomDepartment(selectId,customId){var s=document.getElementById(selectId),c=document.getElementById(customId),isNew=s&&s.value==='__new__';if(!c)return;c.hidden=!isNew;c.required=!!isNew;if(isNew)setTimeout(function(){c.focus();},0);else c.value='';}
-function dcSetDepartment(selectId,customId,value){var s=document.getElementById(selectId),c=document.getElementById(customId),v=String(value||'').trim();if(!s||!c)return;var exists=Array.prototype.some.call(s.options,function(o){return o.value===v;});if(v&&exists){s.value=v;c.value='';}else if(v){s.value='__new__';c.value=v;}else{s.value='Technical';c.value='';}dcToggleCustomDepartment(selectId,customId);if(s.value==='__new__'&&v)c.value=v;}
-function dcDepartmentValue(selectId,customId){var s=document.getElementById(selectId),c=document.getElementById(customId);return String(s&&s.value==='__new__'?(c&&c.value||''):(s&&s.value||'')).trim();}
-function dcRefreshDepartmentControls(){var filter=document.getElementById('kpdcDepartmentFilter'),upload=document.getElementById('kpdcDepartment'),edit=document.getElementById('kpdcEditDepartment'),vals=dcDepartments();if(filter){var keep=filter.value;filter.innerHTML='<option value="">All Departments</option>'+vals.map(function(x){return '<option value="'+dcEsc(x)+'">'+dcEsc(x)+'</option>';}).join('');filter.value=keep;}[upload,edit].forEach(function(s){if(!s)return;var keep=s.value,custom=s.id==='kpdcDepartment'?document.getElementById('kpdcDepartmentCustom'):document.getElementById('kpdcEditDepartmentCustom'),customValue=custom&&custom.value;s.innerHTML=dcDepartmentOptions(vals);if(keep==='__new__'){s.value='__new__';if(custom)custom.value=customValue||'';}else if(vals.indexOf(keep)>=0)s.value=keep;else s.value='Technical';});}
 function dcStartListener(){
   if(dcListener&&dcRef)try{dcRef.off('value',dcListener);}catch(e){}
   dcReady=false;dcError='';dcRender();
-  dcListener=function(snap){var v=snap.val()||{},list=[];Object.keys(v).forEach(function(k){var x=v[k]||{};x.id=k;list.push(x);});dcDocs=list;dcById={};list.forEach(function(x){dcById[x.id]=x;});dcReady=true;dcError='';dcRefreshDepartmentControls();dcSetLive('Firebase connected','ok');dcRender();};
+  dcListener=function(snap){var v=snap.val()||{},list=[];Object.keys(v).forEach(function(k){var x=v[k]||{};x.id=k;list.push(x);});dcDocs=list;dcById={};list.forEach(function(x){dcById[x.id]=x;});dcReady=true;dcError='';dcSetLive('Firebase connected','ok');dcRender();};
   dcRef.on('value',dcListener,function(e){dcReady=true;dcError=dcFriendlyError(e);dcSetLive('Connection error','err');dcRender();});
 }
 
@@ -117937,16 +117932,15 @@ window.openDocumentCenter=function(){
 };
 window.closeDocumentCenter=function(){var root=document.getElementById('kpDocumentCenterOverlay');if(root){root.classList.remove('show');root.setAttribute('aria-hidden','true');}document.body.classList.remove('kpdc-open');dcCloseUpload();dcCloseEdit();};
 
-function dcHasDirection(x,kind){if(!kind||x.direction===kind)return true;var linked=x&&x.linkedDocuments;if(linked&&typeof linked==='object')return Object.keys(linked).some(function(k){return linked[k]&&linked[k].direction===kind;});return false;}
 function dcFiltered(){
-  var q=String((document.getElementById('kpdcSearch')||{}).value||'').trim().toLowerCase(),kind=String((document.getElementById('kpdcKind')||{}).value||''),dept=String((document.getElementById('kpdcDepartmentFilter')||{}).value||''),from=String((document.getElementById('kpdcFrom')||{}).value||''),to=String((document.getElementById('kpdcTo')||{}).value||'');
-  return dcDocs.filter(function(x){var xd=String(x.category||x.department||''),hay=[x.docNo,x.subject,x.party,xd,x.notes,dcFileSearchText(x)].join(' ').toLowerCase();return(!q||hay.indexOf(q)>=0)&&dcHasDirection(x,kind)&&(!dept||xd===dept)&&(!from||String(x.docDate||'')>=from)&&(!to||String(x.docDate||'')<=to);}).sort(function(a,b){var ad=String(a.docDate||''),bd=String(b.docDate||'');if(ad!==bd)return bd.localeCompare(ad);return(Number(b.createdAt)||0)-(Number(a.createdAt)||0);});
+  var q=String((document.getElementById('kpdcSearch')||{}).value||'').trim().toLowerCase(),kind=String((document.getElementById('kpdcKind')||{}).value||''),from=String((document.getElementById('kpdcFrom')||{}).value||''),to=String((document.getElementById('kpdcTo')||{}).value||'');
+  return dcDocs.filter(function(x){var hay=[x.docNo,x.subject,x.party,x.department,x.notes,dcFileSearchText(x)].join(' ').toLowerCase();return(!q||hay.indexOf(q)>=0)&&(!kind||x.direction===kind)&&(!from||String(x.docDate||'')>=from)&&(!to||String(x.docDate||'')<=to);}).sort(function(a,b){var ad=String(a.docDate||''),bd=String(b.docDate||'');if(ad!==bd)return bd.localeCompare(ad);return(Number(b.createdAt)||0)-(Number(a.createdAt)||0);});
 }
 
 function dcKindLabel(v){return v==='outgoing'?'Outgoing':v==='internal'?'Internal':'Incoming';}
 function dcRender(){
   if(!document.getElementById('kpdcResults'))return;
-  var total=0,incoming=0,outgoing=0,size=dcDocs.reduce(function(n,x){return n+dcStoredSize(x);},0);dcDocs.forEach(function(x){total++;if(x.direction==='incoming')incoming++;if(x.direction==='outgoing')outgoing++;var linked=x.linkedDocuments;if(linked&&typeof linked==='object')Object.keys(linked).forEach(function(k){var d=linked[k]||{};total++;if(d.direction==='incoming')incoming++;if(d.direction==='outgoing')outgoing++;});});
+  var total=dcDocs.length,incoming=dcDocs.filter(function(x){return x.direction==='incoming';}).length,outgoing=dcDocs.filter(function(x){return x.direction==='outgoing';}).length,size=dcDocs.reduce(function(n,x){return n+dcStoredSize(x);},0);
   document.getElementById('kpdcTotal').textContent=total;document.getElementById('kpdcIncoming').textContent=incoming;document.getElementById('kpdcOutgoing').textContent=outgoing;document.getElementById('kpdcSize').textContent=dcBytes(size);
   var up=document.getElementById('kpdcUploadOpen');if(up){up.disabled=!dcCanEdit();up.title=dcCanEdit()?'Upload a new official document':'Switch to Project Manager or Developer mode to upload';}
   var host=document.getElementById('kpdcResults');
@@ -117954,20 +117948,20 @@ function dcRender(){
   if(!dcReady){host.innerHTML='<div class="kpdc-empty"><div><div class="kpdc-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5a2 2 0 0 1 2-2h5l2 2h5a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg></div><b>Connecting to the archive…</b><span>Please wait while Document Center loads.</span></div></div>';return;}
   var rows=dcFiltered();
   if(!rows.length){var filtered=dcDocs.length>0;host.innerHTML='<div class="kpdc-empty"><div><div class="kpdc-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5a2 2 0 0 1 2-2h5l2 2h5a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M9 12h6M12 9v6"/></svg></div><b>'+(filtered?'No matching documents':'No documents yet / لا توجد كتب مرفوعة')+'</b><span>'+(filtered?'Change the search or date filters.':'The archive starts empty. Upload your first official document when ready.')+'</span></div></div>';return;}
-  var body=rows.map(function(x){var kind=x.direction||'incoming',dept=x.category||x.department||'Others';return '<tr><td><span class="kpdc-no">'+dcEsc(x.docNo||'—')+'</span></td><td>'+dcEsc(dcDate(x.docDate))+'</td><td>'+dcEsc(dcDate(x.feedbackDate))+'</td><td><div class="kpdc-subject">'+dcEsc(x.subject||'Untitled')+(x.notes?'<small>'+dcEsc(x.notes)+'</small>':'')+'</div></td><td><span class="kpdc-dept">'+dcEsc(dept)+'</span></td><td><span class="kpdc-kind '+dcEsc(kind)+'">'+dcEsc(dcKindLabel(kind))+'</span></td><td>'+dcEsc(x.party||'—')+'</td><td>'+dcFileListHtml(x)+'</td><td><div class="kpdc-actions">'+(dcCanEdit()?'<button class="kpdc-action" type="button" data-dc-action="reply" data-id="'+dcEsc(x.id)+'">Add Reply</button><button class="kpdc-action" type="button" data-dc-action="edit" data-id="'+dcEsc(x.id)+'">Edit</button><button class="kpdc-action danger" type="button" data-dc-action="delete" data-id="'+dcEsc(x.id)+'">Delete All</button>':'')+'</div></td></tr>';}).join('');
-  host.innerHTML='<div class="kpdc-table-wrap"><table class="kpdc-table"><thead><tr><th>Document No.</th><th>Submission Date</th><th>Feedback Date</th><th>Subject</th><th>Department</th><th>Type</th><th>From / To</th><th>Main Document &amp; Linked Files</th><th>Actions</th></tr></thead><tbody>'+body+'</tbody></table></div>';
+  var body=rows.map(function(x){var kind=x.direction||'incoming';return '<tr><td><span class="kpdc-no">'+dcEsc(x.docNo||'—')+'</span></td><td>'+dcEsc(dcDate(x.docDate))+'</td><td>'+dcEsc(dcDate(x.feedbackDate))+'</td><td><div class="kpdc-subject">'+dcEsc(x.subject||'Untitled')+(x.department||x.notes?'<small>'+dcEsc([x.department,x.notes].filter(Boolean).join(' · '))+'</small>':'')+'</div></td><td><span class="kpdc-kind '+dcEsc(kind)+'">'+dcEsc(dcKindLabel(kind))+'</span></td><td>'+dcEsc(x.party||'—')+'</td><td>'+dcFileListHtml(x)+'</td><td><div class="kpdc-actions">'+(dcCanEdit()?'<button class="kpdc-action" type="button" data-dc-action="edit" data-id="'+dcEsc(x.id)+'">Edit</button><button class="kpdc-action danger" type="button" data-dc-action="delete" data-id="'+dcEsc(x.id)+'">Delete All</button>':'')+'</div></td></tr>';}).join('');
+  host.innerHTML='<div class="kpdc-table-wrap"><table class="kpdc-table"><thead><tr><th>Document No.</th><th>Submission Date</th><th>Feedback Date</th><th>Subject</th><th>Type</th><th>From / To</th><th>Main Document &amp; Attachments</th><th>Actions</th></tr></thead><tbody>'+body+'</tbody></table></div>';
 }
 
-function dcResultClick(e){var b=e.target.closest&&e.target.closest('[data-dc-action]');if(!b)return;var id=b.getAttribute('data-id'),action=b.getAttribute('data-dc-action');if(action==='download-file')dcDownload(id,Number(b.getAttribute('data-file-index'))||0);else if(action==='reply')dcOpenUpload(id);else if(action==='edit')dcOpenEdit(id);else if(action==='delete')dcDelete(id);}
+function dcResultClick(e){var b=e.target.closest&&e.target.closest('[data-dc-action]');if(!b)return;var id=b.getAttribute('data-id'),action=b.getAttribute('data-dc-action');if(action==='download-file')dcDownload(id,Number(b.getAttribute('data-file-index'))||0);else if(action==='edit')dcOpenEdit(id);else if(action==='delete')dcDelete(id);}
 function dcDownload(id,index){var x=dcById[id],f=x&&dcAllFiles(x)[index||0];if(!f||!f.downloadURL){dcNotify('The download link is unavailable.',false);return;}var a=document.createElement('a');a.href=f.downloadURL;a.target='_blank';a.rel='noopener';a.download=f.originalName||'document';document.body.appendChild(a);a.click();a.remove();}
 
 function dcOpenEdit(id){
-  if(!dcCanEdit()){dcNotify('Editor role is required to edit document details.',false);return;}var x=dcById[id],layer=document.getElementById('kpdcEditLayer');if(!x||!layer){dcNotify('The selected document is unavailable.',false);return;}dcEditingId=id;document.getElementById('kpdcEditNo').value=x.docNo||'';document.getElementById('kpdcEditDate').value=x.docDate||'';document.getElementById('kpdcEditFeedbackDate').value=x.feedbackDate||'';document.getElementById('kpdcEditSubject').value=x.subject||'';document.getElementById('kpdcEditDirection').value=x.direction||'incoming';document.getElementById('kpdcEditParty').value=x.party||'';dcSetDepartment('kpdcEditDepartment','kpdcEditDepartmentCustom',x.category||x.department||'Others');document.getElementById('kpdcEditNotes').value=x.notes||'';var error=document.getElementById('kpdcEditError'),submit=document.getElementById('kpdcEditSubmit');if(error){error.textContent='';error.classList.remove('show');}if(submit)submit.disabled=false;layer.classList.add('show');layer.setAttribute('aria-hidden','false');setTimeout(function(){document.getElementById('kpdcEditNo').focus();},30);
+  if(!dcCanEdit()){dcNotify('Editor role is required to edit document details.',false);return;}var x=dcById[id],layer=document.getElementById('kpdcEditLayer');if(!x||!layer){dcNotify('The selected document is unavailable.',false);return;}dcEditingId=id;document.getElementById('kpdcEditNo').value=x.docNo||'';document.getElementById('kpdcEditDate').value=x.docDate||'';document.getElementById('kpdcEditFeedbackDate').value=x.feedbackDate||'';document.getElementById('kpdcEditSubject').value=x.subject||'';document.getElementById('kpdcEditDirection').value=x.direction||'incoming';document.getElementById('kpdcEditParty').value=x.party||'';document.getElementById('kpdcEditDepartment').value=x.department||'';document.getElementById('kpdcEditNotes').value=x.notes||'';var error=document.getElementById('kpdcEditError'),submit=document.getElementById('kpdcEditSubmit');if(error){error.textContent='';error.classList.remove('show');}if(submit)submit.disabled=false;layer.classList.add('show');layer.setAttribute('aria-hidden','false');setTimeout(function(){document.getElementById('kpdcEditNo').focus();},30);
 }
 function dcCloseEdit(){var layer=document.getElementById('kpdcEditLayer');if(layer){layer.classList.remove('show');layer.setAttribute('aria-hidden','true');}dcEditingId='';}
 function dcEditError(msg){var el=document.getElementById('kpdcEditError');if(el){el.textContent=msg;el.classList.add('show');}}
 async function dcSubmitEdit(e){
-  e.preventDefault();if(!dcCanEdit()){dcEditError('Editor role is required to save changes.');return;}var id=dcEditingId;if(!id||!dcById[id]){dcEditError('The selected document is unavailable. Refresh Document Center and try again.');return;}var docNo=document.getElementById('kpdcEditNo').value.trim(),docDate=document.getElementById('kpdcEditDate').value,feedbackDate=document.getElementById('kpdcEditFeedbackDate').value,subject=document.getElementById('kpdcEditSubject').value.trim(),department=dcDepartmentValue('kpdcEditDepartment','kpdcEditDepartmentCustom');if(!docNo||!docDate||!subject||!department){dcEditError('Document Number, Submission Date, Subject and Department are required.');return;}if(feedbackDate&&feedbackDate<docDate){dcEditError('Feedback Date cannot be earlier than Submission Date.');return;}var patch={docNo:docNo,docDate:docDate,feedbackDate:feedbackDate||'',subject:subject,direction:document.getElementById('kpdcEditDirection').value||'incoming',party:document.getElementById('kpdcEditParty').value.trim(),category:department,department:department,notes:document.getElementById('kpdcEditNotes').value.trim(),updatedBy:dcRole()},submit=document.getElementById('kpdcEditSubmit'),error=document.getElementById('kpdcEditError');if(error){error.textContent='';error.classList.remove('show');}submit.disabled=true;
+  e.preventDefault();if(!dcCanEdit()){dcEditError('Editor role is required to save changes.');return;}var id=dcEditingId;if(!id||!dcById[id]){dcEditError('The selected document is unavailable. Refresh Document Center and try again.');return;}var docNo=document.getElementById('kpdcEditNo').value.trim(),docDate=document.getElementById('kpdcEditDate').value,feedbackDate=document.getElementById('kpdcEditFeedbackDate').value,subject=document.getElementById('kpdcEditSubject').value.trim();if(!docNo||!docDate||!subject){dcEditError('Document Number, Submission Date and Subject are required.');return;}if(feedbackDate&&feedbackDate<docDate){dcEditError('Feedback Date cannot be earlier than Submission Date.');return;}var patch={docNo:docNo,docDate:docDate,feedbackDate:feedbackDate||'',subject:subject,direction:document.getElementById('kpdcEditDirection').value||'incoming',party:document.getElementById('kpdcEditParty').value.trim(),department:document.getElementById('kpdcEditDepartment').value.trim(),notes:document.getElementById('kpdcEditNotes').value.trim(),updatedBy:dcRole()},submit=document.getElementById('kpdcEditSubmit'),error=document.getElementById('kpdcEditError');if(error){error.textContent='';error.classList.remove('show');}submit.disabled=true;
   try{await dcEnsureFirebase();patch.updatedAt=firebase.database.ServerValue.TIMESTAMP;var result=await dcRef.child(id).transaction(function(current){if(current===null)return;Object.keys(patch).forEach(function(k){current[k]=patch[k];});return current;},undefined,false);if(!result||!result.committed)throw new Error('This document no longer exists. Refresh Document Center and try again.');submit.disabled=false;dcCloseEdit();dcNotify('Document details updated. Files and attachments were preserved.',true);}catch(err){submit.disabled=false;dcEditError(dcFriendlyError(err));}
 }
 
@@ -117976,14 +117970,14 @@ async function dcDelete(id){
   try{await dcEnsureFirebase();var files=dcAllFiles(x);for(var i=0;i<files.length;i++){if(files[i].storagePath)try{await dcStorage.ref(files[i].storagePath).delete();}catch(e){if(String(e&&e.code)!=='storage/object-not-found')throw e;}}await dcRef.child(id).remove();dcNotify('Document and all attachments deleted from the archive.',true);}catch(e){dcNotify(dcFriendlyError(e),false);}
 }
 
-function dcOpenUpload(parentId){
-  if(!dcCanEdit()){dcNotify('Switch to Project Manager or Developer mode from the header before uploading.',false);return;}var layer=document.getElementById('kpdcUploadLayer');if(!layer)return;dcLinkParentId=parentId&&dcById[parentId]?parentId:'';var parent=dcLinkParentId?dcById[dcLinkParentId]:null,form=document.getElementById('kpdcForm');if(form)form.reset();dcResetUploadState();document.getElementById('kpdcDate').value=dcToday();document.getElementById('kpdcDirection').value=parent?'outgoing':'incoming';document.getElementById('kpdcDirection').disabled=!!parent;document.getElementById('kpdcSubject').value=parent?parent.subject||'':'';document.getElementById('kpdcParty').value=parent?parent.party||'':'';dcSetDepartment('kpdcDepartment','kpdcDepartmentCustom',parent?(parent.category||parent.department||'Others'):'Technical');var title=document.getElementById('kpdcUploadTitle'),desc=title&&title.parentNode&&title.parentNode.querySelector('p'),submit=document.getElementById('kpdcSubmit');if(title)title.textContent=parent?'Add Outgoing Reply':'Upload Official Document';if(desc)desc.textContent=parent?'The outgoing answer will remain linked to incoming document '+(parent.docNo||'')+'.':'The file is stored in Firebase Storage; searchable details are stored in the database.';if(submit)submit.textContent=parent?'Attach Reply to Record':'Upload to Archive';document.getElementById('kpdcFileName').textContent=parent?'Choose the outgoing reply document':'Choose the main official document';document.getElementById('kpdcFileHint').textContent='Maximum file size: 50 MB';document.getElementById('kpdcAttachmentNames').textContent='Choose one or more attachments';document.getElementById('kpdcAttachmentHint').textContent='Up to 10 attachments · 50 MB per file';layer.classList.add('show');layer.setAttribute('aria-hidden','false');setTimeout(function(){document.getElementById('kpdcNo').focus();},30);
+function dcOpenUpload(){
+  if(!dcCanEdit()){dcNotify('Switch to Project Manager or Developer mode from the header before uploading.',false);return;}var layer=document.getElementById('kpdcUploadLayer');if(!layer)return;var form=document.getElementById('kpdcForm');if(form)form.reset();dcResetUploadState();document.getElementById('kpdcDate').value=dcToday();document.getElementById('kpdcDirection').value='incoming';document.getElementById('kpdcFileName').textContent='Choose the main official document';document.getElementById('kpdcFileHint').textContent='Maximum file size: 50 MB';document.getElementById('kpdcAttachmentNames').textContent='Choose one or more attachments';document.getElementById('kpdcAttachmentHint').textContent='Up to 10 attachments · 50 MB per file';layer.classList.add('show');layer.setAttribute('aria-hidden','false');setTimeout(function(){document.getElementById('kpdcNo').focus();},30);
 }
 function dcClearUploadTimer(){if(dcUploadTimer){clearTimeout(dcUploadTimer);dcUploadTimer=null;}}
 function dcResetUploadState(){dcClearUploadTimer();dcUploadTask=null;dcUploadTimedOut=false;dcUploadCancelled=false;dcUploadLastBytes=0;dcUploading=false;var submit=document.getElementById('kpdcSubmit'),progress=document.getElementById('kpdcProgress'),error=document.getElementById('kpdcUploadError');if(submit)submit.disabled=false;if(progress){progress.classList.remove('show','error');var bar=document.getElementById('kpdcProgressBar');if(bar)bar.style.width='0%';}if(error){error.textContent='';error.classList.remove('show');}}
 function dcHideUpload(){var layer=document.getElementById('kpdcUploadLayer');if(layer){layer.classList.remove('show');layer.setAttribute('aria-hidden','true');}}
 function dcCancelUpload(){
-  dcUploadCancelled=true;dcClearUploadTimer();var task=dcUploadTask;dcUploadTask=null;try{if(task&&typeof task.cancel==='function')task.cancel();}catch(e){}dcUploading=false;dcLinkParentId='';var submit=document.getElementById('kpdcSubmit');if(submit)submit.disabled=false;dcHideUpload();dcNotify('Upload cancelled.',true);
+  dcUploadCancelled=true;dcClearUploadTimer();var task=dcUploadTask;dcUploadTask=null;try{if(task&&typeof task.cancel==='function')task.cancel();}catch(e){}dcUploading=false;var submit=document.getElementById('kpdcSubmit');if(submit)submit.disabled=false;dcHideUpload();dcNotify('Upload cancelled.',true);
 }
 function dcCloseUpload(){if(dcUploading){dcCancelUpload();return;}dcClearUploadTimer();dcHideUpload();}
 function dcFileChanged(){var f=this.files&&this.files[0],name=document.getElementById('kpdcFileName'),hint=document.getElementById('kpdcFileHint');if(!f){name.textContent='Choose the main official document';hint.textContent='Maximum file size: 50 MB';return;}name.textContent=f.name;hint.textContent=dcBytes(f.size)+(f.size>DC_MAX_SIZE?' · File is too large':' · Ready to upload');}
@@ -117999,15 +117993,15 @@ async function dcUploadOne(file,path,docNo,completedBytes,totalBytes,label){
 
 async function dcSubmit(e){
   e.preventDefault();if(dcUploading)return;if(!dcCanEdit()){dcNotify('Editor role is required to upload documents.',false);return;}
-  var file=document.getElementById('kpdcFile').files[0],attachments=Array.prototype.slice.call(document.getElementById('kpdcAttachments').files||[]),docNo=document.getElementById('kpdcNo').value.trim(),subject=document.getElementById('kpdcSubject').value.trim(),docDate=document.getElementById('kpdcDate').value,feedbackDate=document.getElementById('kpdcFeedbackDate').value,department=dcDepartmentValue('kpdcDepartment','kpdcDepartmentCustom'),parentId=dcLinkParentId;
-  if(!file||!docNo||!subject||!docDate||!department){dcNotify('Complete Document Number, Submission Date, Subject, Department and choose the main document.',false);return;}if(feedbackDate&&feedbackDate<docDate){dcShowUploadError('Feedback Date cannot be earlier than Submission Date.');return;}if(attachments.length>10){dcShowUploadError('You can upload a maximum of 10 attachments with each main document.');return;}var files=[file].concat(attachments),invalid=files.find(function(f){return !f||f.size<=0||f.size>DC_MAX_SIZE;});if(invalid){dcShowUploadError(invalid.size<=0?'The file '+invalid.name+' is empty (0 B).':'The file '+invalid.name+' is larger than 50 MB. Compress it before uploading.');return;}
+  var file=document.getElementById('kpdcFile').files[0],attachments=Array.prototype.slice.call(document.getElementById('kpdcAttachments').files||[]),docNo=document.getElementById('kpdcNo').value.trim(),subject=document.getElementById('kpdcSubject').value.trim(),docDate=document.getElementById('kpdcDate').value,feedbackDate=document.getElementById('kpdcFeedbackDate').value;
+  if(!file||!docNo||!subject||!docDate){dcNotify('Complete the required fields and choose the main document.',false);return;}if(feedbackDate&&feedbackDate<docDate){dcShowUploadError('Feedback Date cannot be earlier than Submission Date.');return;}if(attachments.length>10){dcShowUploadError('You can upload a maximum of 10 attachments with each main document.');return;}var files=[file].concat(attachments),invalid=files.find(function(f){return !f||f.size<=0||f.size>DC_MAX_SIZE;});if(invalid){dcShowUploadError(invalid.size<=0?'The file '+invalid.name+' is empty (0 B).':'The file '+invalid.name+' is larger than 50 MB. Compress it before uploading.');return;}
   var submit=document.getElementById('kpdcSubmit'),error=document.getElementById('kpdcUploadError');if(error){error.textContent='';error.classList.remove('show');}dcUploadCancelled=false;dcUploadTimedOut=false;dcUploading=true;submit.disabled=true;dcProgress(0,'Connecting to Firebase…',false);
   var uploaded=[],totalBytes=files.reduce(function(n,f){return n+(Number(f.size)||0);},0),completedBytes=0;
   try{
-    await dcEnsureFirebase();if(dcUploadCancelled)return;var id=parentId?dcRef.child(parentId+'/linkedDocuments').push().key:dcRef.push().key,base='document-center/'+dcRoom()+'/'+(parentId?(parentId+'/linkedDocuments/'+id+'/'):(id+'/'));
+    await dcEnsureFirebase();if(dcUploadCancelled)return;var id=dcRef.push().key,base='document-center/'+dcRoom()+'/'+id+'/';
     for(var i=0;i<files.length;i++){var role=i===0?'Main document':'Attachment '+i,path=base+(i===0?'main/':'attachments/'+String(i).padStart(2,'0')+'_')+dcSafeName(files[i].name),meta=await dcUploadOne(files[i],path,docNo,completedBytes,totalBytes,role);uploaded.push(meta);completedBytes+=Number(files[i].size)||0;}
-    dcProgress(100,'Saving searchable details…');var mainFile=uploaded[0],attachmentRecords=uploaded.slice(1),record={schemaVersion:3,docNo:docNo,subject:subject,docDate:docDate,feedbackDate:feedbackDate||'',direction:parentId?'outgoing':(document.getElementById('kpdcDirection').value||'incoming'),party:document.getElementById('kpdcParty').value.trim(),category:department,department:department,notes:document.getElementById('kpdcNotes').value.trim(),mainFile:mainFile,attachments:attachmentRecords,totalSize:totalBytes,originalName:mainFile.originalName,mimeType:mainFile.mimeType,size:mainFile.size,storagePath:mainFile.storagePath,downloadURL:mainFile.downloadURL,createdAt:firebase.database.ServerValue.TIMESTAMP,createdBy:dcRole()};
-    if(parentId){await dcRef.child(parentId+'/linkedDocuments/'+id).set(record);await dcRef.child(parentId).update({feedbackDate:docDate,updatedAt:firebase.database.ServerValue.TIMESTAMP});}else await dcRef.child(id).set(record);dcUploadTask=null;dcUploading=false;submit.disabled=false;dcHideUpload();dcLinkParentId='';document.getElementById('kpdcDirection').disabled=false;dcNotify(parentId?'Outgoing reply linked to the original incoming record.':'Main document and '+attachments.length+' attachment'+(attachments.length===1?'':'s')+' uploaded successfully.',true);
+    dcProgress(100,'Saving searchable details…');var mainFile=uploaded[0],attachmentRecords=uploaded.slice(1),record={schemaVersion:2,docNo:docNo,subject:subject,docDate:docDate,feedbackDate:feedbackDate||'',direction:document.getElementById('kpdcDirection').value||'incoming',party:document.getElementById('kpdcParty').value.trim(),department:document.getElementById('kpdcDepartment').value.trim(),notes:document.getElementById('kpdcNotes').value.trim(),mainFile:mainFile,attachments:attachmentRecords,totalSize:totalBytes,originalName:mainFile.originalName,mimeType:mainFile.mimeType,size:mainFile.size,storagePath:mainFile.storagePath,downloadURL:mainFile.downloadURL,createdAt:firebase.database.ServerValue.TIMESTAMP,createdBy:dcRole()};
+    await dcRef.child(id).set(record);dcUploadTask=null;dcUploading=false;submit.disabled=false;dcHideUpload();dcNotify('Main document and '+attachments.length+' attachment'+(attachments.length===1?'':'s')+' uploaded successfully.',true);
   }catch(err){dcClearUploadTimer();dcUploadTask=null;for(var j=0;j<uploaded.length;j++)try{if(uploaded[j].storagePath)await dcStorage.ref(uploaded[j].storagePath).delete();}catch(cleanErr){}dcUploading=false;submit.disabled=false;if(dcUploadCancelled||String(err&&err.code)==='storage/canceled'&&!dcUploadTimedOut)return;var message=dcUploadTimedOut?'The upload did not start within 20 seconds. Firebase Storage is probably not activated yet, or its Storage Rules are blocking uploads.':dcFriendlyError(err);dcShowUploadError(message);try{alert(message);}catch(e){}}
 }
 
@@ -118018,433 +118012,404 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 setTimeout(dcInstall,1200);setTimeout(dcInstallButton,4000);
 })();
 </script>
-<script id="kpXlsCloudSyncFix">
-/* ═══════════════════════════════════════════════════════════════════════════
-   EXCEL IMPORT → FIREBASE:  UNSENT-IMPORT VAULT  (v2)
-
-   THE SYMPTOM
-   ───────────
-   Import an Excel file (worst on Network & Infrastructure / p5): the change
-   shows on this machine, teammates never receive it, and after a refresh the
-   local copy reverts to the server's older version. The work is gone.
-
-   WHY A VAULT INSTEAD OF ANOTHER POINT FIX
-   ────────────────────────────────────────
-   The upload can fail at several independent points — the write gate being
-   shut, a baseline that never bootstrapped, a path the database will not
-   accept, a listener re-applying the server copy over a local edit, or the
-   in-memory "unsent edit" flag being lost on reload because it lives in a
-   plain variable. Every one of those ends the same way: the browser forgets
-   that this machine holds work the server has never seen, so the next
-   snapshot overwrites it.
-
-   So instead of guarding each path, this keeps the imported project in
-   localStorage and refuses to let go of it until the SERVER has confirmed it.
-     • On import  — the changed project is copied into the vault first, then
-                    uploaded.
-     • On reload  — if the vault still holds work, it is re-applied over
-                    whatever the server sent, then uploaded again.
-     • Clearing   — only after reading the project back from Firebase and
-                    confirming it matches. A failed or partial upload keeps the
-                    vault, so the data cannot be lost by refreshing.
-
-   WHAT IT WILL NOT DO
-   ───────────────────
-   • No set() on the room, no remove(), no deletes. Every write is update()
-     with keys scoped to  projects/<key>/… , so other projects, activity,
-     progressFeed and _deletedIds on the server are never in the payload and
-     are left exactly as they are.
-   • It never writes a project the import did not change.
-   ═══════════════════════════════════════════════════════════════════════════ */
-(function(){
-if(window.__kpXlsVaultV2) return; window.__kpXlsVaultV2=true;
-
+<script id="kpXlsCloudSyncFix">
+/* ═══════════════════════════════════════════════════════════════════════════
+   EXCEL IMPORT → FIREBASE:  UNSENT-IMPORT VAULT  (v2)
+
+   THE SYMPTOM
+   ───────────
+   Import an Excel file (worst on Network & Infrastructure / p5): the change
+   shows on this machine, teammates never receive it, and after a refresh the
+   local copy reverts to the server's older version. The work is gone.
+
+   WHY A VAULT INSTEAD OF ANOTHER POINT FIX
+   ────────────────────────────────────────
+   The upload can fail at several independent points — the write gate being
+   shut, a baseline that never bootstrapped, a path the database will not
+   accept, a listener re-applying the server copy over a local edit, or the
+   in-memory "unsent edit" flag being lost on reload because it lives in a
+   plain variable. Every one of those ends the same way: the browser forgets
+   that this machine holds work the server has never seen, so the next
+   snapshot overwrites it.
+
+   So instead of guarding each path, this keeps the imported project in
+   localStorage and refuses to let go of it until the SERVER has confirmed it.
+     • On import  — the changed project is copied into the vault first, then
+                    uploaded.
+     • On reload  — if the vault still holds work, it is re-applied over
+                    whatever the server sent, then uploaded again.
+     • Clearing   — only after reading the project back from Firebase and
+                    confirming it matches. A failed or partial upload keeps the
+                    vault, so the data cannot be lost by refreshing.
+
+   WHAT IT WILL NOT DO
+   ───────────────────
+   • No set() on the room, no remove(), no deletes. Every write is update()
+     with keys scoped to  projects/<key>/… , so other projects, activity,
+     progressFeed and _deletedIds on the server are never in the payload and
+     are left exactly as they are.
+   • It never writes a project the import did not change.
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function(){
+if(window.__kpXlsVaultV2) return; window.__kpXlsVaultV2=true;
+
 var VAULT='kp_unsent_imports';
 var LOGK='kp_sync_blackbox';
-var BUILD='XLS-VAULT-v4';
+var BUILD='XLS-VAULT-v3';
 var ILL=/[.#$\[\]]/;
-var IMPORT_LOCKS=window.__kpImportLocks=window.__kpImportLocks||{};
-window.__kpExcelWriteBusy=false;
-
-/* ── Black box ───────────────────────────────────────────────────────────
-   The interesting events straddle a page refresh, so an in-memory log is
-   useless here. Everything is appended to localStorage instead and survives
-   reloads. Run kpSyncReport() to print it. */
-function rec(ev,data){
-  try{
-    var a=[]; try{ a=JSON.parse(localStorage.getItem(LOGK)||'[]')||[]; }catch(e){}
-    a.push({t:new Date().toISOString().slice(11,23),ev:ev,d:data===undefined?null:data});
-    while(a.length>260) a.shift();
-    localStorage.setItem(LOGK,JSON.stringify(a));
-  }catch(e){}
-  try{ console.info('[vault]',ev,data===undefined?'':data); }catch(e){}
-}
-window.kpSyncReport=function(){
-  var a=[]; try{ a=JSON.parse(localStorage.getItem(LOGK)||'[]')||[]; }catch(e){}
-  var txt='=== PORTAL SYNC REPORT ('+BUILD+') ===\n';
-  try{ txt+='connected='+!!(window.SYNC&&SYNC.ref)+' room='+((window.SYNC&&SYNC.room)||'-')+'\n'; }catch(e){}
-  try{ txt+='gate='+JSON.stringify((typeof window.__syncGate==='function')?window.__syncGate():'n/a')+'\n'; }catch(e){}
-  try{ txt+='openProject='+(window.CUR_PROJ||'-')+'\n'; }catch(e){}
-  try{ txt+='vault='+JSON.stringify(Object.keys(readVault()))+'\n'; }catch(e){}
-  try{ txt+='projectsInStore='+((window.STORE&&STORE.projects&&STORE.projects.length)||0)+'\n'; }catch(e){}
-  txt+='--- events ---\n';
-  a.forEach(function(e){ txt+=e.t+'  '+e.ev+(e.d!==null?('  '+JSON.stringify(e.d)):'')+'\n'; });
-  console.log(txt);
-  try{ if(navigator.clipboard) navigator.clipboard.writeText(txt); }catch(e){}
-  try{ toast('Sync report printed to the console and copied to your clipboard.',true); }catch(e){}
-  return txt;
-};
-window.kpSyncReportClear=function(){ try{ localStorage.removeItem(LOGK); }catch(e){} return 'cleared'; };
-
-function say(m,ok){ try{ toast(m,!!ok); }catch(e){ try{console.log('[vault]',m);}catch(_){}} }
-function log(){ try{ console.info.apply(console,['[vault]'].concat([].slice.call(arguments))); }catch(e){} }
-function clone(o){ try{ return JSON.parse(JSON.stringify(o)); }catch(e){ return null; } }
-function connected(){ return !!(window.SYNC && SYNC.ref); }
-
-/* ── Vault storage ──────────────────────────────────────────────────────── */
-function readVault(){
-  try{ var v=JSON.parse(localStorage.getItem(VAULT)||'{}'); return (v&&typeof v==='object')?v:{}; }
-  catch(e){ return {}; }
-}
-function writeVault(v){
-  try{ localStorage.setItem(VAULT,JSON.stringify(v)); }catch(e){
-    try{ console.warn('[vault] could not be saved (storage full?)',e); }catch(_){}
-  }
+
+/* ── Black box ───────────────────────────────────────────────────────────
+   The interesting events straddle a page refresh, so an in-memory log is
+   useless here. Everything is appended to localStorage instead and survives
+   reloads. Run kpSyncReport() to print it. */
+function rec(ev,data){
+  try{
+    var a=[]; try{ a=JSON.parse(localStorage.getItem(LOGK)||'[]')||[]; }catch(e){}
+    a.push({t:new Date().toISOString().slice(11,23),ev:ev,d:data===undefined?null:data});
+    while(a.length>260) a.shift();
+    localStorage.setItem(LOGK,JSON.stringify(a));
+  }catch(e){}
+  try{ console.info('[vault]',ev,data===undefined?'':data); }catch(e){}
 }
-/* A pending import remains protected even after a refresh. */
-Object.keys(readVault()).forEach(function(pid){ IMPORT_LOCKS[pid]=true; });
+window.kpSyncReport=function(){
+  var a=[]; try{ a=JSON.parse(localStorage.getItem(LOGK)||'[]')||[]; }catch(e){}
+  var txt='=== PORTAL SYNC REPORT ('+BUILD+') ===\n';
+  try{ txt+='connected='+!!(window.SYNC&&SYNC.ref)+' room='+((window.SYNC&&SYNC.room)||'-')+'\n'; }catch(e){}
+  try{ txt+='gate='+JSON.stringify((typeof window.__syncGate==='function')?window.__syncGate():'n/a')+'\n'; }catch(e){}
+  try{ txt+='openProject='+(window.CUR_PROJ||'-')+'\n'; }catch(e){}
+  try{ txt+='vault='+JSON.stringify(Object.keys(readVault()))+'\n'; }catch(e){}
+  try{ txt+='projectsInStore='+((window.STORE&&STORE.projects&&STORE.projects.length)||0)+'\n'; }catch(e){}
+  txt+='--- events ---\n';
+  a.forEach(function(e){ txt+=e.t+'  '+e.ev+(e.d!==null?('  '+JSON.stringify(e.d)):'')+'\n'; });
+  console.log(txt);
+  try{ if(navigator.clipboard) navigator.clipboard.writeText(txt); }catch(e){}
+  try{ toast('Sync report printed to the console and copied to your clipboard.',true); }catch(e){}
+  return txt;
+};
+window.kpSyncReportClear=function(){ try{ localStorage.removeItem(LOGK); }catch(e){} return 'cleared'; };
+
+function say(m,ok){ try{ toast(m,!!ok); }catch(e){ try{console.log('[vault]',m);}catch(_){}} }
+function log(){ try{ console.info.apply(console,['[vault]'].concat([].slice.call(arguments))); }catch(e){} }
+function clone(o){ try{ return JSON.parse(JSON.stringify(o)); }catch(e){ return null; } }
+function connected(){ return !!(window.SYNC && SYNC.ref); }
+
+/* ── Vault storage ──────────────────────────────────────────────────────── */
+function readVault(){
+  try{ var v=JSON.parse(localStorage.getItem(VAULT)||'{}'); return (v&&typeof v==='object')?v:{}; }
+  catch(e){ return {}; }
+}
+function writeVault(v){
+  try{ localStorage.setItem(VAULT,JSON.stringify(v)); }catch(e){
+    try{ console.warn('[vault] could not be saved (storage full?)',e); }catch(_){}
+  }
+}
 function stash(pid,projObj,source){
   var v=readVault();
   v[pid]={at:new Date().toISOString(),source:source||'Excel import',project:clone(projObj)};
-  IMPORT_LOCKS[pid]=true;
   writeVault(v);
-  log('stashed',pid);
-}
-function unstash(pid){ var v=readVault(); if(v[pid]){ delete v[pid]; writeVault(v); log('cleared',pid); } delete IMPORT_LOCKS[pid]; }
-window.kpUnsentImports=function(){ return Object.keys(readVault()); };
-
-/* ── Leaf diff (local copy, independent of the sync module) ─────────────── */
-function isObj(v){ return v && typeof v==='object' && !Array.isArray(v); }
-function diff(base,next,prefix,out,depth){
-  out=out||{}; prefix=prefix||''; depth=depth||0;
-  if(depth>12){ out[prefix]=next; return out; }
-  if(Array.isArray(base)||Array.isArray(next)){
-    if(!Array.isArray(base)||!Array.isArray(next)||base.length!==next.length){
-      if(JSON.stringify(base)!==JSON.stringify(next)) out[prefix]=next;
-      return out;
-    }
-    for(var i=0;i<next.length;i++) diff(base[i],next[i],prefix+'/'+i,out,depth+1);
-    return out;
-  }
-  if(isObj(base)&&isObj(next)){
-    var keys={},k;
-    for(k in base) keys[k]=1;
-    for(k in next) keys[k]=1;
-    for(k in keys){
-      var p=prefix?(prefix+'/'+k):k;
-      if(!(k in next)){ out[p]=null; continue; }
-      if(!(k in base)){ out[p]=next[k]; continue; }
-      diff(base[k],next[k],p,out,depth+1);
-    }
-    return out;
-  }
-  if(base!==next) out[prefix]=(next===undefined?null:next);
-  return out;
-}
-/* Every key anywhere in a value must be storable, or the write is rejected. */
-function legalValue(v,d){
-  d=d||0; if(d>14) return false;
-  if(v===null||typeof v!=='object') return true;
-  if(Array.isArray(v)){
-    for(var i=0;i<v.length;i++) if(!legalValue(v[i],d+1)) return false;
-    return true;
-  }
-  for(var k in v){
-    if(ILL.test(k)||k.indexOf('/')>=0) return false;
-    if(!legalValue(v[k],d+1)) return false;
-  }
-  return true;
-}
-
-/* ── Server lookup by id, never by index ────────────────────────────────── */
-function locate(pid){
-  return SYNC.ref.child('projects').once('value').then(function(snap){
-    var val=snap&&snap.val(),k;
-    if(val==null) return {key:null,remote:null,absent:true};
-    if(Array.isArray(val)){
-      for(var i=0;i<val.length;i++)
-        if(val[i]&&String(val[i].id)===String(pid)) return {key:String(i),remote:val[i]};
-    }else{
-      for(k in val)
-        if(val[k]&&String(val[k].id)===String(pid)) return {key:k,remote:val[k]};
-    }
-    return {key:null,remote:null,absent:true};
-  });
-}
-function localProject(pid){
-  try{
-    if(!window.STORE||!Array.isArray(STORE.projects)) return null;
-    for(var i=0;i<STORE.projects.length;i++)
-      if(STORE.projects[i]&&String(STORE.projects[i].id)===String(pid))
-        return {obj:STORE.projects[i],index:i};
-  }catch(e){}
-  return null;
-}
-
-/* ── Upload one project and verify it landed ────────────────────────────── */
-function uploadProject(pid){
-  var loc=localProject(pid);
-  if(!loc) return Promise.resolve({ok:false,pid:pid,reason:'project not found on this device'});
-  var local=clone(loc.obj);
-  if(!local) return Promise.resolve({ok:false,pid:pid,reason:'project could not be packaged'});
-  if(!legalValue(local)) return Promise.resolve({ok:false,pid:pid,reason:'this project contains a field name Firebase cannot store'});
-
-  return locate(pid).then(function(found){
-    var key=found.absent?String(loc.index):found.key;
-    var base=found.absent?{}:found.remote;
-    var raw=diff(base,local,'',{},0),payload={},n=0,k;
-
-    for(k in raw){
-      if(!k){ payload['projects/'+key]=local; n=1; break; }
-      if(ILL.test(k)){ payload={}; payload['projects/'+key]=local; n=1; break; }
-      payload['projects/'+key+'/'+k]=raw[k]; n++;
-    }
-    if(!n) return {ok:true,pid:pid,key:key,already:true};
-
-    /* An update() may not hold both a node and a descendant of it. */
-    var keys=Object.keys(payload).sort(function(a,b){ return a.length-b.length; }),clean={},c=0;
-    keys.forEach(function(key2){
-      var seg=key2.split('/');
-      for(var d=1;d<seg.length;d++) if(clean[seg.slice(0,d).join('/')]!==undefined) return;
-      clean[key2]=payload[key2]; c++;
-    });
-
-    var bytes=0; try{ bytes=JSON.stringify(clean).length; }catch(e){}
-    rec('upload-try',{pid:pid,serverKey:key,paths:c,bytes:bytes,sample:Object.keys(clean).slice(0,4)});
-
-    /* Excel import is authoritative for this one project. Write, wait for all
-       live listeners to settle, then read it back. A stale portal tab can echo
-       an older project immediately after the first write, so retry the same
-       isolated project up to three times. No other project is touched. */
-    var projectRef=SYNC.ref.child('projects/'+key);
-    function writeAndVerify(attempt){
-      window.__kpExcelWriteBusy=true;
-      return projectRef.set(local).then(function(){
-        return new Promise(function(resolve){setTimeout(resolve,attempt===1?650:1200);});
-      }).then(function(){
-        return projectRef.once('value');
-      }).then(function(s){
-        var back=s&&s.val(),remaining=0,d2=diff(back||{},local,'',{},0),sample=[];
-        for(var q in d2){remaining++;if(sample.length<6)sample.push(q);}
-        if(remaining&&attempt<3){
-          rec('upload-CONFLICT-RETRY',{pid:pid,attempt:attempt,remaining:remaining,sample:sample});
-          return new Promise(function(resolve){setTimeout(resolve,700*attempt);}).then(function(){return writeAndVerify(attempt+1);});
-        }
-        rec(remaining===0?'upload-VERIFIED':'upload-UNVERIFIED',{pid:pid,attempt:attempt,remaining:remaining,sample:sample});
-        return {ok:remaining===0,pid:pid,key:key,paths:c,bytes:bytes,
-                remaining:remaining,sample:sample,
-                reason:remaining?('another open portal copy changed '+remaining+' field(s) during the save'):''};
-      });
+  log('stashed',pid);
+}
+function unstash(pid){ var v=readVault(); if(v[pid]){ delete v[pid]; writeVault(v); log('cleared',pid); } }
+window.kpUnsentImports=function(){ return Object.keys(readVault()); };
+
+/* ── Leaf diff (local copy, independent of the sync module) ─────────────── */
+function isObj(v){ return v && typeof v==='object' && !Array.isArray(v); }
+function diff(base,next,prefix,out,depth){
+  out=out||{}; prefix=prefix||''; depth=depth||0;
+  if(depth>12){ out[prefix]=next; return out; }
+  if(Array.isArray(base)||Array.isArray(next)){
+    if(!Array.isArray(base)||!Array.isArray(next)||base.length!==next.length){
+      if(JSON.stringify(base)!==JSON.stringify(next)) out[prefix]=next;
+      return out;
     }
-    return writeAndVerify(1).then(function(result){window.__kpExcelWriteBusy=false;return result;},function(err){
-      window.__kpExcelWriteBusy=false;
+    for(var i=0;i<next.length;i++) diff(base[i],next[i],prefix+'/'+i,out,depth+1);
+    return out;
+  }
+  if(isObj(base)&&isObj(next)){
+    var keys={},k;
+    for(k in base) keys[k]=1;
+    for(k in next) keys[k]=1;
+    for(k in keys){
+      var p=prefix?(prefix+'/'+k):k;
+      if(!(k in next)){ out[p]=null; continue; }
+      if(!(k in base)){ out[p]=next[k]; continue; }
+      diff(base[k],next[k],p,out,depth+1);
+    }
+    return out;
+  }
+  if(base!==next) out[prefix]=(next===undefined?null:next);
+  return out;
+}
+/* Every key anywhere in a value must be storable, or the write is rejected. */
+function legalValue(v,d){
+  d=d||0; if(d>14) return false;
+  if(v===null||typeof v!=='object') return true;
+  if(Array.isArray(v)){
+    for(var i=0;i<v.length;i++) if(!legalValue(v[i],d+1)) return false;
+    return true;
+  }
+  for(var k in v){
+    if(ILL.test(k)||k.indexOf('/')>=0) return false;
+    if(!legalValue(v[k],d+1)) return false;
+  }
+  return true;
+}
+
+/* ── Server lookup by id, never by index ────────────────────────────────── */
+function locate(pid){
+  return SYNC.ref.child('projects').once('value').then(function(snap){
+    var val=snap&&snap.val(),k;
+    if(val==null) return {key:null,remote:null,absent:true};
+    if(Array.isArray(val)){
+      for(var i=0;i<val.length;i++)
+        if(val[i]&&String(val[i].id)===String(pid)) return {key:String(i),remote:val[i]};
+    }else{
+      for(k in val)
+        if(val[k]&&String(val[k].id)===String(pid)) return {key:k,remote:val[k]};
+    }
+    return {key:null,remote:null,absent:true};
+  });
+}
+function localProject(pid){
+  try{
+    if(!window.STORE||!Array.isArray(STORE.projects)) return null;
+    for(var i=0;i<STORE.projects.length;i++)
+      if(STORE.projects[i]&&String(STORE.projects[i].id)===String(pid))
+        return {obj:STORE.projects[i],index:i};
+  }catch(e){}
+  return null;
+}
+
+/* ── Upload one project and verify it landed ────────────────────────────── */
+function uploadProject(pid){
+  var loc=localProject(pid);
+  if(!loc) return Promise.resolve({ok:false,pid:pid,reason:'project not found on this device'});
+  var local=clone(loc.obj);
+  if(!local) return Promise.resolve({ok:false,pid:pid,reason:'project could not be packaged'});
+  if(!legalValue(local)) return Promise.resolve({ok:false,pid:pid,reason:'this project contains a field name Firebase cannot store'});
+
+  return locate(pid).then(function(found){
+    var key=found.absent?String(loc.index):found.key;
+    var base=found.absent?{}:found.remote;
+    var raw=diff(base,local,'',{},0),payload={},n=0,k;
+
+    for(k in raw){
+      if(!k){ payload['projects/'+key]=local; n=1; break; }
+      if(ILL.test(k)){ payload={}; payload['projects/'+key]=local; n=1; break; }
+      payload['projects/'+key+'/'+k]=raw[k]; n++;
+    }
+    if(!n) return {ok:true,pid:pid,key:key,already:true};
+
+    /* An update() may not hold both a node and a descendant of it. */
+    var keys=Object.keys(payload).sort(function(a,b){ return a.length-b.length; }),clean={},c=0;
+    keys.forEach(function(key2){
+      var seg=key2.split('/');
+      for(var d=1;d<seg.length;d++) if(clean[seg.slice(0,d).join('/')]!==undefined) return;
+      clean[key2]=payload[key2]; c++;
+    });
+
+    var bytes=0; try{ bytes=JSON.stringify(clean).length; }catch(e){}
+    rec('upload-try',{pid:pid,serverKey:key,paths:c,bytes:bytes,sample:Object.keys(clean).slice(0,4)});
+
+    return SYNC.ref.update(clean).then(function(){
+      /* Verify against the server rather than trusting the write. */
+      return SYNC.ref.child('projects/'+key).once('value').then(function(s){
+        var back=s&&s.val();
+        var remaining=0,d2=diff(back||{},local,'',{},0);
+        for(var q in d2) remaining++;
+        rec(remaining===0?'upload-VERIFIED':'upload-UNVERIFIED',{pid:pid,remaining:remaining});
+        return {ok:remaining===0,pid:pid,key:key,paths:c,bytes:bytes,
+                remaining:remaining,
+                reason:remaining?('the server still differs in '+remaining+' field(s) after the write'):''};
+      });
+    },function(err){
       var why=(err&&(err.message||err.code))||'the write was rejected';
       rec('upload-REJECTED',{pid:pid,reason:why});
       return {ok:false,pid:pid,reason:why};
-    });
-  },function(err){
-    return {ok:false,pid:pid,reason:'could not read the project from Firebase ('+((err&&(err.message||err.code))||'unknown')+')'};
-  });
-}
-
-/* ── Public: upload everything the vault is holding ─────────────────────── */
-var FLUSHING=null;
-function flush(quiet){
-  if(FLUSHING) return FLUSHING;
-  var ids=Object.keys(readVault());
-  if(!ids.length) return Promise.resolve({ok:true,nothing:true});
-  rec('flush',{waiting:ids,connected:connected(),gate:(function(){try{return window.__syncGate?window.__syncGate():'n/a';}catch(e){return 'n/a';}})()});
-  if(!connected()){
-    if(!quiet) say('Not connected to Firebase — '+ids.length+' Excel import'+(ids.length===1?' is':'s are')+' still waiting on this device. Connect in Sync Settings; nothing is lost.',false);
-    return Promise.resolve({ok:false,reason:'not connected'});
-  }
-  if(!quiet) say('Uploading '+ids.length+' Excel import'+(ids.length===1?'':'s')+' to Firebase…',true);
-
-  var results=[],chain=Promise.resolve();
-  ids.forEach(function(pid){
-    chain=chain.then(function(){
-      return uploadProject(pid).then(function(r){
-        results.push(r);
-        if(r.ok) unstash(pid);        /* only after the server confirmed it */
-      });
-    });
-  });
-
-  FLUSHING=chain.then(function(){
-    var bad=results.filter(function(r){ return !r.ok; });
-    var sent=results.filter(function(r){ return r.ok&&!r.already; });
-    if(bad.length){
-      say('Firebase upload FAILED — '+(bad[0].reason||'unknown error')+'. Your import is SAFE on this device and will be retried; refreshing will not lose it.',false);
-      return {ok:false,results:results};
-    }
-    if(!sent.length){ if(!quiet) say('Firebase already has this data.',true); return {ok:true,results:results}; }
-    var paths=sent.reduce(function(a,r){ return a+(r.paths||0); },0);
-    say('Uploaded to Firebase and verified — your team can see this now ('+paths+' field'+(paths===1?'':'s')+').',true);
-    try{ if(typeof setSyncUI==='function') setSyncUI('live'); }catch(e){}
-    return {ok:true,results:results};
+    });
+  },function(err){
+    return {ok:false,pid:pid,reason:'could not read the project from Firebase ('+((err&&(err.message||err.code))||'unknown')+')'};
   });
-  return FLUSHING.then(function(result){FLUSHING=null;return result;},function(err){FLUSHING=null;window.__kpExcelWriteBusy=false;throw err;});
+}
+
+/* ── Public: upload everything the vault is holding ─────────────────────── */
+function flush(quiet){
+  var ids=Object.keys(readVault());
+  if(!ids.length) return Promise.resolve({ok:true,nothing:true});
+  rec('flush',{waiting:ids,connected:connected(),gate:(function(){try{return window.__syncGate?window.__syncGate():'n/a';}catch(e){return 'n/a';}})()});
+  if(!connected()){
+    if(!quiet) say('Not connected to Firebase — '+ids.length+' Excel import'+(ids.length===1?' is':'s are')+' still waiting on this device. Connect in Sync Settings; nothing is lost.',false);
+    return Promise.resolve({ok:false,reason:'not connected'});
+  }
+  if(!quiet) say('Uploading '+ids.length+' Excel import'+(ids.length===1?'':'s')+' to Firebase…',true);
+
+  var results=[],chain=Promise.resolve();
+  ids.forEach(function(pid){
+    chain=chain.then(function(){
+      return uploadProject(pid).then(function(r){
+        results.push(r);
+        if(r.ok) unstash(pid);        /* only after the server confirmed it */
+      });
+    });
+  });
+
+  return chain.then(function(){
+    var bad=results.filter(function(r){ return !r.ok; });
+    var sent=results.filter(function(r){ return r.ok&&!r.already; });
+    if(bad.length){
+      say('Firebase upload FAILED — '+(bad[0].reason||'unknown error')+'. Your import is SAFE on this device and will be retried; refreshing will not lose it.',false);
+      return {ok:false,results:results};
+    }
+    if(!sent.length){ if(!quiet) say('Firebase already has this data.',true); return {ok:true,results:results}; }
+    var paths=sent.reduce(function(a,r){ return a+(r.paths||0); },0);
+    say('Uploaded to Firebase and verified — your team can see this now ('+paths+' field'+(paths===1?'':'s')+').',true);
+    try{ if(typeof setSyncUI==='function') setSyncUI('live'); }catch(e){}
+    return {ok:true,results:results};
+  });
 }
 window.kpForceCloudSync=function(){ 
-  /* Re-stash the open project so a manual press always has something to send. */
-  try{
-    var pid=window.CUR_PROJ, l=pid&&localProject(pid);
-    if(l) stash(pid,l.obj,'manual sync');
-  }catch(e){}
+  /* Re-stash the open project so a manual press always has something to send. */
+  try{
+    var pid=window.CUR_PROJ, l=pid&&localProject(pid);
+    if(l) stash(pid,l.obj,'manual sync');
+  }catch(e){}
   return flush(false);
 };
-window.kpCommitExcelProject=function(pid,source){
-  var l=pid&&localProject(pid);
-  if(!l){say('Excel changed locally, but the project could not be prepared for Firebase. Nothing else was changed.',false);return Promise.resolve({ok:false});}
-  stash(pid,l.obj,source||'Excel import');
-  rec('direct-import-commit',{pid:pid,source:source||''});
-  return flush(false);
+
+/* ── On reload: put the vault back over whatever the server sent ─────────── */
+function restore(){
+  var v=readVault(),ids=Object.keys(v);
+  rec('restore-check',{vault:ids});
+  if(!ids.length) return;
+  var restored=[];
+  ids.forEach(function(pid){
+    var saved=v[pid]&&v[pid].project;
+    if(!saved) return;
+    var loc=localProject(pid);
+    if(!loc){
+      try{ if(window.STORE&&Array.isArray(STORE.projects)){ STORE.projects.push(clone(saved)); restored.push(pid); } }catch(e){}
+      return;
+    }
+    var cur=''; try{ cur=JSON.stringify(loc.obj); }catch(e){}
+    if(cur===JSON.stringify(saved)) return;              /* already correct */
+    try{
+      var live=loc.obj;
+      Object.keys(live).forEach(function(k){ if(!(k in saved)) delete live[k]; });
+      Object.keys(saved).forEach(function(k){ live[k]=clone(saved[k]); });
+      restored.push(pid);
+    }catch(e){}
+  });
+  rec('restore',{projects:restored,vaultHeld:ids});
+  if(!restored.length) return;
+  try{ if(typeof persist==='function') persist(restored[0]); }catch(e){}
+  try{ if(typeof renderHub==='function') renderHub(); }catch(e){}
+  try{ if(window.CUR_PROJ&&typeof renderProjectView==='function') renderProjectView(CUR_PROJ); }catch(e){}
+  say('Restored an Excel import that had not reached Firebase yet. Re-uploading…',true);
+}
+
+/* ── Watch STORE after an import, stash, then upload ─────────────────────── */
+function snapProjects(){
+  var m={};
+  try{
+    if(window.STORE&&Array.isArray(STORE.projects))
+      STORE.projects.forEach(function(p){ if(p&&p.id) m[p.id]=JSON.stringify(p); });
+  }catch(e){}
+  return m;
+}
+var watching=false;
+function watchAndPush(before){
+  if(watching) return; watching=true;
+  var tries=0,settle=0,lastSig='';
+  var t=setInterval(function(){
+    tries++;
+    var now=snapProjects(),ch=[],k;
+    for(k in now) if(before[k]!==now[k]) ch.push(k);
+    var sig=ch.join(',');
+    if(ch.length){
+      if(sig===lastSig) settle++; else { settle=0; lastSig=sig; }
+      if(settle>=2){
+        clearInterval(t); watching=false;
+        rec('import-detected',{projects:ch,afterMs:tries*400});
+        ch.forEach(function(pid){ var l=localProject(pid); if(l) stash(pid,l.obj,'Excel import'); });
+        flush(false);
+        return;
+      }
+    }
+    if(tries>=32){
+      clearInterval(t); watching=false;
+      if(ch.length){
+        ch.forEach(function(pid){ var l=localProject(pid); if(l) stash(pid,l.obj,'Excel import'); });
+        flush(false);
+      }else rec('import-NO-CHANGE',{note:'STORE.projects was not modified by the import — the importer never wrote to the shared store'});
+    }
+  },400);
+}
+
+function wrap(name){
+  var orig=window[name];
+  if(typeof orig!=='function'||orig.__kpVault) return;
+  var w=function(){
+    var before=snapProjects(),r;
+    try{ r=orig.apply(this,arguments); }
+    finally{ try{ watchAndPush(before); }catch(e){} }
+    return r;
+  };
+  w.__kpVault=true;
+  try{ w.__kpV518=orig.__kpV518; }catch(e){}
+  window[name]=w;
+}
+var TARGETS=['handleExcelUpload','runImport','importAllSiteTrackers','importSiteDepartments',
+             'trImport','finImportXlsx','supplyImportExcel','importWorkbook','dcImportExcel'];
+function install(){
+  var found=[],missing=[];
+  TARGETS.forEach(function(n){
+    if(typeof window[n]==='function'){ found.push(n+(window[n].__kpVault?'*':'')); wrap(n); }
+    else missing.push(n);
+  });
+  if(!install.__logged||install.__last!==found.join(',')){
+    install.__logged=true; install.__last=found.join(',');
+    rec('wrap',{wrapped:found,absent:missing});
+  }
+}
+
+/* ── Diagnostics ────────────────────────────────────────────────────────── */
+window.kpSyncDiag=function(){
+  var out={};
+  try{ out.connected=connected(); }catch(e){ out.connected=false; }
+  try{ out.room=(window.SYNC&&SYNC.room)||null; }catch(e){}
+  try{ out.gate=(typeof window.__syncGate==='function')?window.__syncGate():'n/a'; }catch(e){}
+  try{ out.openProject=window.CUR_PROJ||null; }catch(e){}
+  try{ out.unsentImports=Object.keys(readVault()); }catch(e){}
+  try{ out.pendingFlags=(typeof window.__syncPendingMap==='function')?window.__syncPendingMap():'n/a'; }catch(e){}
+  try{ out.unwritablePaths=window.__kpSyncDropped||[]; }catch(e){}
+  try{
+    var l=out.openProject&&localProject(out.openProject);
+    out.projectLegalForFirebase=l?legalValue(clone(l.obj)):'n/a';
+  }catch(e){}
+  console.log('%c[sync diagnostics]','font-weight:bold',out);
+  var why = !out.connected ? 'NOT CONNECTED to Firebase — connect in Sync Settings.'
+    : (out.gate&&out.gate.writable===false) ? ('WRITES BLOCKED — '+(out.gate.reason||'unknown')+'.')
+    : (out.projectLegalForFirebase===false) ? 'This project has a field name Firebase cannot store — send me the console output.'
+    : (out.unsentImports&&out.unsentImports.length) ? ('Waiting to upload: '+out.unsentImports.join(', ')+' — run kpForceCloudSync().')
+    : 'Nothing is waiting to upload.';
+  console.log('%c'+why,'color:#B12836;font-weight:bold');
+  try{ toast(why,out.connected); }catch(e){}
+  return out;
 };
-
-/* ── On reload: put the vault back over whatever the server sent ─────────── */
-function restore(){
-  var v=readVault(),ids=Object.keys(v);
-  rec('restore-check',{vault:ids});
-  if(!ids.length) return;
-  var restored=[];
-  ids.forEach(function(pid){
-    var saved=v[pid]&&v[pid].project;
-    if(!saved) return;
-    var loc=localProject(pid);
-    if(!loc){
-      try{ if(window.STORE&&Array.isArray(STORE.projects)){ STORE.projects.push(clone(saved)); restored.push(pid); } }catch(e){}
-      return;
-    }
-    var cur=''; try{ cur=JSON.stringify(loc.obj); }catch(e){}
-    if(cur===JSON.stringify(saved)) return;              /* already correct */
-    try{
-      var live=loc.obj;
-      Object.keys(live).forEach(function(k){ if(!(k in saved)) delete live[k]; });
-      Object.keys(saved).forEach(function(k){ live[k]=clone(saved[k]); });
-      restored.push(pid);
-    }catch(e){}
-  });
-  rec('restore',{projects:restored,vaultHeld:ids});
-  if(!restored.length) return;
-  try{ if(typeof persist==='function') persist(restored[0]); }catch(e){}
-  try{ if(typeof renderHub==='function') renderHub(); }catch(e){}
-  try{ if(window.CUR_PROJ&&typeof renderProjectView==='function') renderProjectView(CUR_PROJ); }catch(e){}
-  say('Restored an Excel import that had not reached Firebase yet. Re-uploading…',true);
-}
-
-/* ── Watch STORE after an import, stash, then upload ─────────────────────── */
-function snapProjects(){
-  var m={};
-  try{
-    if(window.STORE&&Array.isArray(STORE.projects))
-      STORE.projects.forEach(function(p){ if(p&&p.id) m[p.id]=JSON.stringify(p); });
-  }catch(e){}
-  return m;
-}
-var watching=false;
-function watchAndPush(before){
-  if(watching) return; watching=true;
-  var tries=0,settle=0,lastSig='';
-  var t=setInterval(function(){
-    tries++;
-    var now=snapProjects(),ch=[],k;
-    for(k in now) if(before[k]!==now[k]) ch.push(k);
-    var sig=ch.join(',');
-    if(ch.length){
-      if(sig===lastSig) settle++; else { settle=0; lastSig=sig; }
-      if(settle>=2){
-        clearInterval(t); watching=false;
-        rec('import-detected',{projects:ch,afterMs:tries*400});
-        ch.forEach(function(pid){ var l=localProject(pid); if(l) stash(pid,l.obj,'Excel import'); });
-        flush(false);
-        return;
-      }
-    }
-    if(tries>=32){
-      clearInterval(t); watching=false;
-      if(ch.length){
-        ch.forEach(function(pid){ var l=localProject(pid); if(l) stash(pid,l.obj,'Excel import'); });
-        flush(false);
-      }else rec('import-NO-CHANGE',{note:'STORE.projects was not modified by the import — the importer never wrote to the shared store'});
-    }
-  },400);
-}
-
-function wrap(name){
-  var orig=window[name];
-  if(typeof orig!=='function'||orig.__kpVault) return;
-  var w=function(){
-    var before=snapProjects(),r;
-    try{ r=orig.apply(this,arguments); }
-    finally{ try{ watchAndPush(before); }catch(e){} }
-    return r;
-  };
-  w.__kpVault=true;
-  try{ w.__kpV518=orig.__kpV518; }catch(e){}
-  window[name]=w;
-}
-var TARGETS=['handleExcelUpload','runImport','importAllSiteTrackers','importSiteDepartments',
-             'trImport','finImportXlsx','supplyImportExcel','importWorkbook','dcImportExcel'];
-function install(){
-  var found=[],missing=[];
-  TARGETS.forEach(function(n){
-    if(typeof window[n]==='function'){ found.push(n+(window[n].__kpVault?'*':'')); wrap(n); }
-    else missing.push(n);
-  });
-  if(!install.__logged||install.__last!==found.join(',')){
-    install.__logged=true; install.__last=found.join(',');
-    rec('wrap',{wrapped:found,absent:missing});
-  }
-}
-
-/* ── Diagnostics ────────────────────────────────────────────────────────── */
-window.kpSyncDiag=function(){
-  var out={};
-  try{ out.connected=connected(); }catch(e){ out.connected=false; }
-  try{ out.room=(window.SYNC&&SYNC.room)||null; }catch(e){}
-  try{ out.gate=(typeof window.__syncGate==='function')?window.__syncGate():'n/a'; }catch(e){}
-  try{ out.openProject=window.CUR_PROJ||null; }catch(e){}
-  try{ out.unsentImports=Object.keys(readVault()); }catch(e){}
-  try{ out.pendingFlags=(typeof window.__syncPendingMap==='function')?window.__syncPendingMap():'n/a'; }catch(e){}
-  try{ out.unwritablePaths=window.__kpSyncDropped||[]; }catch(e){}
-  try{
-    var l=out.openProject&&localProject(out.openProject);
-    out.projectLegalForFirebase=l?legalValue(clone(l.obj)):'n/a';
-  }catch(e){}
-  console.log('%c[sync diagnostics]','font-weight:bold',out);
-  var why = !out.connected ? 'NOT CONNECTED to Firebase — connect in Sync Settings.'
-    : (out.gate&&out.gate.writable===false) ? ('WRITES BLOCKED — '+(out.gate.reason||'unknown')+'.')
-    : (out.projectLegalForFirebase===false) ? 'This project has a field name Firebase cannot store — send me the console output.'
-    : (out.unsentImports&&out.unsentImports.length) ? ('Waiting to upload: '+out.unsentImports.join(', ')+' — run kpForceCloudSync().')
-    : 'Nothing is waiting to upload.';
-  console.log('%c'+why,'color:#B12836;font-weight:bold');
-  try{ toast(why,out.connected); }catch(e){}
-  return out;
-};
-
-/* ── Boot ───────────────────────────────────────────────────────────────── */
-if(document.readyState==='loading')
-  document.addEventListener('DOMContentLoaded',function(){ setTimeout(install,400); });
-else setTimeout(install,400);
-setTimeout(install,1500); setTimeout(install,4000); setTimeout(install,9000);
-
-/* Restore after the bootstrap read has had time to land, then keep retrying. */
-setTimeout(function(){ try{ restore(); }catch(e){} },6000);
-setTimeout(function(){ flush(true); },9000);
-setInterval(function(){ flush(true); },60000);
-
-rec('boot',{build:BUILD,vault:Object.keys(readVault()),
-            projects:(function(){try{return STORE&&STORE.projects?STORE.projects.length:0;}catch(e){return 'n/a';}})()});
-setTimeout(function(){ try{ toast('Portal sync build '+BUILD+' active.',true); }catch(e){} },2500);
-})();
+
+/* ── Boot ───────────────────────────────────────────────────────────────── */
+if(document.readyState==='loading')
+  document.addEventListener('DOMContentLoaded',function(){ setTimeout(install,400); });
+else setTimeout(install,400);
+setTimeout(install,1500); setTimeout(install,4000); setTimeout(install,9000);
+
+/* Restore after the bootstrap read has had time to land, then keep retrying. */
+setTimeout(function(){ try{ restore(); }catch(e){} },6000);
+setTimeout(function(){ flush(true); },9000);
+setInterval(function(){ flush(true); },60000);
+
+rec('boot',{build:BUILD,vault:Object.keys(readVault()),
+            projects:(function(){try{return STORE&&STORE.projects?STORE.projects.length:0;}catch(e){return 'n/a';}})()});
+setTimeout(function(){ try{ toast('Portal sync build '+BUILD+' active.',true); }catch(e){} },2500);
+})();
 </script>
