@@ -19545,6 +19545,216 @@ if(document.readyState==='loading'){
 
 </script>
 
+<script id="kpBrandedExcelFullSyncV31">
+/* Knowledge Papers branded Excel runtime.
+   Export styling is applied in-place so sheet names, rows, hidden keys and all
+   values remain compatible with the authoritative full-sync import engine. */
+(function(){
+'use strict';
+if(window.__kpBrandedExcelFullSyncV31)return;
+window.__kpBrandedExcelFullSyncV31=true;
+
+var RED='B12836',HEADER='C00000',NAVY='071033',GOLD='E0A82E',INK='071033',MUTED='5B6572',LINE='D5D9E1',CREAM='FFF2CC',WHITE='FFFFFF',GREEN='D9EAD3',AMBER='FCE5CD',PALE_RED='F4CCCC';
+var styledLoading=false,styledQueue=[];
+
+function val(ws,r,c){var x=ws[window.XLSX.utils.encode_cell({r:r,c:c})];return x&&x.v!=null?String(x.v).trim():'';}
+function cell(ws,r,c){var a=window.XLSX.utils.encode_cell({r:r,c:c});if(!ws[a])ws[a]={t:'s',v:''};return ws[a];}
+function countRow(ws,r,c0,c1){var n=0;for(var c=c0;c<=c1;c++)if(val(ws,r,c)!=='')n++;return n;}
+function baseStyle(c,fill,bold,color,align){
+  c.s={font:{name:'Calibri',sz:10.5,bold:!!bold,color:{rgb:color||INK}},fill:{patternType:'solid',fgColor:{rgb:fill||WHITE}},alignment:{vertical:'center',horizontal:align||'left',wrapText:true},border:{bottom:{style:'thin',color:{rgb:LINE}}}};
+}
+function statusStyle(c){var v=String(c.v==null?'':c.v).trim().toLowerCase();if(!v)return;if(/completed|complete|closed|done|approved|مكتمل|منجز/.test(v))baseStyle(c,GREEN,true,'176B3A','center');else if(/in progress|started|under evaluation|pending|قيد|جاري/.test(v))baseStyle(c,AMBER,true,'9A5B00','center');else if(/rejected|delayed|critical|not started|مرفوض|متأخر/.test(v))baseStyle(c,PALE_RED,true,'9C1C2B','center');}
+
+function brandSheet(ws,sheetName){
+  if(!ws||!ws['!ref']||!window.XLSX||!window.XLSX.utils)return;
+  var rg=window.XLSX.utils.decode_range(ws['!ref']),r0=rg.s.r,r1=rg.e.r,c0=rg.s.c,c1=rg.e.c;
+  var first=-1,key=-1,header=-1,best=-1;
+  for(var r=r0;r<=Math.min(r1,r0+60);r++){
+    var n=countRow(ws,r,c0,c1);if(first<0&&n>0)first=r;
+    if(val(ws,r,c0)==='__kp_keys__'){key=r;break;}
+    if(n>best){best=n;header=r;}
+  }
+  if(key>=0)header=Math.max(r0,key-1);
+  if(header<0)header=first>=0?first:r0;
+  var dataStart=header+1;if(key===header+1)dataStart=key+1;
+
+  for(r=r0;r<=r1;r++)for(var c=c0;c<=c1;c++){
+    var x=cell(ws,r,c),fill=r>=dataStart&&((r-dataStart)%2===1)?CREAM:WHITE;
+    baseStyle(x,fill,false,INK,(x.t==='n'||typeof x.v==='number')?'right':'left');
+    if(r>=dataStart)statusStyle(x);
+  }
+
+  if(first>=0&&first!==header){
+    for(c=c0;c<=c1;c++)baseStyle(cell(ws,first,c),RED,true,WHITE,c===c0?'left':'right');
+    if(first+1<header&&countRow(ws,first+1,c0,c1)===0){for(c=c0;c<=c1;c++)baseStyle(cell(ws,first+1,c),NAVY,true,c===c0?GOLD:WHITE,'left');}
+  }
+  for(c=c0;c<=c1;c++)baseStyle(cell(ws,header,c),HEADER,true,WHITE,'center');
+  if(key>=0){
+    ws['!rows']=ws['!rows']||[];ws['!rows'][key]=Object.assign({},ws['!rows'][key]||{},{hidden:true,hpt:2});
+    for(c=c0;c<=c1;c++)baseStyle(cell(ws,key,c),NAVY,false,NAVY,'left');
+  }
+
+  ws['!rows']=ws['!rows']||[];
+  if(first>=0)ws['!rows'][first]=Object.assign({},ws['!rows'][first]||{},{hpt:30});
+  ws['!rows'][header]=Object.assign({},ws['!rows'][header]||{},{hpt:25});
+  for(r=dataStart;r<=r1;r++)ws['!rows'][r]=Object.assign({},ws['!rows'][r]||{},{hpt:22});
+
+  ws['!cols']=ws['!cols']||[];
+  for(c=c0;c<=c1;c++){
+    var max=0;for(r=r0;r<=Math.min(r1,dataStart+50);r++)max=Math.max(max,val(ws,r,c).length);
+    var old=ws['!cols'][c]||{},w=c===c0?Math.max(7,Math.min(20,max+3)):Math.max(12,Math.min(44,max+4));
+    ws['!cols'][c]=Object.assign({},old,{wch:Math.max(Number(old.wch)||0,w)});
+  }
+  if(key>=0){for(c=c0;c<=c1;c++)if(val(ws,key,c)==='__kp_row_id__')ws['!cols'][c]=Object.assign({},ws['!cols'][c]||{},{hidden:true});}
+  if(c1>c0)ws['!autofilter']={ref:window.XLSX.utils.encode_range({s:{r:header,c:c0},e:{r:header,c:c1}})};
+  ws['!freeze']={xSplit:c0+1,ySplit:dataStart,topLeftCell:window.XLSX.utils.encode_cell({r:dataStart,c:c0+1}),activePane:'bottomRight',state:'frozen'};
+  ws['!sheetView']=[{showGridLines:false}];
+}
+
+function brandWorkbook(wb,fileName){
+  if(!wb||!Array.isArray(wb.SheetNames)||!wb.Sheets)return wb;
+  wb.Props=Object.assign({},wb.Props||{},{Title:(fileName||'Knowledge Papers Workbook'),Subject:'Knowledge Papers project data export',Author:'Knowledge Papers Company',Company:'Knowledge Papers Company',Comments:'Editable authoritative export. Re-importing replaces the matching portal data tables.'});
+  wb.SheetNames.forEach(function(n){brandSheet(wb.Sheets[n],n);});
+  return wb;
+}
+
+function hookWrite(lib){
+  if(!lib||typeof lib.writeFile!=='function'||lib.writeFile.__kpBrandV31)return;
+  var original=lib.writeFile;
+  var wrapped=function(wb,fileName,opts){brandWorkbook(wb,fileName);opts=Object.assign({cellStyles:true,bookSST:true,compression:true},opts||{});return original.call(lib,wb,fileName,opts);};
+  wrapped.__kpBrandV31=true;wrapped.__kpOriginal=original;lib.writeFile=wrapped;lib.__kpBrandStyleRuntime=true;
+}
+
+function flushQueue(ok){var q=styledQueue.splice(0);q.forEach(function(fn){try{fn(ok);}catch(e){console.error(e);}});}
+function ensureStyled(cb){
+  if(cb)styledQueue.push(cb);
+  if(window.XLSX&&window.XLSX.__kpBrandStyleRuntime){flushQueue(true);return;}
+  if(styledLoading)return;styledLoading=true;
+  var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js';s.async=true;
+  s.onload=function(){styledLoading=false;try{hookWrite(window.XLSX);flushQueue(true);}catch(e){console.error('[Branded Excel]',e);flushQueue(false);}};
+  s.onerror=function(){styledLoading=false;try{hookWrite(window.XLSX);}catch(e){}flushQueue(false);try{toast('Excel branding library could not load. Check the internet connection and try again.',false);}catch(e){}};
+  document.head.appendChild(s);
+}
+
+function authoritative(){try{if(window.__kpExcelV30&&typeof window.__kpExcelV30.install==='function')window.__kpExcelV30.install();}catch(e){}}
+function installLoadGate(){
+  if(window.loadXLSX&&window.loadXLSX.__kpBrandV31)return;
+  var gate=function(cb){ensureStyled(function(ok){if(ok&&typeof cb==='function')cb();else if(typeof cb==='function')cb();});};gate.__kpBrandV31=true;window.loadXLSX=gate;
+}
+function prepare(){authoritative();installLoadGate();ensureStyled(function(){authoritative();});}
+
+window.kpBrandWorkbookV31=brandWorkbook;
+window.kpPrepareBrandedExcelV31=prepare;
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',prepare);else prepare();
+[500,1800,4500,8200].forEach(function(ms){setTimeout(prepare,ms);});
+document.addEventListener('click',function(e){var b=e.target&&e.target.closest?e.target.closest('button'):null,t=String(b&&b.textContent||'').toLowerCase();if(/excel|اكسل|إكسل/.test(t))ensureStyled();},true);
+})();
+</script>
+
+<script>
+/* ========================================================================
+   PowerPoint identity chooser + Asimati Arabic full infographic exporter
+   Read-only: this module reads STORE and never calls persist() or Firebase.set().
+   ======================================================================== */
+(function(){
+'use strict';
+var STYLE_ID='kpPptBrandChooserStyleV1', OVERLAY_ID='kpPptBrandChooserV1';
+var A={blue:'2B3081',sky:'2AAAE1',green:'00994C',white:'FFFFFF',bg:'F4F7FB',ink:'20264F',muted:'68718B',line:'DDE4EF',orange:'F1A23A',red:'D94A5A',grey:'AEB7C8'};
+
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function ensureChooser(){
+  if(!document.getElementById(STYLE_ID)){
+    var st=document.createElement('style');st.id=STYLE_ID;st.textContent=
+      '.kp-brand-ppt{position:fixed;inset:0;z-index:100060;background:rgba(20,24,58,.70);backdrop-filter:blur(7px);display:none;align-items:center;justify-content:center;padding:20px}'+
+      '.kp-brand-ppt.open{display:flex}.kp-brand-box{width:min(820px,96vw);background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 28px 90px rgba(0,0,0,.32)}'+
+      '.kp-brand-head{padding:25px 28px;background:linear-gradient(125deg,#2B3081,#343B92);color:#fff;display:flex;justify-content:space-between;gap:18px}.kp-brand-head h2{margin:0 0 5px;font-size:24px}.kp-brand-head p{margin:0;opacity:.8;font-size:13px}'+
+      '.kp-brand-x{width:38px;height:38px;border:1px solid rgba(255,255,255,.24);border-radius:11px;background:rgba(255,255,255,.09);color:#fff;font-size:22px;cursor:pointer}'+
+      '.kp-brand-grid{display:grid;grid-template-columns:1fr 1fr;gap:17px;padding:24px}.kp-brand-card{border:1px solid #dfe4ee;border-radius:19px;background:#fff;padding:22px;text-align:left;cursor:pointer;min-height:205px;transition:.18s}'+
+      '.kp-brand-card:hover{transform:translateY(-2px);box-shadow:0 14px 32px rgba(43,48,129,.13);border-color:#2AAAE1}.kp-brand-card strong{display:block;font-size:20px;color:#20264F;margin:14px 0 7px}.kp-brand-card small{display:block;color:#6b748a;line-height:1.55;font-size:13px}'+
+      '.kp-asimati-mark{width:50px;height:50px;border-radius:15px;background:linear-gradient(135deg,#2AAAE1,#00994C);color:#fff;display:grid;place-items:center;font-size:18px;font-weight:800}.kp-kp-mark{width:50px;height:50px;border-radius:15px;background:linear-gradient(135deg,#7f1722,#b12836);color:#fff;display:grid;place-items:center;font-size:16px;font-weight:800}'+
+      '.kp-brand-foot{padding:0 25px 23px;color:#727b8d;font-size:12px}.kp-brand-badge{display:inline-block;margin-top:10px;padding:5px 9px;border-radius:999px;background:#eaf7fc;color:#2B3081;font-weight:700;font-size:11px}'+
+      '@media(max-width:680px){.kp-brand-grid{grid-template-columns:1fr}.kp-brand-card{min-height:0}}';document.head.appendChild(st);
+  }
+  var ov=document.getElementById(OVERLAY_ID);
+  if(!ov){
+    ov=document.createElement('div');ov.id=OVERLAY_ID;ov.className='kp-brand-ppt';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');
+    ov.innerHTML='<div class="kp-brand-box" onclick="event.stopPropagation()"><div class="kp-brand-head"><div><h2>Choose PowerPoint Identity</h2><p>اختر الهوية واللغة المطلوبة للبرزنتيشن</p></div><button class="kp-brand-x" onclick="closePortfolioPPT()">×</button></div><div class="kp-brand-grid"><button class="kp-brand-card" onclick="kpDownloadAsimatiPPT()"><span class="kp-asimati-mark">عاصمتي</span><strong dir="rtl">عاصمتي — عربي</strong><small dir="rtl">برزنتيشن كامل بهوية عاصمتي، باللغة العربية، ويستخدم أحدث بيانات المشاريع من البورتال.</small><span class="kp-brand-badge">ASIMATI VISUAL IDENTITY</span></button><button class="kp-brand-card" onclick="kpDownloadKnowledgePPT()"><span class="kp-kp-mark">KP</span><strong>Knowledge Papers — English</strong><small>Full infographic portfolio in English, generated from the same live portal data.</small><span class="kp-brand-badge">KNOWLEDGE PAPERS IDENTITY</span></button></div><div class="kp-brand-foot">PowerPoint export is read-only. It cannot change portal or Firebase data.</div></div>';
+    ov.addEventListener('click',function(){window.closePortfolioPPT();});document.body.appendChild(ov);
+  }
+  return ov;
+}
+window.closePortfolioPPT=function(){var x=document.getElementById(OVERLAY_ID);if(x)x.classList.remove('open');var old=document.getElementById('kpPortfolioPptOverlay');if(old)old.classList.remove('open');};
+window.openPortfolioPPT=function(){ensureChooser().classList.add('open');};
+window.kpDownloadKnowledgePPT=function(){window.closePortfolioPPT();if(typeof window.kpPptFull==='function')window.kpPptFull();else try{toast('Knowledge Papers PowerPoint is not available',false);}catch(e){}};
+
+function loadPpt(cb){if(window.PptxGenJS){cb();return;}if(typeof window._loadPptxGen==='function'){window._loadPptxGen(cb);return;}var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/pptxgenjs@4.0.1/dist/pptxgen.bundle.js';s.onload=cb;s.onerror=function(){try{toast('Could not load PowerPoint library',false);}catch(e){}};document.head.appendChild(s);}
+function num(v){v=Number(v);return Number.isFinite(v)?v:0;}
+function clamp(v){return Math.max(0,Math.min(100,Math.round(num(v))));}
+function pct(p){try{return clamp(typeof overallPct==='function'?overallPct(p):p.progress);}catch(e){return clamp(p&&p.progress);}}
+function isResource(p){var n=String((p&&p.nameEn)||p&&p.name||'').toLowerCase();return !p||p.id==='p9'||n==='resources'||(p.meta&&p.meta.resourceModel===true);}
+function projects(){var src=[],out=[];try{if(typeof STORE!=='undefined'&&STORE&&Array.isArray(STORE.projects))src=STORE.projects;else if(window.STORE&&Array.isArray(window.STORE.projects))src=window.STORE.projects;}catch(e){}src.forEach(function(p){if(!p||isResource(p))return;if(Array.isArray(p.subProjects)&&p.subProjects.length)p.subProjects.forEach(function(s){if(s&&!isResource(s))out.push(s);});else out.push(p);});return out;}
+function arName(p){return String((p&&p.name)||p&&p.nameAr||p&&p.nameEn||'المشروع');}
+function enName(p){return String((p&&p.nameEn)||p&&p.name||'Project');}
+function val(r){
+  if(!r)return 0;
+  var direct=[r.actualPct,r.progress,r.completion,r.pct,r.percent];for(var i=0;i<direct.length;i++)if(direct[i]!==undefined&&direct[i]!==null&&direct[i]!=='')return clamp(direct[i]);
+  if(r.assignees!==undefined){var a=num(r.assignees),d=num(r.daily);return a?clamp(Math.min(a,d)/a*100):0;}
+  if(r.designPct!==undefined||r.floorsPct!==undefined)return clamp((num(r.designPct)+num(r.floorsPct))/2);
+  if(r.supplied!==undefined&&r.assigned!==undefined)return num(r.assigned)?clamp(num(r.supplied)/num(r.assigned)*100):0;
+  var keys=['survey','design','submit'],sum=0,count=0;keys.forEach(function(k){if(r[k]!==undefined){count++;sum+=r[k]==='d'?100:r[k]==='p'?50:0;}});return count?clamp(sum/count):0;
+}
+function label(r){return String((r&&(r.nameAr||r.name||r.label||r.item||r.risk||r.code))||'بند');}
+function context(p){var m=p&&p.meta||{};if(m.surveyModel)return 'survey';if(m.trainingModel)return 'training';if(String(p&&p.id)==='p1')return 'systems';if(Array.isArray(p&&p.sites)&&p.sites.length)return 'sites';if(Array.isArray(p&&p.milestones)&&p.milestones.length)return 'milestones';return 'phases';}
+function rawRows(p){
+  var c=context(p),rows=[];
+  if(c==='survey')rows=p.survey||[];
+  else if(c==='training')rows=p.training||[];
+  else if(c==='systems')rows=p.milestones||p.sites||[];
+  else if(c==='sites')rows=p.sites||[];
+  else if(c==='milestones')rows=p.milestones||[];
+  else rows=p.phases||p.items||[];
+  return rows.map(function(r){
+    var value=val(r);
+    if(c==='training'){
+      try{value=typeof trRowPct==='function'?clamp(trRowPct(r)):clamp(['dataPrep','teamAssign','dueDate','workshop','training'].reduce(function(a,k){var v=String(r[k]||'').toLowerCase();return a+(v==='d'||v==='done'||v==='completed'||v==='closed'?100:(v==='p'||v.indexOf('progress')>=0||v==='started'?50:0));},0)/5);}catch(e){}
+    }
+    if(c==='sites'){
+      try{if(typeof siteFinalPct==='function')value=clamp(siteFinalPct(r));}catch(e){}
+    }
+    return {label:label(r),value:value,raw:r};
+  });
+}
+function color(v){return v>=75?A.green:v>=40?A.sky:v>0?A.orange:A.grey;}
+function text(s,t,x,y,w,h,fs,c,bold,align,rtl){s.addText(String(t==null?'':t),{x:x,y:y,w:w,h:h,fontFace:'Tahoma',fontSize:fs||12,color:c||A.ink,bold:!!bold,align:align||'right',valign:'mid',margin:0,fit:'shrink',rtlMode:rtl!==false,breakLine:false});}
+var AS_PPTX=null;
+function rect(s,x,y,w,h,fill,line,radius){var st=(AS_PPTX&&AS_PPTX.ShapeType)||PptxGenJS.ShapeType;s.addShape(radius?st.roundRect:st.rect,{x:x,y:y,w:w,h:h,rectRadius:radius||0,fill:{color:fill||A.white},line:{color:line||fill||A.white,width:.5}});}
+function header(pptx,s,title,sub,no){rect(s,0,0,13.333,.83,A.blue,A.blue);rect(s,0,.78,13.333,.05,A.sky,A.sky);rect(s,9.1,.78,4.233,.05,A.green,A.green);text(s,'عاصمتي',.42,.12,1.2,.28,15,A.sky,true,'left',true);text(s,title,1.62,.12,9.7,.34,22,A.white,true,'right',true);text(s,sub||'',1.62,.49,9.7,.18,8.5,'CDECF8',false,'right',true);text(s,String(no).padStart(2,'0'),11.75,.20,1.05,.28,18,A.white,true,'right',false);}
+function footer(s,label){rect(s,.42,7.08,12.48,.008,A.line,A.line);text(s,'بيانات البورتال الحالية',9.9,7.16,2.95,.15,7.5,A.muted,true,'right',true);text(s,label,.45,7.16,4,.15,7.5,A.muted,false,'left',true);}
+function panel(s,x,y,w,h,title){rect(s,x+.04,y+.06,w,h,'DCE3EF','DCE3EF',.12);rect(s,x,y,w,h,A.white,A.line,.12);if(title)text(s,title,x+.18,y+.12,w-.36,.25,12,A.blue,true,'right',true);}
+function metric(s,x,y,w,labelText,value,note,c){panel(s,x,y,w,1.03,'');rect(s,x+w-.17,y+.16,.055,.70,c,c,.02);text(s,labelText,x+.18,y+.12,w-.43,.19,8,A.muted,true,'right',true);text(s,value,x+.18,y+.34,w-.43,.34,24,c,true,'right',false);text(s,note,x+.18,y+.76,w-.43,.14,7.5,A.muted,false,'right',true);}
+function bar(s,x,y,w,labelText,value,i){if(i%2)rect(s,x-.06,y-.015,w+.12,.31,'F7F9FC','F7F9FC',.04);text(s,labelText,x+w*.42,y,w*.56,.23,8.6,A.ink,true,'right',true);rect(s,x+.11,y+.10,w*.29,.08,'E5EAF2','E5EAF2',.04);if(value>0)rect(s,x+.11,y+.10,w*.29*value/100,.08,color(value),color(value),.04);text(s,value+'%',x,y,w*.09,.23,8.3,color(value),true,'left',false);}
+function addCover(pptx,count,date){var s=pptx.addSlide();s.background={color:A.blue};rect(s,.7,1.02,5.5,5.38,'252A73','4B54A1',.20);text(s,'عاصمتي',7.25,2.05,4.5,.72,43,A.sky,true,'center',true);text(s,'محفظة المشاريع',1.05,1.65,4.8,.65,31,A.white,true,'right',true);text(s,'عرض تنفيذي إنفوكرافيك',1.05,2.47,4.8,.38,18,'D9F2FB',true,'right',true);text(s,'تم إعداد العرض من بيانات البورتال الحالية',1.05,3.18,4.8,.48,14,A.white,false,'right',true);rect(s,1.05,4.06,4.4,.04,A.sky,A.sky);text(s,count+' مشاريع',1.05,4.38,2.0,.30,13,A.white,true,'right',true);text(s,date,3.35,4.38,2.1,.30,11,A.white,true,'left',false);text(s,'نسخة عربية بهوية عاصمتي',1.05,5.54,4.3,.24,10,'B8C7EB',false,'right',true);text(s,'عاصمتي',.65,6.97,1.2,.20,9,A.white,false,'left',true);}
+function addOverview(pptx,ps,slideNo){var s=pptx.addSlide(),rows=ps.map(function(p){return {label:arName(p),value:pct(p)};}),avg=rows.length?Math.round(rows.reduce(function(a,r){return a+r.value;},0)/rows.length):0,done=rows.filter(function(r){return r.value>=100;}).length,active=rows.filter(function(r){return r.value>0&&r.value<100;}).length;header(pptx,s,'نظرة عامة على محفظة المشاريع','نسب الإنجاز الحالية لجميع المشاريع باستثناء الموارد',slideNo);metric(s,.45,1.03,2.92,'عدد المشاريع',ps.length,'المشاريع المشمولة',A.blue);metric(s,3.57,1.03,2.92,'متوسط الإنجاز',avg+'%','متوسط المحفظة',color(avg));metric(s,6.69,1.03,2.92,'المكتمل',done,'مشاريع بنسبة 100%',A.green);metric(s,9.81,1.03,3.08,'قيد التنفيذ',active,'مشاريع فعّالة',A.sky);panel(s,.45,2.28,8.1,4.62,'خريطة إنجاز المشاريع');rows.slice(0,11).forEach(function(r,i){bar(s,.72,2.79+i*.31,7.55,r.label,r.value,i);});panel(s,8.78,2.28,4.11,4.62,'الملخص التنفيذي');text(s,avg+'%',9.08,2.91,3.5,.78,46,A.blue,true,'center',false);text(s,'متوسط الإنجاز الحالي',9.08,3.66,3.5,.26,13,A.muted,true,'center',true);rect(s,9.18,4.22,3.3,.15,'E5EAF2','E5EAF2',.07);if(avg>0)rect(s,9.18,4.22,3.3*avg/100,.15,color(avg),color(avg),.07);text(s,'يعتمد هذا العرض على البيانات الظاهرة حالياً في البورتال، ولا يغيّر أي قيمة في Firebase.',9.08,4.72,3.5,1.05,14,A.ink,true,'right',true);footer(s,'نظرة عامة');}
+function summarySlide(pptx,p,index,total,no){var s=pptx.addSlide(),rows=rawRows(p),v=pct(p),done=rows.filter(function(r){return r.value>=100;}).length,active=rows.filter(function(r){return r.value>0&&r.value<100;}).length,pending=rows.filter(function(r){return r.value===0;}).length;header(pptx,s,arName(p),enName(p)+' • المشروع '+index+' من '+total,no);metric(s,.45,1.03,2.92,'الإنجاز الكلي',v+'%','النسبة الحالية',color(v));metric(s,3.57,1.03,2.92,'عدد البنود',rows.length,'البنود المتتبعة',A.blue);metric(s,6.69,1.03,2.92,'المكتمل',done,'بنود مكتملة',A.green);metric(s,9.81,1.03,3.08,'لم يبدأ',pending,'بنود بنسبة 0%',A.grey);panel(s,.45,2.28,8.1,4.62,'أداء البنود الرئيسية');rows.slice().sort(function(a,b){return b.value-a.value;}).slice(0,10).forEach(function(r,i){bar(s,.72,2.82+i*.34,7.55,r.label,r.value,i);});panel(s,8.78,2.28,4.11,4.62,'حالة المشروع');text(s,v+'%',9.08,2.93,3.5,.78,46,color(v),true,'center',false);text(s,'نسبة الإنجاز الحالية',9.08,3.67,3.5,.26,13,A.muted,true,'center',true);text(s,'قيد التنفيذ: '+active,9.12,4.37,3.3,.28,13,A.sky,true,'right',true);text(s,'مكتمل: '+done,9.12,4.79,3.3,.28,13,A.green,true,'right',true);text(s,'لم يبدأ: '+pending,9.12,5.21,3.3,.28,13,A.grey,true,'right',true);footer(s,enName(p));}
+function detailsSlide(pptx,p,index,total,no){var s=pptx.addSlide(),rows=rawRows(p),cut=Math.ceil(Math.min(rows.length,22)/2),groups=[rows.slice(0,cut),rows.slice(cut,22)],xs=[.45,6.72];header(pptx,s,arName(p)+' — التفاصيل','عرض كامل للبنود ونسب الإنجاز الحالية',no);groups.forEach(function(g,col){var x=xs[col];panel(s,x,1.08,6.16,5.82,col===0?'البنود 01–'+cut:'البنود '+(cut+1)+'–'+Math.min(rows.length,22));var rh=4.85/Math.max(1,g.length);g.forEach(function(r,i){var y=1.75+i*rh,c=color(r.value);if(i%2)rect(s,x+.14,y-.01,5.88,rh-.015,'F7F9FC','F7F9FC',.03);text(s,r.label,x+.62,y,4.12,.20,Math.max(6.2,Math.min(8.2,9-rh)),A.ink,true,'right',true);rect(s,x+4.86,y+.07,.67,.08,'E4E9F2','E4E9F2',.04);if(r.value>0)rect(s,x+4.86,y+.07,.67*r.value/100,.08,c,c,.04);text(s,r.value+'%',x+.16,y,.37,.20,7.2,c,true,'left',false);});});footer(s,'تفاصيل '+enName(p));}
+function surveyDailySlide(pptx,p,no){var rows=p.survey||[],dates={};rows.forEach(function(r){var m=r&&r.dailyProgressByDate;if(m&&typeof m==='object')Object.keys(m).forEach(function(d){if(/^\d{4}-\d{2}-\d{2}$/.test(d))dates[d]=1;});});var ds=Object.keys(dates).sort().slice(-14),vals=ds.map(function(d){return rows.reduce(function(a,r){return a+num(r&&r.dailyProgressByDate&&r.dailyProgressByDate[d]);},0);}),mx=Math.max.apply(null,vals.concat([1])),sum=vals.reduce(function(a,b){return a+b;},0),s=pptx.addSlide();header(pptx,s,'المسح الميداني — الإنتاجية اليومية','آخر 14 يوماً مسجلة في البورتال',no);metric(s,.45,1.03,2.92,'الأيام المعروضة',ds.length,'آخر فترة متاحة',A.blue);metric(s,3.57,1.03,2.92,'إجمالي الفترة',Math.round(sum).toLocaleString(),'الإنجاز اليومي المسجل',A.green);metric(s,6.69,1.03,2.92,'أعلى يوم',Math.round(Math.max.apply(null,vals.concat([0]))).toLocaleString(),'أعلى إنتاج يومي',A.sky);metric(s,9.81,1.03,3.08,'المعدل اليومي',Math.round(sum/Math.max(1,ds.length)).toLocaleString(),'متوسط الفترة',A.orange);panel(s,.45,2.28,12.44,4.62,'الإنتاجية اليومية');var base=6.23,cx=.83,cw=11.55,gap=.12,bw=(cw-gap*Math.max(0,ds.length-1))/Math.max(1,ds.length);ds.forEach(function(d,i){var v=vals[i],bh=v?Math.max(.04,2.72*v/mx):0,x=cx+i*(bw+gap);if(bh)rect(s,x,base-bh,bw,bh,i===vals.indexOf(Math.max.apply(null,vals))?A.green:A.sky,A.sky,.03);text(s,v?Math.round(v).toLocaleString():'',x-.03,base-bh-.24,bw+.06,.18,6.8,A.ink,true,'center',false);text(s,d.slice(8)+'/'+d.slice(5,7),x-.04,base+.08,bw+.08,.18,6.4,A.muted,false,'center',false);});footer(s,'الإنتاجية اليومية للمسح الميداني');}
+
+function buildAsimati(){
+  try{
+    var ps=projects();if(!ps.length){try{toast('لا توجد بيانات مشاريع متاحة',false);}catch(e){}return;}
+    var pptx=new PptxGenJS();AS_PPTX=pptx;pptx.layout='LAYOUT_WIDE';pptx.author='Asimati';pptx.company='عاصمتي';pptx.subject='محفظة المشاريع';pptx.title='محفظة المشاريع — عاصمتي';pptx.lang='ar-IQ';pptx.rtlMode=true;
+    var date=new Date().toISOString().slice(0,10),slideNo=1;addCover(pptx,ps.length,date);slideNo++;addOverview(pptx,ps,slideNo);
+    ps.forEach(function(p,i){slideNo++;summarySlide(pptx,p,i+1,ps.length,slideNo);slideNo++;detailsSlide(pptx,p,i+1,ps.length,slideNo);if(p.meta&&p.meta.surveyModel){slideNo++;surveyDailySlide(pptx,p,slideNo);}});
+    slideNo++;var end=pptx.addSlide();end.background={color:A.blue};text(end,'عاصمتي',4.3,1.65,4.73,.62,38,A.sky,true,'center',true);text(end,'اكتمل العرض التنفيذي',2.0,2.67,9.33,.72,32,A.white,true,'center',true);rect(end,2.6,3.65,8.13,.06,A.green,A.green);text(end,ps.length+' مشاريع • '+slideNo+' سلايد • '+date,2.0,4.03,9.33,.36,13,'D9F2FB',false,'center',true);text(end,'تم الإنشاء من بيانات البورتال الحالية بدون تعديلها',2.0,5.67,9.33,.30,11,'B8C7EB',false,'center',true);
+    var stamp=new Date().toISOString().slice(11,19).replace(/:/g,''),file='Asimati_Arabic_Full_Infographic_'+date+'_'+stamp+'.pptx';Promise.resolve(pptx.writeFile({fileName:file,compression:true})).then(function(){try{toast('تم تنزيل برزنتيشن عاصمتي — '+slideNo+' سلايد',true);}catch(e){}}).catch(function(err){console.error(err);try{toast('فشل إنشاء PowerPoint: '+err.message,false);}catch(e){}});
+  }catch(err){console.error(err);try{toast('فشل إنشاء PowerPoint: '+err.message,false);}catch(e){}}
+}
+window.kpAsimatiPptFull=function(){loadPpt(buildAsimati);};
+window.kpDownloadAsimatiPPT=function(){window.closePortfolioPPT();var needs=!!(window.SYNC&&window.SYNC.cfg&&window.SYNC.room),ready=true;try{ready=!needs||!!(window.__syncGate&&window.__syncGate().bootstrapped);}catch(e){}if(ready){window.kpAsimatiPptFull();return;}try{toast('جاري انتظار بيانات Firebase الحية...',true);}catch(e){}var start=Date.now();(function wait(){var ok=false;try{ok=!!(window.__syncGate&&window.__syncGate().bootstrapped);}catch(e){}if(ok){window.kpAsimatiPptFull();return;}if(Date.now()-start>20000){try{toast('بيانات Firebase غير جاهزة. حدّث الصفحة وانتظر ظهور Live ثم حاول مجدداً.',false);}catch(e){}return;}setTimeout(wait,250);})();};
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(ensureChooser,500);});else setTimeout(ensureChooser,500);
+})();
+</script>
+
 
 
 <style id="kpExcelAuthoritativeV30Style">
@@ -19799,7 +20009,9 @@ function kpPptProjects(){
 
   var src=(window.STORE&&Array.isArray(STORE.projects))?STORE.projects:[];var out=[];
 
-  src.forEach(function(p){if(!p)return;if(Array.isArray(p.subProjects)&&p.subProjects.length)p.subProjects.forEach(function(s){if(s)out.push(s);});else out.push(p);});
+  function isResources(p){var n=String((p&&p.nameEn)||p&&p.name||'').toLowerCase();return !p||p.id==='p9'||n==='resources'||!!(p.meta&&p.meta.resourceModel);}
+
+  src.forEach(function(p){if(isResources(p))return;if(Array.isArray(p.subProjects)&&p.subProjects.length)p.subProjects.forEach(function(s){if(!isResources(s))out.push(s);});else out.push(p);});
 
   return out;
 
@@ -118012,404 +118224,427 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 setTimeout(dcInstall,1200);setTimeout(dcInstallButton,4000);
 })();
 </script>
-<script id="kpXlsCloudSyncFix">
-/* ═══════════════════════════════════════════════════════════════════════════
-   EXCEL IMPORT → FIREBASE:  UNSENT-IMPORT VAULT  (v2)
-
-   THE SYMPTOM
-   ───────────
-   Import an Excel file (worst on Network & Infrastructure / p5): the change
-   shows on this machine, teammates never receive it, and after a refresh the
-   local copy reverts to the server's older version. The work is gone.
-
-   WHY A VAULT INSTEAD OF ANOTHER POINT FIX
-   ────────────────────────────────────────
-   The upload can fail at several independent points — the write gate being
-   shut, a baseline that never bootstrapped, a path the database will not
-   accept, a listener re-applying the server copy over a local edit, or the
-   in-memory "unsent edit" flag being lost on reload because it lives in a
-   plain variable. Every one of those ends the same way: the browser forgets
-   that this machine holds work the server has never seen, so the next
-   snapshot overwrites it.
-
-   So instead of guarding each path, this keeps the imported project in
-   localStorage and refuses to let go of it until the SERVER has confirmed it.
-     • On import  — the changed project is copied into the vault first, then
-                    uploaded.
-     • On reload  — if the vault still holds work, it is re-applied over
-                    whatever the server sent, then uploaded again.
-     • Clearing   — only after reading the project back from Firebase and
-                    confirming it matches. A failed or partial upload keeps the
-                    vault, so the data cannot be lost by refreshing.
-
-   WHAT IT WILL NOT DO
-   ───────────────────
-   • No set() on the room, no remove(), no deletes. Every write is update()
-     with keys scoped to  projects/<key>/… , so other projects, activity,
-     progressFeed and _deletedIds on the server are never in the payload and
-     are left exactly as they are.
-   • It never writes a project the import did not change.
-   ═══════════════════════════════════════════════════════════════════════════ */
-(function(){
-if(window.__kpXlsVaultV2) return; window.__kpXlsVaultV2=true;
-
-var VAULT='kp_unsent_imports';
-var LOGK='kp_sync_blackbox';
-var BUILD='XLS-VAULT-v3';
-var ILL=/[.#$\[\]]/;
-
-/* ── Black box ───────────────────────────────────────────────────────────
-   The interesting events straddle a page refresh, so an in-memory log is
-   useless here. Everything is appended to localStorage instead and survives
-   reloads. Run kpSyncReport() to print it. */
-function rec(ev,data){
-  try{
-    var a=[]; try{ a=JSON.parse(localStorage.getItem(LOGK)||'[]')||[]; }catch(e){}
-    a.push({t:new Date().toISOString().slice(11,23),ev:ev,d:data===undefined?null:data});
-    while(a.length>260) a.shift();
-    localStorage.setItem(LOGK,JSON.stringify(a));
-  }catch(e){}
-  try{ console.info('[vault]',ev,data===undefined?'':data); }catch(e){}
-}
-window.kpSyncReport=function(){
-  var a=[]; try{ a=JSON.parse(localStorage.getItem(LOGK)||'[]')||[]; }catch(e){}
-  var txt='=== PORTAL SYNC REPORT ('+BUILD+') ===\n';
-  try{ txt+='connected='+!!(window.SYNC&&SYNC.ref)+' room='+((window.SYNC&&SYNC.room)||'-')+'\n'; }catch(e){}
-  try{ txt+='gate='+JSON.stringify((typeof window.__syncGate==='function')?window.__syncGate():'n/a')+'\n'; }catch(e){}
-  try{ txt+='openProject='+(window.CUR_PROJ||'-')+'\n'; }catch(e){}
-  try{ txt+='vault='+JSON.stringify(Object.keys(readVault()))+'\n'; }catch(e){}
-  try{ txt+='projectsInStore='+((window.STORE&&STORE.projects&&STORE.projects.length)||0)+'\n'; }catch(e){}
-  txt+='--- events ---\n';
-  a.forEach(function(e){ txt+=e.t+'  '+e.ev+(e.d!==null?('  '+JSON.stringify(e.d)):'')+'\n'; });
-  console.log(txt);
-  try{ if(navigator.clipboard) navigator.clipboard.writeText(txt); }catch(e){}
-  try{ toast('Sync report printed to the console and copied to your clipboard.',true); }catch(e){}
-  return txt;
-};
-window.kpSyncReportClear=function(){ try{ localStorage.removeItem(LOGK); }catch(e){} return 'cleared'; };
-
+<script id="kpXlsCloudSyncFix">
+/* ═══════════════════════════════════════════════════════════════════════════
+   EXCEL IMPORT → FIREBASE:  UNSENT-IMPORT VAULT  (v2)
+
+   THE SYMPTOM
+   ───────────
+   Import an Excel file (worst on Network & Infrastructure / p5): the change
+   shows on this machine, teammates never receive it, and after a refresh the
+   local copy reverts to the server's older version. The work is gone.
+
+   WHY A VAULT INSTEAD OF ANOTHER POINT FIX
+   ────────────────────────────────────────
+   The upload can fail at several independent points — the write gate being
+   shut, a baseline that never bootstrapped, a path the database will not
+   accept, a listener re-applying the server copy over a local edit, or the
+   in-memory "unsent edit" flag being lost on reload because it lives in a
+   plain variable. Every one of those ends the same way: the browser forgets
+   that this machine holds work the server has never seen, so the next
+   snapshot overwrites it.
+
+   So instead of guarding each path, this keeps the imported project in
+   localStorage and refuses to let go of it until the SERVER has confirmed it.
+     • On import  — the changed project is copied into the vault first, then
+                    uploaded.
+     • On reload  — if the vault still holds work, it is re-applied over
+                    whatever the server sent, then uploaded again.
+     • Clearing   — only after reading the project back from Firebase and
+                    confirming it matches. A failed or partial upload keeps the
+                    vault, so the data cannot be lost by refreshing.
+
+   WHAT IT WILL NOT DO
+   ───────────────────
+   • No set() on the room, no remove(), no deletes. Every write is update()
+     with keys scoped to  projects/<key>/… , so other projects, activity,
+     progressFeed and _deletedIds on the server are never in the payload and
+     are left exactly as they are.
+   • It never writes a project the import did not change.
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function(){
+if(window.__kpXlsVaultV2) return; window.__kpXlsVaultV2=true;
+
+var VAULT='kp_unsent_imports';
+var LOGK='kp_sync_blackbox';
+var BUILD='XLS-VAULT-v3';
+var ILL=/[.#$\[\]]/;
+
+/* ── Black box ───────────────────────────────────────────────────────────
+   The interesting events straddle a page refresh, so an in-memory log is
+   useless here. Everything is appended to localStorage instead and survives
+   reloads. Run kpSyncReport() to print it. */
+function rec(ev,data){
+  try{
+    var a=[]; try{ a=JSON.parse(localStorage.getItem(LOGK)||'[]')||[]; }catch(e){}
+    a.push({t:new Date().toISOString().slice(11,23),ev:ev,d:data===undefined?null:data});
+    while(a.length>260) a.shift();
+    localStorage.setItem(LOGK,JSON.stringify(a));
+  }catch(e){}
+  try{ console.info('[vault]',ev,data===undefined?'':data); }catch(e){}
+}
+window.kpSyncReport=function(){
+  var a=[]; try{ a=JSON.parse(localStorage.getItem(LOGK)||'[]')||[]; }catch(e){}
+  var txt='=== PORTAL SYNC REPORT ('+BUILD+') ===\n';
+  try{ txt+='connected='+!!(window.SYNC&&SYNC.ref)+' room='+((window.SYNC&&SYNC.room)||'-')+'\n'; }catch(e){}
+  try{ txt+='gate='+JSON.stringify((typeof window.__syncGate==='function')?window.__syncGate():'n/a')+'\n'; }catch(e){}
+  try{ txt+='openProject='+(window.CUR_PROJ||'-')+'\n'; }catch(e){}
+  try{ txt+='vault='+JSON.stringify(Object.keys(readVault()))+'\n'; }catch(e){}
+  try{ var ps=storeProjects();txt+='projectsInStore='+((ps&&ps.length)||0)+'\n'; }catch(e){}
+  txt+='--- events ---\n';
+  a.forEach(function(e){ txt+=e.t+'  '+e.ev+(e.d!==null?('  '+JSON.stringify(e.d)):'')+'\n'; });
+  console.log(txt);
+  try{ if(navigator.clipboard) navigator.clipboard.writeText(txt); }catch(e){}
+  try{ toast('Sync report printed to the console and copied to your clipboard.',true); }catch(e){}
+  return txt;
+};
+window.kpSyncReportClear=function(){ try{ localStorage.removeItem(LOGK); }catch(e){} return 'cleared'; };
+
 function say(m,ok){ try{ toast(m,!!ok); }catch(e){ try{console.log('[vault]',m);}catch(_){}} }
 function log(){ try{ console.info.apply(console,['[vault]'].concat([].slice.call(arguments))); }catch(e){} }
 function clone(o){ try{ return JSON.parse(JSON.stringify(o)); }catch(e){ return null; } }
 function connected(){ return !!(window.SYNC && SYNC.ref); }
-
-/* ── Vault storage ──────────────────────────────────────────────────────── */
-function readVault(){
-  try{ var v=JSON.parse(localStorage.getItem(VAULT)||'{}'); return (v&&typeof v==='object')?v:{}; }
-  catch(e){ return {}; }
-}
-function writeVault(v){
-  try{ localStorage.setItem(VAULT,JSON.stringify(v)); }catch(e){
-    try{ console.warn('[vault] could not be saved (storage full?)',e); }catch(_){}
-  }
-}
-function stash(pid,projObj,source){
-  var v=readVault();
-  v[pid]={at:new Date().toISOString(),source:source||'Excel import',project:clone(projObj)};
-  writeVault(v);
-  log('stashed',pid);
-}
-function unstash(pid){ var v=readVault(); if(v[pid]){ delete v[pid]; writeVault(v); log('cleared',pid); } }
-window.kpUnsentImports=function(){ return Object.keys(readVault()); };
-
-/* ── Leaf diff (local copy, independent of the sync module) ─────────────── */
-function isObj(v){ return v && typeof v==='object' && !Array.isArray(v); }
-function diff(base,next,prefix,out,depth){
-  out=out||{}; prefix=prefix||''; depth=depth||0;
-  if(depth>12){ out[prefix]=next; return out; }
-  if(Array.isArray(base)||Array.isArray(next)){
-    if(!Array.isArray(base)||!Array.isArray(next)||base.length!==next.length){
-      if(JSON.stringify(base)!==JSON.stringify(next)) out[prefix]=next;
-      return out;
-    }
-    for(var i=0;i<next.length;i++) diff(base[i],next[i],prefix+'/'+i,out,depth+1);
-    return out;
-  }
-  if(isObj(base)&&isObj(next)){
-    var keys={},k;
-    for(k in base) keys[k]=1;
-    for(k in next) keys[k]=1;
-    for(k in keys){
-      var p=prefix?(prefix+'/'+k):k;
-      if(!(k in next)){ out[p]=null; continue; }
-      if(!(k in base)){ out[p]=next[k]; continue; }
-      diff(base[k],next[k],p,out,depth+1);
-    }
-    return out;
-  }
-  if(base!==next) out[prefix]=(next===undefined?null:next);
-  return out;
-}
-/* Every key anywhere in a value must be storable, or the write is rejected. */
-function legalValue(v,d){
-  d=d||0; if(d>14) return false;
-  if(v===null||typeof v!=='object') return true;
-  if(Array.isArray(v)){
-    for(var i=0;i<v.length;i++) if(!legalValue(v[i],d+1)) return false;
-    return true;
-  }
-  for(var k in v){
-    if(ILL.test(k)||k.indexOf('/')>=0) return false;
-    if(!legalValue(v[k],d+1)) return false;
-  }
-  return true;
-}
-
-/* ── Server lookup by id, never by index ────────────────────────────────── */
-function locate(pid){
-  return SYNC.ref.child('projects').once('value').then(function(snap){
-    var val=snap&&snap.val(),k;
-    if(val==null) return {key:null,remote:null,absent:true};
-    if(Array.isArray(val)){
-      for(var i=0;i<val.length;i++)
-        if(val[i]&&String(val[i].id)===String(pid)) return {key:String(i),remote:val[i]};
-    }else{
-      for(k in val)
-        if(val[k]&&String(val[k].id)===String(pid)) return {key:k,remote:val[k]};
-    }
-    return {key:null,remote:null,absent:true};
-  });
-}
-function localProject(pid){
-  try{
-    if(!window.STORE||!Array.isArray(STORE.projects)) return null;
-    for(var i=0;i<STORE.projects.length;i++)
-      if(STORE.projects[i]&&String(STORE.projects[i].id)===String(pid))
-        return {obj:STORE.projects[i],index:i};
-  }catch(e){}
+function storeProjects(){
+  try{ if(typeof STORE!=='undefined'&&STORE&&Array.isArray(STORE.projects)) return STORE.projects; }catch(e){}
+  try{ if(window.STORE&&Array.isArray(window.STORE.projects)) return window.STORE.projects; }catch(e){}
   return null;
 }
-
-/* ── Upload one project and verify it landed ────────────────────────────── */
-function uploadProject(pid){
-  var loc=localProject(pid);
-  if(!loc) return Promise.resolve({ok:false,pid:pid,reason:'project not found on this device'});
-  var local=clone(loc.obj);
-  if(!local) return Promise.resolve({ok:false,pid:pid,reason:'project could not be packaged'});
-  if(!legalValue(local)) return Promise.resolve({ok:false,pid:pid,reason:'this project contains a field name Firebase cannot store'});
-
-  return locate(pid).then(function(found){
-    var key=found.absent?String(loc.index):found.key;
-    var base=found.absent?{}:found.remote;
-    var raw=diff(base,local,'',{},0),payload={},n=0,k;
-
-    for(k in raw){
-      if(!k){ payload['projects/'+key]=local; n=1; break; }
-      if(ILL.test(k)){ payload={}; payload['projects/'+key]=local; n=1; break; }
-      payload['projects/'+key+'/'+k]=raw[k]; n++;
-    }
-    if(!n) return {ok:true,pid:pid,key:key,already:true};
-
-    /* An update() may not hold both a node and a descendant of it. */
-    var keys=Object.keys(payload).sort(function(a,b){ return a.length-b.length; }),clean={},c=0;
-    keys.forEach(function(key2){
-      var seg=key2.split('/');
-      for(var d=1;d<seg.length;d++) if(clean[seg.slice(0,d).join('/')]!==undefined) return;
-      clean[key2]=payload[key2]; c++;
-    });
-
-    var bytes=0; try{ bytes=JSON.stringify(clean).length; }catch(e){}
-    rec('upload-try',{pid:pid,serverKey:key,paths:c,bytes:bytes,sample:Object.keys(clean).slice(0,4)});
-
-    return SYNC.ref.update(clean).then(function(){
-      /* Verify against the server rather than trusting the write. */
-      return SYNC.ref.child('projects/'+key).once('value').then(function(s){
-        var back=s&&s.val();
-        var remaining=0,d2=diff(back||{},local,'',{},0);
-        for(var q in d2) remaining++;
-        rec(remaining===0?'upload-VERIFIED':'upload-UNVERIFIED',{pid:pid,remaining:remaining});
-        return {ok:remaining===0,pid:pid,key:key,paths:c,bytes:bytes,
-                remaining:remaining,
-                reason:remaining?('the server still differs in '+remaining+' field(s) after the write'):''};
-      });
-    },function(err){
-      var why=(err&&(err.message||err.code))||'the write was rejected';
-      rec('upload-REJECTED',{pid:pid,reason:why});
-      return {ok:false,pid:pid,reason:why};
-    });
-  },function(err){
-    return {ok:false,pid:pid,reason:'could not read the project from Firebase ('+((err&&(err.message||err.code))||'unknown')+')'};
-  });
-}
-
-/* ── Public: upload everything the vault is holding ─────────────────────── */
-function flush(quiet){
-  var ids=Object.keys(readVault());
-  if(!ids.length) return Promise.resolve({ok:true,nothing:true});
-  rec('flush',{waiting:ids,connected:connected(),gate:(function(){try{return window.__syncGate?window.__syncGate():'n/a';}catch(e){return 'n/a';}})()});
-  if(!connected()){
-    if(!quiet) say('Not connected to Firebase — '+ids.length+' Excel import'+(ids.length===1?' is':'s are')+' still waiting on this device. Connect in Sync Settings; nothing is lost.',false);
-    return Promise.resolve({ok:false,reason:'not connected'});
-  }
-  if(!quiet) say('Uploading '+ids.length+' Excel import'+(ids.length===1?'':'s')+' to Firebase…',true);
-
-  var results=[],chain=Promise.resolve();
-  ids.forEach(function(pid){
-    chain=chain.then(function(){
-      return uploadProject(pid).then(function(r){
-        results.push(r);
-        if(r.ok) unstash(pid);        /* only after the server confirmed it */
-      });
-    });
-  });
-
-  return chain.then(function(){
-    var bad=results.filter(function(r){ return !r.ok; });
-    var sent=results.filter(function(r){ return r.ok&&!r.already; });
-    if(bad.length){
-      say('Firebase upload FAILED — '+(bad[0].reason||'unknown error')+'. Your import is SAFE on this device and will be retried; refreshing will not lose it.',false);
-      return {ok:false,results:results};
-    }
-    if(!sent.length){ if(!quiet) say('Firebase already has this data.',true); return {ok:true,results:results}; }
-    var paths=sent.reduce(function(a,r){ return a+(r.paths||0); },0);
-    say('Uploaded to Firebase and verified — your team can see this now ('+paths+' field'+(paths===1?'':'s')+').',true);
-    try{ if(typeof setSyncUI==='function') setSyncUI('live'); }catch(e){}
-    return {ok:true,results:results};
-  });
-}
-window.kpForceCloudSync=function(){ 
-  /* Re-stash the open project so a manual press always has something to send. */
+
+/* ── Vault storage ──────────────────────────────────────────────────────── */
+function readVault(){
+  try{ var v=JSON.parse(localStorage.getItem(VAULT)||'{}'); return (v&&typeof v==='object')?v:{}; }
+  catch(e){ return {}; }
+}
+function writeVault(v){
+  try{ localStorage.setItem(VAULT,JSON.stringify(v)); }catch(e){
+    try{ console.warn('[vault] could not be saved (storage full?)',e); }catch(_){}
+  }
+}
+function stash(pid,projObj,source){
+  var v=readVault();
+  v[pid]={at:new Date().toISOString(),source:source||'Excel import',project:clone(projObj)};
+  writeVault(v);
+  log('stashed',pid);
+}
+function unstash(pid){ var v=readVault(); if(v[pid]){ delete v[pid]; writeVault(v); log('cleared',pid); } }
+window.kpUnsentImports=function(){ return Object.keys(readVault()); };
+
+/* ── Leaf diff (local copy, independent of the sync module) ─────────────── */
+function isObj(v){ return v && typeof v==='object' && !Array.isArray(v); }
+function diff(base,next,prefix,out,depth){
+  out=out||{}; prefix=prefix||''; depth=depth||0;
+  if(depth>12){ out[prefix]=next; return out; }
+  if(Array.isArray(base)||Array.isArray(next)){
+    if(!Array.isArray(base)||!Array.isArray(next)||base.length!==next.length){
+      if(JSON.stringify(base)!==JSON.stringify(next)) out[prefix]=next;
+      return out;
+    }
+    for(var i=0;i<next.length;i++) diff(base[i],next[i],prefix+'/'+i,out,depth+1);
+    return out;
+  }
+  if(isObj(base)&&isObj(next)){
+    var keys={},k;
+    for(k in base) keys[k]=1;
+    for(k in next) keys[k]=1;
+    for(k in keys){
+      var p=prefix?(prefix+'/'+k):k;
+      if(!(k in next)){ out[p]=null; continue; }
+      if(!(k in base)){ out[p]=next[k]; continue; }
+      diff(base[k],next[k],p,out,depth+1);
+    }
+    return out;
+  }
+  if(base!==next) out[prefix]=(next===undefined?null:next);
+  return out;
+}
+/* Every key anywhere in a value must be storable, or the write is rejected. */
+function legalValue(v,d){
+  d=d||0; if(d>14) return false;
+  if(v===null||typeof v!=='object') return true;
+  if(Array.isArray(v)){
+    for(var i=0;i<v.length;i++) if(!legalValue(v[i],d+1)) return false;
+    return true;
+  }
+  for(var k in v){
+    if(ILL.test(k)||k.indexOf('/')>=0) return false;
+    if(!legalValue(v[k],d+1)) return false;
+  }
+  return true;
+}
+
+/* ── Server lookup by id, never by index ────────────────────────────────── */
+function locate(pid){
+  return SYNC.ref.child('projects').once('value').then(function(snap){
+    var val=snap&&snap.val(),k;
+    if(val==null) return {key:null,remote:null,absent:true};
+    if(Array.isArray(val)){
+      for(var i=0;i<val.length;i++)
+        if(val[i]&&String(val[i].id)===String(pid)) return {key:String(i),remote:val[i]};
+    }else{
+      for(k in val)
+        if(val[k]&&String(val[k].id)===String(pid)) return {key:k,remote:val[k]};
+    }
+    return {key:null,remote:null,absent:true};
+  });
+}
+function localProject(pid){
   try{
-    var pid=window.CUR_PROJ, l=pid&&localProject(pid);
-    if(l) stash(pid,l.obj,'manual sync');
-  }catch(e){}
-  return flush(false);
-};
-
-/* ── On reload: put the vault back over whatever the server sent ─────────── */
-function restore(){
-  var v=readVault(),ids=Object.keys(v);
-  rec('restore-check',{vault:ids});
-  if(!ids.length) return;
-  var restored=[];
-  ids.forEach(function(pid){
+    var projects=storeProjects();if(!projects)return null;
+    for(var i=0;i<projects.length;i++)
+      if(projects[i]&&String(projects[i].id)===String(pid))
+        return {obj:projects[i],index:i};
+  }catch(e){}
+  return null;
+}
+
+/* ── Upload one project and verify it landed ────────────────────────────── */
+function uploadProject(pid){
+  var loc=localProject(pid);
+  if(!loc) return Promise.resolve({ok:false,pid:pid,reason:'project not found on this device'});
+  var local=clone(loc.obj);
+  if(!local) return Promise.resolve({ok:false,pid:pid,reason:'project could not be packaged'});
+  if(!legalValue(local)) return Promise.resolve({ok:false,pid:pid,reason:'this project contains a field name Firebase cannot store'});
+
+  return locate(pid).then(function(found){
+    var key=found.absent?String(loc.index):found.key;
+    var base=found.absent?{}:found.remote;
+    var raw=diff(base,local,'',{},0),payload={},n=0,k;
+
+    for(k in raw){
+      if(!k){ payload['projects/'+key]=local; n=1; break; }
+      if(ILL.test(k)){ payload={}; payload['projects/'+key]=local; n=1; break; }
+      payload['projects/'+key+'/'+k]=raw[k]; n++;
+    }
+    if(!n) return {ok:true,pid:pid,key:key,already:true};
+
+    /* An update() may not hold both a node and a descendant of it. */
+    var keys=Object.keys(payload).sort(function(a,b){ return a.length-b.length; }),clean={},c=0;
+    keys.forEach(function(key2){
+      var seg=key2.split('/');
+      for(var d=1;d<seg.length;d++) if(clean[seg.slice(0,d).join('/')]!==undefined) return;
+      clean[key2]=payload[key2]; c++;
+    });
+
+    var bytes=0; try{ bytes=JSON.stringify(clean).length; }catch(e){}
+    rec('upload-try',{pid:pid,serverKey:key,paths:c,bytes:bytes,sample:Object.keys(clean).slice(0,4)});
+
+    return SYNC.ref.update(clean).then(function(){
+      /* Verify against the server rather than trusting the write. */
+      return SYNC.ref.child('projects/'+key).once('value').then(function(s){
+        var back=s&&s.val();
+        var remaining=0,d2=diff(back||{},local,'',{},0);
+        for(var q in d2) remaining++;
+        rec(remaining===0?'upload-VERIFIED':'upload-UNVERIFIED',{pid:pid,remaining:remaining});
+        return {ok:remaining===0,pid:pid,key:key,paths:c,bytes:bytes,
+                remaining:remaining,
+                reason:remaining?('the server still differs in '+remaining+' field(s) after the write'):''};
+      });
+    },function(err){
+      var why=(err&&(err.message||err.code))||'the write was rejected';
+      rec('upload-REJECTED',{pid:pid,reason:why});
+      return {ok:false,pid:pid,reason:why};
+    });
+  },function(err){
+    return {ok:false,pid:pid,reason:'could not read the project from Firebase ('+((err&&(err.message||err.code))||'unknown')+')'};
+  });
+}
+
+/* ── Public: upload everything the vault is holding ─────────────────────── */
+function flush(quiet){
+  var ids=Object.keys(readVault());
+  if(!ids.length) return Promise.resolve({ok:true,nothing:true});
+  rec('flush',{waiting:ids,connected:connected(),gate:(function(){try{return window.__syncGate?window.__syncGate():'n/a';}catch(e){return 'n/a';}})()});
+  if(!connected()){
+    if(!quiet) say('Not connected to Firebase — '+ids.length+' Excel import'+(ids.length===1?' is':'s are')+' still waiting on this device. Connect in Sync Settings; nothing is lost.',false);
+    return Promise.resolve({ok:false,reason:'not connected'});
+  }
+  if(!quiet) say('Uploading '+ids.length+' Excel import'+(ids.length===1?'':'s')+' to Firebase…',true);
+
+  var results=[],chain=Promise.resolve();
+  ids.forEach(function(pid){
+    chain=chain.then(function(){
+      return uploadProject(pid).then(function(r){
+        results.push(r);
+        if(r.ok) unstash(pid);        /* only after the server confirmed it */
+      });
+    });
+  });
+
+  return chain.then(function(){
+    var bad=results.filter(function(r){ return !r.ok; });
+    var sent=results.filter(function(r){ return r.ok&&!r.already; });
+    if(bad.length){
+      say('Firebase upload FAILED — '+(bad[0].reason||'unknown error')+'. Your import is SAFE on this device and will be retried; refreshing will not lose it.',false);
+      return {ok:false,results:results};
+    }
+    if(!sent.length){ if(!quiet) say('Firebase already has this data.',true); return {ok:true,results:results}; }
+    var paths=sent.reduce(function(a,r){ return a+(r.paths||0); },0);
+    say('Uploaded to Firebase and verified — your team can see this now ('+paths+' field'+(paths===1?'':'s')+').',true);
+    try{ if(typeof setSyncUI==='function') setSyncUI('live'); }catch(e){}
+    return {ok:true,results:results};
+  });
+}
+window.kpForceCloudSync=function(){ 
+  /* Re-stash the open project so a manual press always has something to send. */
+  try{
+    var pid=window.CUR_PROJ, l=pid&&localProject(pid);
+    if(l) stash(pid,l.obj,'manual sync');
+  }catch(e){}
+  return flush(false);
+};
+
+/* ── On reload: put the vault back over whatever the server sent ─────────── */
+function restore(){
+  var v=readVault(),ids=Object.keys(v);
+  rec('restore-check',{vault:ids});
+  if(!ids.length) return;
+  var restored=[];
+  ids.forEach(function(pid){
     var saved=v[pid]&&v[pid].project;
-    if(!saved) return;
+    if(!saved) return;
     var loc=localProject(pid);
     if(!loc){
-      try{ if(window.STORE&&Array.isArray(STORE.projects)){ STORE.projects.push(clone(saved)); restored.push(pid); } }catch(e){}
-      return;
-    }
-    var cur=''; try{ cur=JSON.stringify(loc.obj); }catch(e){}
-    if(cur===JSON.stringify(saved)) return;              /* already correct */
-    try{
-      var live=loc.obj;
-      Object.keys(live).forEach(function(k){ if(!(k in saved)) delete live[k]; });
-      Object.keys(saved).forEach(function(k){ live[k]=clone(saved[k]); });
-      restored.push(pid);
-    }catch(e){}
-  });
-  rec('restore',{projects:restored,vaultHeld:ids});
-  if(!restored.length) return;
-  try{ if(typeof persist==='function') persist(restored[0]); }catch(e){}
-  try{ if(typeof renderHub==='function') renderHub(); }catch(e){}
-  try{ if(window.CUR_PROJ&&typeof renderProjectView==='function') renderProjectView(CUR_PROJ); }catch(e){}
-  say('Restored an Excel import that had not reached Firebase yet. Re-uploading…',true);
-}
-
-/* ── Watch STORE after an import, stash, then upload ─────────────────────── */
+      try{ var projects=storeProjects();if(projects){ projects.push(clone(saved)); restored.push(pid); } }catch(e){}
+      return;
+    }
+    var cur=''; try{ cur=JSON.stringify(loc.obj); }catch(e){}
+    if(cur===JSON.stringify(saved)) return;              /* already correct */
+    try{
+      var live=loc.obj;
+      Object.keys(live).forEach(function(k){ if(!(k in saved)) delete live[k]; });
+      Object.keys(saved).forEach(function(k){ live[k]=clone(saved[k]); });
+      restored.push(pid);
+    }catch(e){}
+  });
+  rec('restore',{projects:restored,vaultHeld:ids});
+  if(!restored.length) return;
+  try{ if(typeof persist==='function') persist(restored[0]); }catch(e){}
+  try{ if(typeof renderHub==='function') renderHub(); }catch(e){}
+  try{ if(window.CUR_PROJ&&typeof renderProjectView==='function') renderProjectView(CUR_PROJ); }catch(e){}
+  say('Restored an Excel import that had not reached Firebase yet. Re-uploading…',true);
+}
+
+/* ── Watch STORE after an import, stash, then upload ─────────────────────── */
 function snapProjects(){
   var m={};
   try{
-    if(window.STORE&&Array.isArray(STORE.projects))
-      STORE.projects.forEach(function(p){ if(p&&p.id) m[p.id]=JSON.stringify(p); });
-  }catch(e){}
-  return m;
-}
-var watching=false;
-function watchAndPush(before){
-  if(watching) return; watching=true;
-  var tries=0,settle=0,lastSig='';
-  var t=setInterval(function(){
-    tries++;
-    var now=snapProjects(),ch=[],k;
-    for(k in now) if(before[k]!==now[k]) ch.push(k);
-    var sig=ch.join(',');
-    if(ch.length){
-      if(sig===lastSig) settle++; else { settle=0; lastSig=sig; }
-      if(settle>=2){
-        clearInterval(t); watching=false;
-        rec('import-detected',{projects:ch,afterMs:tries*400});
-        ch.forEach(function(pid){ var l=localProject(pid); if(l) stash(pid,l.obj,'Excel import'); });
-        flush(false);
-        return;
-      }
-    }
-    if(tries>=32){
-      clearInterval(t); watching=false;
-      if(ch.length){
-        ch.forEach(function(pid){ var l=localProject(pid); if(l) stash(pid,l.obj,'Excel import'); });
-        flush(false);
-      }else rec('import-NO-CHANGE',{note:'STORE.projects was not modified by the import — the importer never wrote to the shared store'});
-    }
-  },400);
-}
-
-function wrap(name){
-  var orig=window[name];
-  if(typeof orig!=='function'||orig.__kpVault) return;
-  var w=function(){
-    var before=snapProjects(),r;
-    try{ r=orig.apply(this,arguments); }
-    finally{ try{ watchAndPush(before); }catch(e){} }
-    return r;
-  };
-  w.__kpVault=true;
-  try{ w.__kpV518=orig.__kpV518; }catch(e){}
-  window[name]=w;
-}
-var TARGETS=['handleExcelUpload','runImport','importAllSiteTrackers','importSiteDepartments',
-             'trImport','finImportXlsx','supplyImportExcel','importWorkbook','dcImportExcel'];
-function install(){
-  var found=[],missing=[];
-  TARGETS.forEach(function(n){
-    if(typeof window[n]==='function'){ found.push(n+(window[n].__kpVault?'*':'')); wrap(n); }
-    else missing.push(n);
-  });
-  if(!install.__logged||install.__last!==found.join(',')){
-    install.__logged=true; install.__last=found.join(',');
-    rec('wrap',{wrapped:found,absent:missing});
-  }
-}
-
-/* ── Diagnostics ────────────────────────────────────────────────────────── */
-window.kpSyncDiag=function(){
-  var out={};
-  try{ out.connected=connected(); }catch(e){ out.connected=false; }
-  try{ out.room=(window.SYNC&&SYNC.room)||null; }catch(e){}
-  try{ out.gate=(typeof window.__syncGate==='function')?window.__syncGate():'n/a'; }catch(e){}
-  try{ out.openProject=window.CUR_PROJ||null; }catch(e){}
-  try{ out.unsentImports=Object.keys(readVault()); }catch(e){}
-  try{ out.pendingFlags=(typeof window.__syncPendingMap==='function')?window.__syncPendingMap():'n/a'; }catch(e){}
-  try{ out.unwritablePaths=window.__kpSyncDropped||[]; }catch(e){}
-  try{
-    var l=out.openProject&&localProject(out.openProject);
-    out.projectLegalForFirebase=l?legalValue(clone(l.obj)):'n/a';
-  }catch(e){}
-  console.log('%c[sync diagnostics]','font-weight:bold',out);
-  var why = !out.connected ? 'NOT CONNECTED to Firebase — connect in Sync Settings.'
-    : (out.gate&&out.gate.writable===false) ? ('WRITES BLOCKED — '+(out.gate.reason||'unknown')+'.')
-    : (out.projectLegalForFirebase===false) ? 'This project has a field name Firebase cannot store — send me the console output.'
-    : (out.unsentImports&&out.unsentImports.length) ? ('Waiting to upload: '+out.unsentImports.join(', ')+' — run kpForceCloudSync().')
-    : 'Nothing is waiting to upload.';
-  console.log('%c'+why,'color:#B12836;font-weight:bold');
-  try{ toast(why,out.connected); }catch(e){}
-  return out;
-};
-
-/* ── Boot ───────────────────────────────────────────────────────────────── */
-if(document.readyState==='loading')
-  document.addEventListener('DOMContentLoaded',function(){ setTimeout(install,400); });
-else setTimeout(install,400);
-setTimeout(install,1500); setTimeout(install,4000); setTimeout(install,9000);
-
-/* Restore after the bootstrap read has had time to land, then keep retrying. */
-setTimeout(function(){ try{ restore(); }catch(e){} },6000);
-setTimeout(function(){ flush(true); },9000);
-setInterval(function(){ flush(true); },60000);
-
+    var projects=storeProjects();if(projects)
+      projects.forEach(function(p){ if(p&&p.id) m[p.id]=JSON.stringify(p); });
+  }catch(e){}
+  return m;
+}
+var watching=false;
+function watchAndPush(before){
+  if(watching) return; watching=true;
+  var tries=0,settle=0,lastSig='';
+  var t=setInterval(function(){
+    tries++;
+    var now=snapProjects(),ch=[],k;
+    for(k in now) if(before[k]!==now[k]) ch.push(k);
+    var sig=ch.join(',');
+    if(ch.length){
+      if(sig===lastSig) settle++; else { settle=0; lastSig=sig; }
+      if(settle>=2){
+        clearInterval(t); watching=false;
+        rec('import-detected',{projects:ch,afterMs:tries*400});
+        ch.forEach(function(pid){ var l=localProject(pid); if(l) stash(pid,l.obj,'Excel import'); });
+        flush(false);
+        return;
+      }
+    }
+    if(tries>=32){
+      clearInterval(t); watching=false;
+      if(ch.length){
+        ch.forEach(function(pid){ var l=localProject(pid); if(l) stash(pid,l.obj,'Excel import'); });
+        flush(false);
+      }else rec('import-NO-CHANGE',{note:'STORE.projects was not modified by the import — the importer never wrote to the shared store'});
+    }
+  },400);
+}
+
+function wrap(name){
+  var orig=window[name];
+  if(typeof orig!=='function'||orig.__kpVault) return;
+  var w=function(){
+    var before=snapProjects(),r;
+    try{ r=orig.apply(this,arguments); }
+    finally{ try{ watchAndPush(before); }catch(e){} }
+    return r;
+  };
+  w.__kpVault=true;
+  try{ w.__kpV518=orig.__kpV518; }catch(e){}
+  window[name]=w;
+}
+var TARGETS=['handleExcelUpload','runImport','importAllSiteTrackers','importSiteDepartments',
+             'trImport','finImportXlsx','supplyImportExcel','importWorkbook','dcImportExcel'];
+function install(){
+  var found=[],missing=[];
+  TARGETS.forEach(function(n){
+    if(typeof window[n]==='function'){ found.push(n+(window[n].__kpVault?'*':'')); wrap(n); }
+    else missing.push(n);
+  });
+  if(!install.__logged||install.__last!==found.join(',')){
+    install.__logged=true; install.__last=found.join(',');
+    rec('wrap',{wrapped:found,absent:missing});
+  }
+}
+
+/* ── Diagnostics ────────────────────────────────────────────────────────── */
+window.kpSyncDiag=function(){
+  var out={};
+  try{ out.connected=connected(); }catch(e){ out.connected=false; }
+  try{ out.room=(window.SYNC&&SYNC.room)||null; }catch(e){}
+  try{ out.gate=(typeof window.__syncGate==='function')?window.__syncGate():'n/a'; }catch(e){}
+  try{ out.openProject=window.CUR_PROJ||null; }catch(e){}
+  try{ out.unsentImports=Object.keys(readVault()); }catch(e){}
+  try{ out.pendingFlags=(typeof window.__syncPendingMap==='function')?window.__syncPendingMap():'n/a'; }catch(e){}
+  try{ out.unwritablePaths=window.__kpSyncDropped||[]; }catch(e){}
+  try{
+    var l=out.openProject&&localProject(out.openProject);
+    out.projectLegalForFirebase=l?legalValue(clone(l.obj)):'n/a';
+  }catch(e){}
+  console.log('%c[sync diagnostics]','font-weight:bold',out);
+  var why = !out.connected ? 'NOT CONNECTED to Firebase — connect in Sync Settings.'
+    : (out.gate&&out.gate.writable===false) ? ('WRITES BLOCKED — '+(out.gate.reason||'unknown')+'.')
+    : (out.projectLegalForFirebase===false) ? 'This project has a field name Firebase cannot store — send me the console output.'
+    : (out.unsentImports&&out.unsentImports.length) ? ('Waiting to upload: '+out.unsentImports.join(', ')+' — run kpForceCloudSync().')
+    : 'Nothing is waiting to upload.';
+  console.log('%c'+why,'color:#B12836;font-weight:bold');
+  try{ toast(why,out.connected); }catch(e){}
+  return out;
+};
+
+/* ── Boot ───────────────────────────────────────────────────────────────── */
+if(document.readyState==='loading')
+  document.addEventListener('DOMContentLoaded',function(){ setTimeout(install,400); });
+else setTimeout(install,400);
+setTimeout(install,1500); setTimeout(install,4000); setTimeout(install,9000);
+
+/* Restore after the bootstrap read has had time to land, then keep retrying. */
+setTimeout(function(){ try{ restore(); }catch(e){} },6000);
+setTimeout(function(){ flush(true); },9000);
+setInterval(function(){ flush(true); },60000);
+
 rec('boot',{build:BUILD,vault:Object.keys(readVault()),
             projects:(function(){try{return STORE&&STORE.projects?STORE.projects.length:0;}catch(e){return 'n/a';}})()});
 setTimeout(function(){ try{ toast('Portal sync build '+BUILD+' active.',true); }catch(e){} },2500);
+})();
+</script>
+
+<script id="kpPptBrandChooserFinalOverrideV1">
+/* Final override runs after every legacy PowerPoint module. */
+(function(){
+  function showBrandChooser(){
+    var x=document.getElementById('kpPptBrandChooserV1');
+    if(x){x.classList.add('open');return;}
+    setTimeout(function(){var y=document.getElementById('kpPptBrandChooserV1');if(y)y.classList.add('open');},250);
+  }
+  window.openPortfolioPPT=showBrandChooser;
+  var previousClose=window.closePortfolioPPT;
+  window.closePortfolioPPT=function(){
+    var x=document.getElementById('kpPptBrandChooserV1');if(x)x.classList.remove('open');
+    var y=document.getElementById('kpPortfolioPptOverlay');if(y)y.classList.remove('open');
+    if(previousClose&&previousClose!==window.closePortfolioPPT){try{previousClose();}catch(e){}}
+  };
 })();
 </script>
