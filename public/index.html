@@ -16493,7 +16493,7 @@ body:not(.role-dev) #syncModal { display:none !important; }
 
 
 
-      <button class="chb" onclick="openExec()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>Executive Dashboard</button>
+      <button class="chb" onclick="openExec()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>Executive Command Center</button>
 
 
 
@@ -16997,7 +16997,7 @@ body:not(.role-dev) #syncModal { display:none !important; }
 
 
 
-        <div><div class="exec-title">Executive Dashboard</div><div class="exec-sub">Baghdad Municipality — Digital Transformation Portfolio</div></div>
+        <div><div class="exec-title">Executive Command Center</div><div class="exec-sub">Leadership Decision Room · Digital Transformation Portfolio</div></div>
 
 
 
@@ -17027,6 +17027,9 @@ body:not(.role-dev) #syncModal { display:none !important; }
 
 
 
+        <button class="exec-nav-btn exec-map-btn" onclick="execBaghdadMapView(this)" title="Open the Baghdad municipality map"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg><span>Baghdad Map</span></button>
+        <button class="exec-nav-btn exec-story-btn" onclick="execStoryMode(this)" title="Start the leadership slide show"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg><span>Story Mode</span></button>
+        <button class="exec-nav-btn exec-board-btn" onclick="execBoardMode(this)" title="Clean full-screen management view"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg><span>Board View</span></button>
         <button class="exec-nav-btn" onclick="execPrint()" title="Print / PDF"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>
 
 
@@ -66762,29 +66765,9 @@ function __applyIncoming(data){
 
 
   if(!(data&&isNewFormat(data))){
-
-
-
-
-
-    console.log('Asimati: old/incompatible Firebase data detected — pushing new defaults');
-
-
-
-
-
-    pushNow();setSyncUI('live');
-
-
-
-
-
+    console.error('Data-safe mode: incompatible Firebase data was rejected; nothing was written.');
+    try{setSyncUI('error');}catch(e){}
     return;
-
-
-
-
-
   }
 
 
@@ -66851,7 +66834,8 @@ function __applyIncoming(data){
 
 
 
-  data=_mergeLocalState(data,STORE);
+  /* Firebase is authoritative on refresh. Never merge a stale local project
+     cache into the live snapshot, because a later save could upload it. */
 
 
 
@@ -66899,25 +66883,7 @@ function __applyIncoming(data){
 
 
 
-    var _fixed=false;
-
-
-
-
-
-    if(typeof syncProjectArrays==='function'){ if(syncProjectArrays())_fixed=true; }
-
-
-
-
-
-    if(typeof ensureSeedProjects==='function'){ if(ensureSeedProjects())_fixed=true; }
-
-
-
-
-
-    if(_fixed){ localStorage.setItem(SK,JSON.stringify(STORE)); pushNow(); }
+    /* No automatic repair, seed, normalisation or Firebase write after read. */
 
 
 
@@ -66935,25 +66901,7 @@ function __applyIncoming(data){
 
 
 
-  try{ if(ensureInfraData()){ localStorage.setItem(SK,JSON.stringify(STORE)); pushNow(); } }catch(e){}
-
-
-
-
-
-  try{ if(ensureSmartMeter()){ localStorage.setItem(SK,JSON.stringify(STORE)); pushNow(); } }catch(e){}
-
-
-
-
-
-  try{ if(applyMasterSheet()){ localStorage.setItem(SK,JSON.stringify(STORE)); pushNow(); } }catch(e){}
-
-
-
-
-
-  try{ if(typeof ensureTrainingData==='function'&&ensureTrainingData()){ localStorage.setItem(SK,JSON.stringify(STORE)); pushNow(); } }catch(e){}
+  /* Project-specific migrations are manual only in this data-safe build. */
 
 
 
@@ -68141,25 +68089,25 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 
 
-  try{ if(typeof syncProjectArrays==='function'&&syncProjectArrays()){ localStorage.setItem(SK,JSON.stringify(STORE)); } }catch(e){}
+  /* DATA-SAFE BUILD: opening the portal must never normalise or rewrite projects. */
 
 
 
 
 
-  try{ if(typeof ensureSeedProjects==='function'&&ensureSeedProjects()){ localStorage.setItem(SK,JSON.stringify(STORE)); } }catch(e){}
+  /* Seed recovery is manual only; it is never run during page load. */
 
 
 
 
 
-  try{ if(ensureDataCenter()){ if(typeof persist==='function')persist(); } }catch(e){}
+  /* No automatic Data Center repair/persist on page load. */
 
 
 
 
 
-  try{ if(typeof ensureTrainingData==='function'&&ensureTrainingData()){ localStorage.setItem(SK,JSON.stringify(STORE)); localStorage.setItem(SK+'_seedver',SEED_VERSION); } }catch(e){}
+  /* No automatic Training repair/persist on page load. */
 
 
 
@@ -68183,7 +68131,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 
 
-    const built=(typeof BUILT_PROJECTS!=='undefined')?BUILT_PROJECTS:[];
+    const built=[]; /* manual recovery only — never inject embedded project data */
 
 
 
@@ -68201,7 +68149,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 
 
-    STORE.projects.forEach(pp=>{ if(typeof ensureSystemsData==='function') ensureSystemsData(pp); });
+    /* Systems data is displayed exactly as received from Firebase. */
 
 
 
@@ -68327,7 +68275,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 
 
-    if(_p8&&_p8s){
+    if(false&&_p8&&_p8s){
 
 
 
@@ -79151,7 +79099,7 @@ window.addEventListener('resize',()=>{ if(document.getElementById('execOverlay')
 
 
 
-function closeExec(){ document.getElementById('execOverlay').classList.remove('show'); document.body.style.overflow=''; }
+function closeExec(){ var o=document.getElementById('execOverlay');if(o){o.classList.remove('show','exec-board-mode');}if(__execStoryTimer){clearInterval(__execStoryTimer);__execStoryTimer=null;}try{if(document.fullscreenElement)document.exitFullscreen();}catch(e){}document.body.style.overflow=''; }
 
 
 
@@ -80244,11 +80192,141 @@ function buildExec(){
 
 
   try{ execV9Enhance(A, per); }catch(e){ console.warn('execV9Enhance', e); }
+  try{ execV10Enhance(A, per); }catch(e){ console.warn('execV10Enhance', e); }
 
 
 
 
 
+}
+
+/* v10 — Board-level command briefing, decision queue and guided story mode. */
+var __execStoryTimer=null,__execStoryIndex=0;
+function execV10Enhance(A,per){
+  var canvas=document.getElementById('execCanvas'),inner=canvas&&canvas.querySelector('.pbi-canvas');if(!inner)return;
+  if(!document.getElementById('execCommandCenterV10Style')){var st=document.createElement('style');st.id='execCommandCenterV10Style';st.textContent=''
+    +'#execOverlay .exec-topbar{background:linear-gradient(118deg,#25070e 0%,#681522 48%,#a01d31 100%);border-bottom:1px solid rgba(255,255,255,.13);box-shadow:0 12px 34px rgba(28,5,11,.24)}'
+    +'#execOverlay .exec-title{font-size:20px;letter-spacing:.1px}#execOverlay .exec-sub{opacity:.78;letter-spacing:.2px}'
+    +'#execOverlay .exec-nav-btn{gap:7px;width:auto;min-width:38px;padding:0 11px}#execOverlay .exec-nav-btn span{font-size:12px;font-weight:750;white-space:nowrap}'
+    +'#execOverlay .exec-fit{background:radial-gradient(circle at 12% 0,#e9edf6 0,#f5f7fb 38%,#e9edf3 100%)}'
+    +'.ecc-brief{position:relative;display:grid;grid-template-columns:250px minmax(360px,1fr) 330px;gap:0;overflow:hidden;min-height:246px;background:linear-gradient(118deg,#19070c 0%,#35101a 47%,#172a38 100%);border:1px solid rgba(255,255,255,.08);border-radius:18px;color:#fff;box-shadow:0 18px 42px rgba(21,29,44,.18);isolation:isolate}'
+    +'.ecc-brief:after{content:"";position:absolute;right:-110px;top:-190px;width:420px;height:420px;border:1px solid rgba(255,255,255,.08);border-radius:50%;box-shadow:0 0 0 54px rgba(255,255,255,.025),0 0 0 108px rgba(255,255,255,.018);z-index:-1}'
+    +'.ecc-score,.ecc-signal,.ecc-motion{padding:28px 26px;position:relative}.ecc-score,.ecc-signal{border-right:1px solid rgba(255,255,255,.1)}'
+    +'.ecc-eyebrow{font-size:12px;font-weight:850;letter-spacing:1.35px;color:#d9aeba;margin-bottom:15px}.ecc-scoreline{display:flex;align-items:flex-end;gap:5px;line-height:1}.ecc-scoreline strong{font-family:var(--disp);font-size:66px;letter-spacing:-4px;color:var(--ecc)}.ecc-scoreline span{font-size:18px;color:#abb5c3;padding-bottom:9px}.ecc-state{display:inline-flex;margin-top:17px;padding:7px 11px;border:1px solid color-mix(in srgb,var(--ecc) 58%,transparent);border-radius:999px;background:color-mix(in srgb,var(--ecc) 15%,transparent);color:var(--ecc);font-size:12px;font-weight:900;letter-spacing:.8px}.ecc-ring{position:absolute;right:21px;bottom:24px;width:57px;height:57px;border-radius:50%;background:conic-gradient(var(--ecc) var(--p),rgba(255,255,255,.11) 0);mask:radial-gradient(circle 20px,transparent 97%,#000 100%);opacity:.9}'
+    +'.ecc-signal h2{font-family:var(--disp);font-size:25px;line-height:1.18;margin:0 0 12px;max-width:720px;letter-spacing:-.35px}.ecc-signal p{margin:0;color:#c9d0da;font-size:14px;line-height:1.55}.ecc-signal p b{color:#fff}.ecc-pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}.ecc-pills span{padding:7px 10px;border:1px solid rgba(255,255,255,.11);border-radius:8px;background:rgba(255,255,255,.055);font-size:12px;color:#cbd3dc}.ecc-pills b{font-size:15px;margin-right:3px}'
+    +'.ecc-motion-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.ecc-motion-grid>div{padding:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);border-radius:11px}.ecc-motion-grid small{display:block;color:#aeb9c6;font-size:10px;font-weight:800;letter-spacing:.55px;margin-bottom:5px}.ecc-motion-grid b{font-size:22px;color:#fff}.ecc-motion-grid b.up{color:#24c58b}.ecc-motion-grid b.down{color:#ff6577}.ecc-updated{font-size:11px;color:#9ea9b8;margin-top:14px}'
+    +'.ecc-decisions{margin-top:13px;padding:17px 18px 18px;background:#fff;border:1px solid #dfe4eb;border-radius:15px;box-shadow:0 7px 20px rgba(23,34,51,.07)}.ecc-section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:13px}.ecc-section-head span{font-size:11px;font-weight:900;letter-spacing:1.1px;color:#9a1f31}.ecc-section-head h3{font-size:19px;margin:4px 0 0;color:#182330}.ecc-section-note{font-size:12px;color:#768190}.ecc-alerts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.ecc-alert{display:grid;grid-template-columns:38px 1fr auto;gap:11px;align-items:center;text-align:left;border:1px solid #e2e6ec;border-radius:12px;background:linear-gradient(180deg,#fff,#fafbfc);padding:12px;cursor:pointer;transition:.18s}.ecc-alert:hover{transform:translateY(-2px);border-color:#b61e3a;box-shadow:0 10px 24px rgba(99,20,34,.1)}.ecc-alert-rank{font-family:var(--disp);font-size:18px;font-weight:900;color:#b51e3a}.ecc-alert-main b{display:block;font-size:13px;color:#172330;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ecc-alert-main small{display:block;font-size:11px;line-height:1.35;color:#697583;margin-top:4px}.ecc-alert-side{text-align:right}.ecc-alert-side em{display:block;font-style:normal;font-size:10px;font-weight:900;text-transform:uppercase}.ecc-alert-side strong{display:block;font-size:18px;color:#26313d;margin-top:4px}.ecc-empty{grid-column:1/-1;text-align:center;color:#6f7a88;padding:18px}'
+    +'.ecc-story-stop{scroll-margin-top:12px;transition:box-shadow .35s,transform .35s}.ecc-story-focus{box-shadow:0 0 0 3px rgba(181,30,58,.3),0 20px 55px rgba(37,7,14,.2)!important;transform:translateY(-1px)}'
+    +'#execCanvas.exec-story-running .pbi-canvas>*,#execCanvas.exec-map-only .pbi-canvas>*{display:none!important}#execCanvas.exec-story-running .pbi-canvas>.ecc-story-focus{display:block!important;margin-top:0;min-height:calc(100vh - 150px)}#execCanvas.exec-story-running .pbi-canvas>.ecc-brief.ecc-story-focus,#execCanvas.exec-story-running .pbi-canvas>.pbi-grid.ecc-story-focus{display:grid!important}#execCanvas.exec-map-only .pbi-canvas>#eccBaghdadMapSection{display:block!important;margin-top:0;min-height:calc(100vh - 150px)}#execCanvas.exec-map-only #eccBaghdadMapSection .ecc-map-stage{min-height:calc(100vh - 285px)}'
+    +'#execOverlay.exec-board-mode{padding:0;background:#0f1520}#execOverlay.exec-board-mode .exec-shell{width:100%;height:100%;max-width:none;border-radius:0}#execOverlay.exec-board-mode .exec-fit{padding:18px 26px 26px}#execOverlay.exec-board-mode .exec-live{display:none}'
+    +'@media(max-width:1120px){.ecc-brief{grid-template-columns:220px 1fr}.ecc-motion{grid-column:1/-1;border-top:1px solid rgba(255,255,255,.1)}.ecc-motion-grid{grid-template-columns:repeat(4,1fr)}.ecc-alerts{grid-template-columns:1fr}}'
+    +'@media(max-width:720px){#execOverlay .exec-story-btn span,#execOverlay .exec-board-btn span{display:none}.ecc-brief{grid-template-columns:1fr}.ecc-score,.ecc-signal{border-right:0;border-bottom:1px solid rgba(255,255,255,.1)}.ecc-motion-grid{grid-template-columns:1fr 1fr}.ecc-alerts{grid-template-columns:1fr}.ecc-section-note{display:none}.ecc-signal h2{font-size:22px}}';document.head.appendChild(st);}
+  function e(v){try{return esc(String(v==null?'':v));}catch(x){return String(v||'');}}
+  var total=per.length||1,green=per.filter(function(x){return x.rag==='g';}).length,amber=per.filter(function(x){return x.rag==='w';}).length,red=per.filter(function(x){return x.rag==='r';}).length,notStarted=per.filter(function(x){return x.rag==='n';}).length;
+  var actual=Math.round(per.reduce(function(a,x){return a+(+x.pct||0);},0)/total),plan=Math.round(per.reduce(function(a,x){return a+(+x.planAvg||0);},0)/total),gap=actual-plan;
+  var score=Math.max(0,Math.min(100,Math.round((green*100+amber*60+red*20)/(total||1))));
+  var state=score>=75?'CONTROLLED':score>=50?'WATCH':'INTERVENTION',stateCol=score>=75?'#24C58B':score>=50?'#F2B94B':'#FF6577';
+  var wd=null;try{wd=weeklyDelta();}catch(x){}var delta=wd&&!wd.none?(+wd.dPct||0):0;
+  var up=[];try{up=upcomingMilestones(30)||[];}catch(x){}var late=up.filter(function(x){return x.late;}).length;
+  var ranked=per.slice().sort(function(a,b){function rank(x){return (x.rag==='r'?60:x.rag==='w'?30:x.rag==='n'?25:0)+(x.highRisks||0)*18+Math.max(0,-(+x.variance||0))+(x.msLate||0)*8;}return rank(b)-rank(a);}).slice(0,3);
+  function action(x){if((x.highRisks||0)>0)return 'Approve risk owner, mitigation and closure date';if((x.msLate||0)>0)return 'Escalate overdue milestones and confirm recovery date';if((+x.variance||0)<-5)return 'Approve a time-bound schedule recovery plan';if((+x.pct||0)<=0)return 'Confirm mobilisation owner, funding and start date';return 'Maintain delivery cadence and remove open blockers';}
+  var alerts=ranked.map(function(x,i){var col=x.rag==='r'?'#FF6577':x.rag==='w'?'#F2B94B':x.rag==='n'?'#AAB4C5':'#24C58B',status={r:'Critical',w:'At Risk',n:'Not Started',g:'On Track'}[x.rag]||'Review';return '<button class="ecc-alert" onclick="execSetFilter(\''+x.id+'\')"><span class="ecc-alert-rank">0'+(i+1)+'</span><span class="ecc-alert-main"><b>'+e(x.nameEn||x.name)+'</b><small>'+e(action(x))+'</small></span><span class="ecc-alert-side"><em style="color:'+col+'">'+status+'</em><strong>'+x.pct+'%</strong></span></button>';}).join('');
+  if(!alerts)alerts='<div class="ecc-empty">No executive intervention is currently required.</div>';
+  var stamp=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Baghdad',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date());
+  var briefing='<section class="ecc-brief ecc-story-stop" data-story-title="Portfolio health">'
+    +'<div class="ecc-score" style="--ecc:'+stateCol+'"><div class="ecc-eyebrow">PORTFOLIO HEALTH</div><div class="ecc-scoreline"><strong>'+score+'</strong><span>/100</span></div><div class="ecc-state">'+state+'</div><div class="ecc-ring" style="--p:'+score+'deg"></div></div>'
+    +'<div class="ecc-signal"><div class="ecc-eyebrow">CHAIRMAN’S BRIEF</div><h2>'+(gap>=0?'Portfolio delivery is holding the approved trajectory.':'Portfolio delivery requires focused management intervention.')+'</h2><p>Actual progress is <b>'+actual+'%</b> against <b>'+plan+'%</b> planned. '+(gap>=0?'The portfolio is '+gap+' points ahead of plan.':'The current gap is '+Math.abs(gap)+' points behind plan.')+'</p><div class="ecc-pills"><span><b style="color:#24C58B">'+green+'</b> On Track</span><span><b style="color:#F2B94B">'+amber+'</b> At Risk</span><span><b style="color:#FF6577">'+red+'</b> Critical</span><span><b>'+notStarted+'</b> Not Started</span></div></div>'
+    +'<div class="ecc-motion"><div class="ecc-eyebrow">EXECUTIVE SIGNALS</div><div class="ecc-motion-grid"><div><small>WEEKLY MOVEMENT</small><b class="'+(delta>=0?'up':'down')+'">'+(delta>0?'+':'')+delta+' pp</b></div><div><small>DUE IN 30 DAYS</small><b>'+up.length+'</b></div><div><small>OVERDUE</small><b class="down">'+late+'</b></div><div><small>PORTFOLIO GAP</small><b class="'+(gap>=0?'up':'down')+'">'+(gap>0?'+':'')+gap+' pp</b></div></div><div class="ecc-updated">Live management view · '+e(stamp)+' Baghdad</div></div>'
+    +'</section>'
+    +'<section class="ecc-decisions ecc-story-stop" data-story-title="Executive priorities"><div class="ecc-section-head"><div><span>EXECUTIVE PRIORITY QUEUE</span><h3>Where leadership attention creates the greatest impact</h3></div><div class="ecc-section-note">Click any priority to isolate the project</div></div><div class="ecc-alerts">'+alerts+'</div></section>';
+  inner.insertAdjacentHTML('afterbegin',briefing);
+  var weekly=inner.querySelector('.pbi-week-banner');if(weekly)weekly.classList.add('ecc-story-stop');var grid=inner.querySelector('.pbi-grid');if(grid)grid.classList.add('ecc-story-stop');
+  try{execBaghdadMap();}catch(mapError){console.warn('execBaghdadMap',mapError);}
+}
+
+/* Baghdad operational map — read-only. It reads the existing Network &
+   Infrastructure site tracker and never calls persist(), pushNow() or Firebase. */
+var __kpBaghdadMap=null;
+function ensureEmbeddedLeafletCss(){
+  if(document.getElementById('kpLeafletEmbeddedCss'))return;
+  var st=document.createElement('style');st.id='kpLeafletEmbeddedCss';st.textContent=''
+    +'.leaflet-container{overflow:hidden;position:relative;outline:0;background:#dfe6ec;-webkit-tap-highlight-color:transparent}.leaflet-container *{box-sizing:content-box}.leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-tile-container,.leaflet-pane>svg,.leaflet-pane>canvas,.leaflet-zoom-box{position:absolute;left:0;top:0}.leaflet-map-pane canvas,.leaflet-map-pane svg{position:absolute}.leaflet-tile{filter:inherit;visibility:hidden;user-select:none;-webkit-user-drag:none}.leaflet-tile-loaded{visibility:inherit}.leaflet-zoom-animated{transform-origin:0 0}.leaflet-marker-icon,.leaflet-marker-shadow{display:block}.leaflet-container img.leaflet-tile{max-width:none!important;max-height:none!important;width:256px!important;height:256px!important;padding:0!important;margin:0!important;border:0!important}.leaflet-container .leaflet-overlay-pane svg{max-width:none!important;max-height:none!important}.leaflet-pane{z-index:400}.leaflet-tile-pane{z-index:200}.leaflet-overlay-pane{z-index:400}.leaflet-shadow-pane{z-index:500}.leaflet-marker-pane{z-index:600}.leaflet-tooltip-pane{z-index:650}.leaflet-popup-pane{z-index:700}.leaflet-map-pane svg{z-index:200}.leaflet-control{position:relative;z-index:800;pointer-events:auto}.leaflet-top,.leaflet-bottom{position:absolute;z-index:1000;pointer-events:none}.leaflet-top{top:0}.leaflet-right{right:0}.leaflet-bottom{bottom:0}.leaflet-left{left:0}.leaflet-control{float:left;clear:both}.leaflet-right .leaflet-control{float:right}.leaflet-top .leaflet-control{margin-top:10px}.leaflet-bottom .leaflet-control{margin-bottom:10px}.leaflet-left .leaflet-control{margin-left:10px}.leaflet-right .leaflet-control{margin-right:10px}.leaflet-bar a{display:block;width:30px;height:30px;line-height:30px;text-align:center;text-decoration:none;background:#fff;color:#222;border-bottom:1px solid #ccc}.leaflet-bar a:first-child{border-radius:4px 4px 0 0}.leaflet-bar a:last-child{border-radius:0 0 4px 4px;border-bottom:0}.leaflet-popup{position:absolute;text-align:center;margin-bottom:20px}.leaflet-popup-content-wrapper{padding:1px;text-align:left;border-radius:10px;background:#fff;box-shadow:0 3px 14px rgba(0,0,0,.28)}.leaflet-popup-content{margin:13px 18px;line-height:1.4}.leaflet-popup-tip-container{width:40px;height:20px;position:absolute;left:50%;margin-left:-20px;overflow:hidden;pointer-events:none}.leaflet-popup-tip{width:17px;height:17px;padding:1px;margin:-10px auto 0;transform:rotate(45deg);background:#fff;box-shadow:3px 3px 15px rgba(0,0,0,.15)}.leaflet-popup-close-button{position:absolute;top:0;right:0;border:0;background:transparent;color:#757575;font:20px/24px Arial;padding:4px 4px 0 0}.leaflet-control-attribution{padding:0 5px;background:rgba(255,255,255,.82);font-size:9px}.ecc-map-card{max-width:100%;overflow:hidden!important}.ecc-map-layout{max-width:100%;overflow:hidden}.ecc-map-stage{overflow:hidden!important;contain:paint;isolation:isolate}.ecc-map-stage #eccBaghdadMap{width:100%!important;height:100%!important;overflow:hidden!important}.ecc-map-list{overflow:hidden;position:relative;z-index:5}.ecc-map-pin{background:transparent!important;border:0!important}';
+  document.head.appendChild(st);
+}
+function execBaghdadMap(){
+  ensureEmbeddedLeafletCss();
+  var inner=document.querySelector('#execCanvas .pbi-canvas');if(!inner)return;
+  var old=document.getElementById('eccBaghdadMapSection');if(old)old.remove();
+  var projects=(typeof mainProjects==='function'?mainProjects():((window.STORE&&STORE.projects)||[]));
+  var p=projects.find(function(x){return x&&((x.id==='p5')||/network\s*&?\s*infrastructure|الشبكات\s*والبنى/i.test(String(x.nameEn||'')+' '+String(x.name||'')));});
+  var sites=(p&&Array.isArray(p.sites)?p.sites:[]).filter(Boolean);
+  function norm(v){return String(v||'').toLowerCase().replace(/[’'`]/g,'').replace(/[^a-z0-9\u0600-\u06ff]+/g,' ').trim();}
+  function pct(s){try{return Math.max(0,Math.min(100,Math.round(typeof siteFinalPct==='function'?siteFinalPct(s):(+s.progress||0))));}catch(e){return Math.max(0,Math.min(100,Math.round(+s.progress||0)));}}
+  function color(v){return v>=70?'#17865B':v>=35?'#D08A18':v>0?'#B72B3A':'#8993A3';}
+  function side(n){if(/mansour|karkh|rashid|shu\s*la|kadhim|dawra|airport|alawi|المنصور|الكرخ|الرشيد|الشعلة|الكاظمية|الدورة|المطار|العلاوي/.test(n))return 'Karkh';if(/karrada|ghad|rusafa|sadr|adham|sha\s*b|new baghdad|tha\s*alba|baghdad water|الكرادة|الغدير|الرصافة|الصدر|الاعظمية|الأعظمية|الشعب|بغداد الجديدة|الثعالبة/.test(n))return 'Rusafa';return 'Central';}
+  var known=[
+    [/diwan|ديوان/,33.3258,44.4124],[/baghdad water|ماء بغداد/,33.3054,44.4285],[/mansour|منصور/,33.3152,44.3396],
+    [/karrada|كرادة/,33.2945,44.4317],[/ghad|غدير/,33.2878,44.4850],[/rusafa center|مركز الرصافة/,33.3370,44.4218],
+    [/karkh center|مركز الكرخ/,33.3218,44.3645],[/rashid|رشيد/,33.2478,44.3517],[/shu\s*la|شعلة/,33.3900,44.2860],
+    [/sadr 1|sadir 1|الصدر الاول|الصدر 1/,33.3650,44.4530],[/sadr 2|sadir 2|الصدر الثاني|الصدر 2/,33.3890,44.4860],
+    [/adham|اعظمية|أعظمية/,33.3715,44.3903],[/sha\s*b|شعب/,33.4110,44.4190],[/new baghdad|بغداد الجديدة/,33.3005,44.5000],
+    [/kadhim|kadim|كاظمية/,33.3785,44.3385],[/dawra|dora|دورة/,33.2490,44.3925],[/green zone|airport|الخضراء|المطار/,33.2835,44.3270],
+    [/projects department|دائرة المشاريع/,33.3180,44.3990],[/ibn rushd|ابن رشد/,33.3460,44.4050],[/tha\s*alba|bab al sham|الثعالبة|باب الشام/,33.4320,44.3920],
+    [/laborator|مختبرات/,33.3330,44.3890],[/parks|afforestation|alawi|الحدائق|التشجير|العلاوي/,33.3250,44.3750]
+  ];
+  var fallback=[[33.332,44.401],[33.311,44.383],[33.350,44.445],[33.278,44.454],[33.365,44.348]];
+  var rows=sites.map(function(s,i){var n=norm((s.name||'')+' '+(s.nameAr||'')),hit=known.find(function(x){return x[0].test(n);}),xy=hit?[hit[1],hit[2]]:fallback[i%fallback.length],v=pct(s);return {i:i,name:s.name||s.nameAr||('Location '+(i+1)),nameAr:s.nameAr||'',lat:xy[0],lng:xy[1],pct:v,side:side(n),color:color(v)};});
+  var avg=rows.length?Math.round(rows.reduce(function(a,x){return a+x.pct;},0)/rows.length):0;
+  var karkh=rows.filter(function(x){return x.side==='Karkh';}).length,rusafa=rows.filter(function(x){return x.side==='Rusafa';}).length;
+  var section=document.createElement('section');section.id='eccBaghdadMapSection';section.className='ecc-map-card ecc-story-stop';section.setAttribute('data-story-title','Baghdad delivery map');
+  section.innerHTML='<div class="ecc-map-head"><div><span>BAGHDAD DELIVERY FOOTPRINT</span><h3>Municipalities & Amanat Baghdad Offices</h3><p>All locations are read directly from Network & Infrastructure · click a marker or location for details</p></div><div class="ecc-map-kpis"><b>'+rows.length+'<small>Locations</small></b><b>'+karkh+'<small>Karkh side</small></b><b>'+rusafa+'<small>Rusafa side</small></b><b style="color:'+color(avg)+'">'+avg+'%<small>Average</small></b></div></div>'+
+    '<div class="ecc-map-layout"><div class="ecc-map-stage"><div id="eccBaghdadMap" aria-label="Interactive map of Baghdad municipalities"></div><div id="eccMapOffline" class="ecc-map-offline">Loading Baghdad map…</div></div><aside class="ecc-map-list"><div class="ecc-map-filters"><button class="active" data-side="All">All</button><button data-side="Karkh">Karkh</button><button data-side="Rusafa">Rusafa</button><button data-side="Central">Offices</button></div><div id="eccMapSelection" class="ecc-map-selection"><span>SELECT A LOCATION</span><b>Choose a municipality from the list</b><small>The map will zoom to its position and highlight its pin.</small></div><div id="eccBaghdadLocations">'+rows.map(function(x){return '<button class="ecc-loc" data-side="'+x.side+'" data-index="'+x.i+'"><i style="background:'+x.color+'"></i><span><b>'+esc(x.name)+'</b><small>'+x.side+' · live project data</small></span><strong style="color:'+x.color+'">'+x.pct+'%</strong></button>';}).join('')+'</div></aside></div>';
+  var priority=inner.querySelector('.ecc-decisions');if(priority)priority.insertAdjacentElement('afterend',section);else inner.insertAdjacentElement('afterbegin',section);
+  if(!document.getElementById('eccBaghdadMapStyle')){var st=document.createElement('style');st.id='eccBaghdadMapStyle';st.textContent=''
+    +'.ecc-map-card{margin-top:13px;background:#fff;border:1px solid #dfe4eb;border-radius:15px;box-shadow:0 8px 24px rgba(23,34,51,.08);overflow:hidden}.ecc-map-head{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 20px 15px;border-bottom:1px solid #e5e9ef;background:linear-gradient(110deg,#fff 0%,#f7f9fc 68%,#f7e9ec 100%)}.ecc-map-head>div:first-child>span{font-size:11px;font-weight:900;letter-spacing:1.1px;color:#9a1f31}.ecc-map-head h3{margin:4px 0 3px;font-size:20px;color:#182330}.ecc-map-head p{margin:0;font-size:12px;color:#75808e}.ecc-map-kpis{display:flex;gap:9px}.ecc-map-kpis b{min-width:76px;padding:8px 10px;background:#fff;border:1px solid #dfe4eb;border-radius:10px;text-align:center;font-size:19px;color:#253241}.ecc-map-kpis small{display:block;margin-top:3px;font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:#818b98}.ecc-map-layout{display:grid;grid-template-columns:minmax(0,1.72fr) minmax(285px,.72fr);min-height:520px}.ecc-map-stage{position:relative;min-height:520px;background:#e9edf2}.ecc-map-stage #eccBaghdadMap{position:absolute;inset:0;z-index:2}.ecc-map-offline{position:absolute;inset:0;display:grid;place-items:center;color:#657180;font-size:13px;z-index:1}.ecc-map-list{border-left:1px solid #e2e6ec;background:#fbfcfe;min-width:0}.ecc-map-filters{display:flex;gap:6px;padding:11px;border-bottom:1px solid #e2e6ec;position:sticky;top:0;background:#fff;z-index:3}.ecc-map-filters button{border:1px solid #dce2e9;background:#fff;color:#576271;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:800;cursor:pointer}.ecc-map-filters button.active{background:#8f1d2d;color:#fff;border-color:#8f1d2d}#eccBaghdadLocations{height:468px;overflow:auto;padding:7px}.ecc-loc{width:100%;display:grid;grid-template-columns:9px minmax(0,1fr) auto;align-items:center;gap:10px;border:0;border-bottom:1px solid #edf0f4;background:transparent;padding:10px 8px;text-align:left;cursor:pointer}.ecc-loc:hover{background:#f1f4f8;border-radius:8px}.ecc-loc i{width:8px;height:8px;border-radius:50%;box-shadow:0 0 0 4px rgba(36,49,65,.06)}.ecc-loc b{display:block;color:#243140;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ecc-loc small{display:block;color:#87919e;font-size:9.5px;margin-top:2px}.ecc-loc strong{font-size:12px}.ecc-map-marker{display:grid!important;place-items:center;border:2px solid #fff;border-radius:50%;box-shadow:0 3px 10px rgba(17,28,42,.35);color:#fff;font:800 10px Arial}.ecc-map-popup b{display:block;font-size:13px;color:#1e2b39;margin-bottom:5px}.ecc-map-popup span{display:block;font-size:11px;color:#697584}.ecc-map-popup strong{display:block;font-size:20px;margin-top:8px}.leaflet-control-attribution{font-size:8px!important}@media(max-width:900px){.ecc-map-head{align-items:flex-start;flex-direction:column}.ecc-map-kpis{width:100%;display:grid;grid-template-columns:repeat(4,1fr)}.ecc-map-kpis b{min-width:0}.ecc-map-layout{grid-template-columns:1fr}.ecc-map-stage{min-height:410px}.ecc-map-list{border-left:0;border-top:1px solid #e2e6ec}#eccBaghdadLocations{height:320px}}';document.head.appendChild(st);}
+  if(!document.getElementById('eccMapInteractionStyle')){var si=document.createElement('style');si.id='eccMapInteractionStyle';si.textContent='.ecc-map-selection{margin:10px 11px 4px;padding:12px 14px;border-radius:11px;background:linear-gradient(125deg,#281017,#7f1b2b);color:#fff;box-shadow:0 8px 18px rgba(91,18,31,.18)}.ecc-map-selection span{display:block;font-size:9px;font-weight:900;letter-spacing:1px;color:#e8b9c1}.ecc-map-selection b{display:block;margin-top:4px;font-size:13px;line-height:1.3}.ecc-map-selection small{display:block;margin-top:4px;font-size:10px;color:#e7d8dc;line-height:1.35}.ecc-loc.selected{background:#fff3f5!important;border:1px solid #b51e3a!important;border-radius:9px;box-shadow:0 5px 14px rgba(99,20,34,.1)}.ecc-marker-selected .ecc-map-marker{transform:scale(1.55);box-shadow:0 0 0 8px rgba(181,30,58,.23),0 7px 18px rgba(17,28,42,.48)!important}.ecc-map-marker{transition:transform .2s,box-shadow .2s}#execCanvas.exec-story-running .pbi-canvas>*{display:none!important}#execCanvas.exec-story-running .pbi-canvas>.ecc-story-focus{display:block!important;margin-top:0;min-height:calc(100vh - 150px)}#execCanvas.exec-story-running .pbi-canvas>.ecc-brief.ecc-story-focus,#execCanvas.exec-story-running .pbi-canvas>.pbi-grid.ecc-story-focus{display:grid!important}#execCanvas.exec-map-only .pbi-canvas>*{display:none!important}#execCanvas.exec-map-only .pbi-canvas>#eccBaghdadMapSection{display:block!important;margin-top:0}#execCanvas.exec-map-only #eccBaghdadMapSection .ecc-map-stage{min-height:calc(100vh - 285px)}';document.head.appendChild(si);}
+  section.querySelectorAll('.ecc-map-filters button').forEach(function(b){b.onclick=function(){section.querySelectorAll('.ecc-map-filters button').forEach(function(x){x.classList.remove('active');});b.classList.add('active');var want=b.getAttribute('data-side');section.querySelectorAll('.ecc-loc').forEach(function(x){x.style.display=(want==='All'||x.getAttribute('data-side')===want)?'grid':'none';x.classList.remove('selected');});if(__kpBaghdadMap&&__kpBaghdadMap._kpMarkers)__kpBaghdadMap._kpMarkers.forEach(function(m){var show=want==='All'||m._kpData.side===want;if(m._icon)m._icon.classList.remove('ecc-marker-selected');if(show){if(!__kpBaghdadMap.hasLayer(m))m.addTo(__kpBaghdadMap);}else if(__kpBaghdadMap.hasLayer(m))__kpBaghdadMap.removeLayer(m);});var sel=section.querySelector('#eccMapSelection');if(sel)sel.innerHTML='<span>'+want.toUpperCase()+' VIEW</span><b>Select a municipality</b><small>Its exact pin and progress will appear here.</small>';};});
+  ensureBaghdadMapAssets(function(){renderBaghdadLeaflet(rows,section);});
+}
+function ensureBaghdadMapAssets(done){
+  if(window.L){done();return;}
+  if(!document.getElementById('kpLeafletCss')){var l=document.createElement('link');l.id='kpLeafletCss';l.rel='stylesheet';l.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';l.integrity='sha256-p4NxAoJBhIINfQ3ynhMZrByH3dZbK0rT2B7DdEnxwWE=';l.crossOrigin='';document.head.appendChild(l);}
+  var prior=document.getElementById('kpLeafletJs');if(prior){prior.addEventListener('load',done,{once:true});return;}
+  var s=document.createElement('script');s.id='kpLeafletJs';s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';s.integrity='sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';s.crossOrigin='';s.onload=done;s.onerror=function(){var e=document.getElementById('eccMapOffline');if(e)e.textContent='Map tiles need an internet connection. The complete municipality list remains available.';};document.head.appendChild(s);
+}
+function renderBaghdadLeaflet(rows,section){
+  var host=document.getElementById('eccBaghdadMap');if(!host||!window.L)return;
+  if(__kpBaghdadMap){try{__kpBaghdadMap.remove();}catch(e){}}
+  __kpBaghdadMap=L.map(host,{zoomControl:true,scrollWheelZoom:false,minZoom:9,maxZoom:16}).setView([33.323,44.405],11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(__kpBaghdadMap);
+  var marks=[];rows.forEach(function(x){var icon=L.divIcon({className:'ecc-map-pin',html:'<span class="ecc-map-marker" style="width:32px;height:32px;background:'+x.color+'">'+(x.i+1)+'</span>',iconSize:[32,32],iconAnchor:[16,16],popupAnchor:[0,-18]});var m=L.marker([x.lat,x.lng],{icon:icon,title:x.name}).addTo(__kpBaghdadMap);m._kpData=x;m.bindPopup('<div class="ecc-map-popup"><b>'+esc(x.name)+'</b><span>'+x.side+' side · Network & Infrastructure</span><strong style="color:'+x.color+'">'+x.pct+'%</strong></div>');marks.push(m);});__kpBaghdadMap._kpMarkers=marks;
+  if(marks.length){var fg=L.featureGroup(marks);__kpBaghdadMap.fitBounds(fg.getBounds().pad(.16),{maxZoom:12});}
+  var off=document.getElementById('eccMapOffline');if(off)off.style.display='none';
+  function selectLocation(idx){var m=marks[idx],x=rows[idx];if(!m||!x)return;section.querySelectorAll('.ecc-loc').forEach(function(b){b.classList.toggle('selected',+b.getAttribute('data-index')===idx);});marks.forEach(function(mm){if(mm._icon)mm._icon.classList.toggle('ecc-marker-selected',mm===m);});var sel=section.querySelector('#eccMapSelection');if(sel)sel.innerHTML='<span>SELECTED MUNICIPALITY · '+x.side.toUpperCase()+'</span><b>'+esc(x.name)+'</b><small>Progress '+x.pct+'% · Pin '+(x.i+1)+' · '+x.lat.toFixed(4)+', '+x.lng.toFixed(4)+'</small>';__kpBaghdadMap.flyTo(m.getLatLng(),15,{animate:true,duration:.8});setTimeout(function(){m.openPopup();},320);}
+  section.querySelectorAll('.ecc-loc').forEach(function(b){b.onclick=function(){selectLocation(+b.getAttribute('data-index'));};});
+  marks.forEach(function(m,i){m.on('click',function(){selectLocation(i);});});
+  setTimeout(function(){try{__kpBaghdadMap.invalidateSize();}catch(e){}},180);
+}
+function execBoardMode(btn){var ov=document.getElementById('execOverlay');if(!ov)return;var on=!ov.classList.contains('exec-board-mode');ov.classList.toggle('exec-board-mode',on);if(btn){var s=btn.querySelector('span');if(s)s.textContent=on?'Exit Board View':'Board View';}try{if(on&&ov.requestFullscreen)ov.requestFullscreen();else if(!on&&document.fullscreenElement)document.exitFullscreen();}catch(e){}}
+function execBaghdadMapView(btn){
+  var canvas=document.getElementById('execCanvas'),map=document.getElementById('eccBaghdadMapSection');if(!canvas||!map)return;
+  var on=!canvas.classList.contains('exec-map-only');
+  if(__execStoryTimer){clearInterval(__execStoryTimer);__execStoryTimer=null;}
+  canvas.classList.remove('exec-story-running');canvas.querySelectorAll('.ecc-story-stop').forEach(function(x){x.classList.remove('ecc-story-focus');});
+  canvas.classList.toggle('exec-map-only',on);
+  var fit=document.getElementById('execFit');if(fit)fit.scrollTop=0;
+  if(btn){var s=btn.querySelector('span');if(s)s.textContent=on?'Dashboard':'Baghdad Map';}
+  var sb=document.querySelector('.exec-story-btn span');if(sb)sb.textContent='Story Mode';
+  if(on)setTimeout(function(){try{if(__kpBaghdadMap){__kpBaghdadMap.invalidateSize();var mm=__kpBaghdadMap._kpMarkers||[];if(mm.length)__kpBaghdadMap.fitBounds(L.featureGroup(mm).getBounds().pad(.12),{maxZoom:12});}}catch(e){}},120);
+}
+function execStoryMode(btn){
+  var canvas=document.getElementById('execCanvas');if(!canvas)return;
+  if(__execStoryTimer){clearInterval(__execStoryTimer);__execStoryTimer=null;canvas.classList.remove('exec-story-running');canvas.querySelectorAll('.ecc-story-stop').forEach(function(x){x.classList.remove('ecc-story-focus');});if(btn){var s=btn.querySelector('span');if(s)s.textContent='Story Mode';}return;}
+  canvas.classList.remove('exec-map-only');var mb=document.querySelector('.exec-map-btn span');if(mb)mb.textContent='Baghdad Map';
+  var stops=[].slice.call(canvas.querySelectorAll('.pbi-canvas > .ecc-story-stop'));if(!stops.length)return;
+  __execStoryIndex=0;canvas.classList.add('exec-story-running');if(btn){var s=btn.querySelector('span');if(s)s.textContent='Stop Story';}
+  function show(){stops.forEach(function(x){x.classList.remove('ecc-story-focus');});var el=stops[__execStoryIndex%stops.length];el.classList.add('ecc-story-focus');var fit=canvas.closest('.exec-fit');if(fit)fit.scrollTop=0;if(el.id==='eccBaghdadMapSection')setTimeout(function(){try{if(__kpBaghdadMap)__kpBaghdadMap.invalidateSize();}catch(e){}},100);__execStoryIndex++;}
+  show();__execStoryTimer=setInterval(show,9000);
 }
 
 
@@ -109791,25 +109869,7 @@ function bootstrap(){
 
 
 
-    try{
-
-
-
-
-
-      var cur=JSON.parse(JSON.stringify(STORE)); delete cur.activity; delete cur._activityLog;
-
-
-
-
-
-      if(sanitizePaths(diffLeaves(serverBase,cur,'',{},0)).n) schedulePush();
-
-
-
-
-
-    }catch(e){}
+    /* DATA-SAFE: the initial read can never schedule a write back. */
 
 
 
@@ -109894,12 +109954,7 @@ function copyObj(x){ try{return JSON.parse(JSON.stringify(x));}catch(e){return x
 
 
 function projectList(){
-
-
-
-
-
-  try{ if(typeof syncProjectArrays==='function') syncProjectArrays(); }catch(e){}
+  /* Read-only accessor: never normalise arrays while receiving live data. */
 
 
 
@@ -110200,12 +110255,7 @@ function mergeConcurrentProject(base,local,remote){
 
 
 function saveRemoteLocally(){
-
-
-
-
-
-  try{ if(typeof syncProjectArrays==='function') syncProjectArrays(); }catch(e){}
+  /* Preserve the server project structure exactly as received. */
 
 
 
@@ -111267,25 +111317,8 @@ function pullLatestOnce(){
 
 
 
-    try{
-
-
-
-
-
-      var cur=JSON.parse(JSON.stringify(STORE)); delete cur.activity; delete cur._activityLog;
-
-
-
-
-
-      if(sanitizePaths(diffLeaves(serverBase,cur,'',{},0)).n) schedulePush();
-
-
-
-
-
-    }catch(e){}
+    /* A refresh is read-only. Differences caused by old local caches or
+       presentation helpers are never uploaded automatically. */
 
 
 
@@ -115539,7 +115572,8 @@ if(typeof originalPersist==='function'){
 
 
 
-document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){publishResourceDirectory(true).catch(function(){setTimeout(function(){publishResourceDirectory(true).catch(function(){});},5000);});},2200);});
+/* DATA-SAFE: resource directory publication is manual only. Opening or
+   refreshing the portal never writes any record to Firebase. */
 
 
 
