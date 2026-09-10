@@ -59682,6 +59682,24 @@ function siteTrackerDefaultColumns(p){
 
 
 
+    /* Network & Infrastructure map fields.  They are ordinary authoritative
+
+       Excel columns: adding a row with coordinates creates its map pin. */
+
+
+
+    {key:'latitude',label:'Latitude',type:'number',builtin:true,mapOnly:true},
+
+
+
+    {key:'longitude',label:'Longitude',type:'number',builtin:true,mapOnly:true},
+
+
+
+    {key:'mapSide',label:'Map Side (Karkh / Rusafa / Office)',type:'text',builtin:true,mapOnly:true},
+
+
+
 
 
     {key:'survey',label:'Survey',type:'status',builtin:true},
@@ -59757,6 +59775,20 @@ function siteTrackerDefaultColumns(p){
 
 
   cols.push({key:'notes',label:'Notes',type:'longtext',builtin:true});
+
+
+
+  /* Keep map coordinates exclusive to Network & Infrastructure so unrelated
+
+     Site Tracker workbooks and screens remain exactly as they were. */
+
+
+
+  var isNetwork=String((p&&p.id)||'')==='p5'||/network\s*&?\s*infrastructure|الشبكات\s*والبنى/i.test(String((p&&p.nameEn)||'')+' '+String((p&&p.name)||''));
+
+
+
+  if(!isNetwork) cols=cols.filter(function(c){return !c.mapOnly;});
 
 
 
@@ -80253,17 +80285,50 @@ function ensureEmbeddedLeafletCss(){
     +'.leaflet-container{overflow:hidden;position:relative;outline:0;background:#dfe6ec;-webkit-tap-highlight-color:transparent}.leaflet-container *{box-sizing:content-box}.leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-tile-container,.leaflet-pane>svg,.leaflet-pane>canvas,.leaflet-zoom-box{position:absolute;left:0;top:0}.leaflet-map-pane canvas,.leaflet-map-pane svg{position:absolute}.leaflet-tile{filter:inherit;visibility:hidden;user-select:none;-webkit-user-drag:none}.leaflet-tile-loaded{visibility:inherit}.leaflet-zoom-animated{transform-origin:0 0}.leaflet-marker-icon,.leaflet-marker-shadow{display:block}.leaflet-container img.leaflet-tile{max-width:none!important;max-height:none!important;width:256px!important;height:256px!important;padding:0!important;margin:0!important;border:0!important}.leaflet-container .leaflet-overlay-pane svg{max-width:none!important;max-height:none!important}.leaflet-pane{z-index:400}.leaflet-tile-pane{z-index:200}.leaflet-overlay-pane{z-index:400}.leaflet-shadow-pane{z-index:500}.leaflet-marker-pane{z-index:600}.leaflet-tooltip-pane{z-index:650}.leaflet-popup-pane{z-index:700}.leaflet-map-pane svg{z-index:200}.leaflet-control{position:relative;z-index:800;pointer-events:auto}.leaflet-top,.leaflet-bottom{position:absolute;z-index:1000;pointer-events:none}.leaflet-top{top:0}.leaflet-right{right:0}.leaflet-bottom{bottom:0}.leaflet-left{left:0}.leaflet-control{float:left;clear:both}.leaflet-right .leaflet-control{float:right}.leaflet-top .leaflet-control{margin-top:10px}.leaflet-bottom .leaflet-control{margin-bottom:10px}.leaflet-left .leaflet-control{margin-left:10px}.leaflet-right .leaflet-control{margin-right:10px}.leaflet-bar a{display:block;width:30px;height:30px;line-height:30px;text-align:center;text-decoration:none;background:#fff;color:#222;border-bottom:1px solid #ccc}.leaflet-bar a:first-child{border-radius:4px 4px 0 0}.leaflet-bar a:last-child{border-radius:0 0 4px 4px;border-bottom:0}.leaflet-popup{position:absolute;text-align:center;margin-bottom:20px}.leaflet-popup-content-wrapper{padding:1px;text-align:left;border-radius:10px;background:#fff;box-shadow:0 3px 14px rgba(0,0,0,.28)}.leaflet-popup-content{margin:13px 18px;line-height:1.4}.leaflet-popup-tip-container{width:40px;height:20px;position:absolute;left:50%;margin-left:-20px;overflow:hidden;pointer-events:none}.leaflet-popup-tip{width:17px;height:17px;padding:1px;margin:-10px auto 0;transform:rotate(45deg);background:#fff;box-shadow:3px 3px 15px rgba(0,0,0,.15)}.leaflet-popup-close-button{position:absolute;top:0;right:0;border:0;background:transparent;color:#757575;font:20px/24px Arial;padding:4px 4px 0 0}.leaflet-control-attribution{padding:0 5px;background:rgba(255,255,255,.82);font-size:9px}.ecc-map-card{max-width:100%;overflow:hidden!important}.ecc-map-layout{max-width:100%;overflow:hidden}.ecc-map-stage{overflow:hidden!important;contain:paint;isolation:isolate}.ecc-map-stage #eccBaghdadMap{width:100%!important;height:100%!important;overflow:hidden!important}.ecc-map-list{overflow:hidden;position:relative;z-index:5}.ecc-map-pin{background:transparent!important;border:0!important}';
   document.head.appendChild(st);
 }
+function execNetworkProject(){
+  var projects=(typeof mainProjects==='function'?mainProjects():((window.STORE&&STORE.projects)||[]));
+  return projects.find(function(x){return x&&((x.id==='p5')||/network\s*&?\s*infrastructure|الشبكات\s*والبنى/i.test(String(x.nameEn||'')+' '+String(x.name||'')));})||null;
+}
+function execEnsureMapExcelColumns(p){
+  if(!p)return [];
+  var defs=[
+    {key:'latitude',label:'Latitude',type:'number',builtin:true,mapOnly:true},
+    {key:'longitude',label:'Longitude',type:'number',builtin:true,mapOnly:true},
+    {key:'mapSide',label:'Map Side (Karkh / Rusafa / Office)',type:'text',builtin:true,mapOnly:true}
+  ];
+  var cols=(typeof ensureSiteTrackerColumns==='function'?ensureSiteTrackerColumns(p):(p.siteColumns||[]));
+  defs.forEach(function(d){var c=cols.find(function(x){return x&&x.key===d.key;});if(!c){cols.splice(Math.min(1,cols.length),0,Object.assign({},d));}else{c.label=d.label;c.type=d.type;c.hidden=false;c.mapOnly=true;}});
+  p.siteColumns=cols;
+  return cols;
+}
+function execMapExcelExport(){
+  var p=execNetworkProject();if(!p){try{toast('Network & Infrastructure project was not found',false);}catch(e){}return;}
+  execEnsureMapExcelColumns(p);
+  if(typeof exportSiteDepartments==='function')exportSiteDepartments(p.id);
+  else try{toast('Map Excel export is unavailable in this browser',false);}catch(e){}
+}
+function execMapExcelPick(){
+  var input=document.getElementById('eccMapExcelFile');if(input)input.click();
+}
+function execMapExcelImport(file){
+  if(!file)return;var p=execNetworkProject();if(!p){try{toast('Network & Infrastructure project was not found',false);}catch(e){}return;}
+  execEnsureMapExcelColumns(p);
+  if(typeof importSiteDepartments==='function'){importSiteDepartments(p.id,file);setTimeout(function(){try{if(document.getElementById('execOverlay')&&document.getElementById('execOverlay').classList.contains('open'))execBaghdadMap();}catch(e){}},1800);}
+  else try{toast('Map Excel import is unavailable in this browser',false);}catch(e){}
+}
 function execBaghdadMap(){
   ensureEmbeddedLeafletCss();
   var inner=document.querySelector('#execCanvas .pbi-canvas');if(!inner)return;
   var old=document.getElementById('eccBaghdadMapSection');if(old)old.remove();
-  var projects=(typeof mainProjects==='function'?mainProjects():((window.STORE&&STORE.projects)||[]));
-  var p=projects.find(function(x){return x&&((x.id==='p5')||/network\s*&?\s*infrastructure|الشبكات\s*والبنى/i.test(String(x.nameEn||'')+' '+String(x.name||'')));});
+  var p=execNetworkProject();
+  execEnsureMapExcelColumns(p);
   var sites=(p&&Array.isArray(p.sites)?p.sites:[]).filter(Boolean);
   function norm(v){return String(v||'').toLowerCase().replace(/[’'`]/g,'').replace(/[^a-z0-9\u0600-\u06ff]+/g,' ').trim();}
   function pct(s){try{return Math.max(0,Math.min(100,Math.round(typeof siteFinalPct==='function'?siteFinalPct(s):(+s.progress||0))));}catch(e){return Math.max(0,Math.min(100,Math.round(+s.progress||0)));}}
   function color(v){return v>=70?'#17865B':v>=35?'#D08A18':v>0?'#B72B3A':'#8993A3';}
   function side(n){if(/mansour|karkh|rashid|shu\s*la|kadhim|dawra|airport|alawi|المنصور|الكرخ|الرشيد|الشعلة|الكاظمية|الدورة|المطار|العلاوي/.test(n))return 'Karkh';if(/karrada|ghad|rusafa|sadr|adham|sha\s*b|new baghdad|tha\s*alba|baghdad water|الكرادة|الغدير|الرصافة|الصدر|الاعظمية|الأعظمية|الشعب|بغداد الجديدة|الثعالبة/.test(n))return 'Rusafa';return 'Central';}
+  function coordinate(v){var x=String(v==null?'':v).trim().replace(/،/g,'.').replace(/,/g,'.'),n=Number(x);return isFinite(n)?n:null;}
+  function importedSide(v,fallbackSide){var n=norm(v);if(/karkh|كرخ/.test(n))return 'Karkh';if(/rusafa|رصافة/.test(n))return 'Rusafa';if(/office|central|أمانة|امانة|مكتب|ديوان/.test(n))return 'Central';return fallbackSide;}
   var known=[
     [/diwan|ديوان/,33.3258,44.4124],[/baghdad water|ماء بغداد/,33.3054,44.4285],[/mansour|منصور/,33.3152,44.3396],
     [/karrada|كرادة/,33.2945,44.4317],[/ghad|غدير/,33.2878,44.4850],[/rusafa center|مركز الرصافة/,33.3370,44.4218],
@@ -80275,15 +80340,22 @@ function execBaghdadMap(){
     [/laborator|مختبرات/,33.3330,44.3890],[/parks|afforestation|alawi|الحدائق|التشجير|العلاوي/,33.3250,44.3750]
   ];
   var fallback=[[33.332,44.401],[33.311,44.383],[33.350,44.445],[33.278,44.454],[33.365,44.348]];
-  var rows=sites.map(function(s,i){var n=norm((s.name||'')+' '+(s.nameAr||'')),hit=known.find(function(x){return x[0].test(n);}),xy=hit?[hit[1],hit[2]]:fallback[i%fallback.length],v=pct(s);return {i:i,name:s.name||s.nameAr||('Location '+(i+1)),nameAr:s.nameAr||'',lat:xy[0],lng:xy[1],pct:v,side:side(n),color:color(v)};});
+  var rows=sites.map(function(s,i){
+    var n=norm((s.name||'')+' '+(s.nameAr||'')),hit=known.find(function(x){return x[0].test(n);}),fallbackXY=hit?[hit[1],hit[2]]:fallback[i%fallback.length];
+    var lat=coordinate(s.latitude!=null?s.latitude:s.lat),lng=coordinate(s.longitude!=null?s.longitude:(s.lng!=null?s.lng:s.lon));
+    /* Reject swapped/out-of-area values instead of letting one bad Excel cell
+       stretch the map outside Baghdad. Existing rows retain the known fallback. */
+    var valid=lat!==null&&lng!==null&&lat>=32.8&&lat<=33.9&&lng>=43.7&&lng<=45.1,xy=valid?[lat,lng]:fallbackXY,v=pct(s),autoSide=side(n);
+    return {i:i,name:s.name||s.nameAr||('Location '+(i+1)),nameAr:s.nameAr||'',lat:xy[0],lng:xy[1],pct:v,side:importedSide(s.mapSide!=null?s.mapSide:s.side,autoSide),color:color(v),coordinateSource:valid?'Excel':'Known location'};
+  });
   var avg=rows.length?Math.round(rows.reduce(function(a,x){return a+x.pct;},0)/rows.length):0;
   var karkh=rows.filter(function(x){return x.side==='Karkh';}).length,rusafa=rows.filter(function(x){return x.side==='Rusafa';}).length;
   var section=document.createElement('section');section.id='eccBaghdadMapSection';section.className='ecc-map-card ecc-story-stop';section.setAttribute('data-story-title','Baghdad delivery map');
-  section.innerHTML='<div class="ecc-map-head"><div><span>BAGHDAD DELIVERY FOOTPRINT</span><h3>Municipalities & Amanat Baghdad Offices</h3><p>All locations are read directly from Network & Infrastructure · click a marker or location for details</p></div><div class="ecc-map-kpis"><b>'+rows.length+'<small>Locations</small></b><b>'+karkh+'<small>Karkh side</small></b><b>'+rusafa+'<small>Rusafa side</small></b><b style="color:'+color(avg)+'">'+avg+'%<small>Average</small></b></div></div>'+
+  section.innerHTML='<div class="ecc-map-head"><div><span>BAGHDAD DELIVERY FOOTPRINT</span><h3>Municipalities & Amanat Baghdad Offices</h3><p>All locations are read directly from Network & Infrastructure · click a marker or location for details</p><div class="ecc-map-excel"><button onclick="execMapExcelExport()">↓ Export Map Excel</button><button onclick="execMapExcelPick()">↑ Import Map Excel</button><small>Excel fields: Latitude · Longitude · Map Side</small><input id="eccMapExcelFile" type="file" accept=".xlsx,.xls" hidden onchange="execMapExcelImport(this.files&&this.files[0]);this.value=\'\'" /></div></div><div class="ecc-map-kpis"><b>'+rows.length+'<small>Locations</small></b><b>'+karkh+'<small>Karkh side</small></b><b>'+rusafa+'<small>Rusafa side</small></b><b style="color:'+color(avg)+'">'+avg+'%<small>Average</small></b></div></div>'+
     '<div class="ecc-map-layout"><div class="ecc-map-stage"><div id="eccBaghdadMap" aria-label="Interactive map of Baghdad municipalities"></div><div id="eccMapOffline" class="ecc-map-offline">Loading Baghdad map…</div></div><aside class="ecc-map-list"><div class="ecc-map-filters"><button class="active" data-side="All">All</button><button data-side="Karkh">Karkh</button><button data-side="Rusafa">Rusafa</button><button data-side="Central">Offices</button></div><div id="eccMapSelection" class="ecc-map-selection"><span>SELECT A LOCATION</span><b>Choose a municipality from the list</b><small>The map will zoom to its position and highlight its pin.</small></div><div id="eccBaghdadLocations">'+rows.map(function(x){return '<button class="ecc-loc" data-side="'+x.side+'" data-index="'+x.i+'"><i style="background:'+x.color+'"></i><span><b>'+esc(x.name)+'</b><small>'+x.side+' · live project data</small></span><strong style="color:'+x.color+'">'+x.pct+'%</strong></button>';}).join('')+'</div></aside></div>';
   var priority=inner.querySelector('.ecc-decisions');if(priority)priority.insertAdjacentElement('afterend',section);else inner.insertAdjacentElement('afterbegin',section);
   if(!document.getElementById('eccBaghdadMapStyle')){var st=document.createElement('style');st.id='eccBaghdadMapStyle';st.textContent=''
-    +'.ecc-map-card{margin-top:13px;background:#fff;border:1px solid #dfe4eb;border-radius:15px;box-shadow:0 8px 24px rgba(23,34,51,.08);overflow:hidden}.ecc-map-head{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 20px 15px;border-bottom:1px solid #e5e9ef;background:linear-gradient(110deg,#fff 0%,#f7f9fc 68%,#f7e9ec 100%)}.ecc-map-head>div:first-child>span{font-size:11px;font-weight:900;letter-spacing:1.1px;color:#9a1f31}.ecc-map-head h3{margin:4px 0 3px;font-size:20px;color:#182330}.ecc-map-head p{margin:0;font-size:12px;color:#75808e}.ecc-map-kpis{display:flex;gap:9px}.ecc-map-kpis b{min-width:76px;padding:8px 10px;background:#fff;border:1px solid #dfe4eb;border-radius:10px;text-align:center;font-size:19px;color:#253241}.ecc-map-kpis small{display:block;margin-top:3px;font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:#818b98}.ecc-map-layout{display:grid;grid-template-columns:minmax(0,1.72fr) minmax(285px,.72fr);min-height:520px}.ecc-map-stage{position:relative;min-height:520px;background:#e9edf2}.ecc-map-stage #eccBaghdadMap{position:absolute;inset:0;z-index:2}.ecc-map-offline{position:absolute;inset:0;display:grid;place-items:center;color:#657180;font-size:13px;z-index:1}.ecc-map-list{border-left:1px solid #e2e6ec;background:#fbfcfe;min-width:0}.ecc-map-filters{display:flex;gap:6px;padding:11px;border-bottom:1px solid #e2e6ec;position:sticky;top:0;background:#fff;z-index:3}.ecc-map-filters button{border:1px solid #dce2e9;background:#fff;color:#576271;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:800;cursor:pointer}.ecc-map-filters button.active{background:#8f1d2d;color:#fff;border-color:#8f1d2d}#eccBaghdadLocations{height:468px;overflow:auto;padding:7px}.ecc-loc{width:100%;display:grid;grid-template-columns:9px minmax(0,1fr) auto;align-items:center;gap:10px;border:0;border-bottom:1px solid #edf0f4;background:transparent;padding:10px 8px;text-align:left;cursor:pointer}.ecc-loc:hover{background:#f1f4f8;border-radius:8px}.ecc-loc i{width:8px;height:8px;border-radius:50%;box-shadow:0 0 0 4px rgba(36,49,65,.06)}.ecc-loc b{display:block;color:#243140;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ecc-loc small{display:block;color:#87919e;font-size:9.5px;margin-top:2px}.ecc-loc strong{font-size:12px}.ecc-map-marker{display:grid!important;place-items:center;border:2px solid #fff;border-radius:50%;box-shadow:0 3px 10px rgba(17,28,42,.35);color:#fff;font:800 10px Arial}.ecc-map-popup b{display:block;font-size:13px;color:#1e2b39;margin-bottom:5px}.ecc-map-popup span{display:block;font-size:11px;color:#697584}.ecc-map-popup strong{display:block;font-size:20px;margin-top:8px}.leaflet-control-attribution{font-size:8px!important}@media(max-width:900px){.ecc-map-head{align-items:flex-start;flex-direction:column}.ecc-map-kpis{width:100%;display:grid;grid-template-columns:repeat(4,1fr)}.ecc-map-kpis b{min-width:0}.ecc-map-layout{grid-template-columns:1fr}.ecc-map-stage{min-height:410px}.ecc-map-list{border-left:0;border-top:1px solid #e2e6ec}#eccBaghdadLocations{height:320px}}';document.head.appendChild(st);}
+    +'.ecc-map-card{margin-top:13px;background:#fff;border:1px solid #dfe4eb;border-radius:15px;box-shadow:0 8px 24px rgba(23,34,51,.08);overflow:hidden}.ecc-map-head{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 20px 15px;border-bottom:1px solid #e5e9ef;background:linear-gradient(110deg,#fff 0%,#f7f9fc 68%,#f7e9ec 100%)}.ecc-map-head>div:first-child>span{font-size:11px;font-weight:900;letter-spacing:1.1px;color:#9a1f31}.ecc-map-head h3{margin:4px 0 3px;font-size:20px;color:#182330}.ecc-map-head p{margin:0;font-size:12px;color:#75808e}.ecc-map-excel{display:flex;align-items:center;gap:7px;margin-top:10px;flex-wrap:wrap}.ecc-map-excel button{border:1px solid #9b2436;background:#fff;color:#8f1d2d;border-radius:8px;padding:7px 10px;font-size:10px;font-weight:900;cursor:pointer}.ecc-map-excel button:first-child{background:#8f1d2d;color:#fff}.ecc-map-excel small{font-size:9px;color:#7d8794}.ecc-map-kpis{display:flex;gap:9px}.ecc-map-kpis b{min-width:76px;padding:8px 10px;background:#fff;border:1px solid #dfe4eb;border-radius:10px;text-align:center;font-size:19px;color:#253241}.ecc-map-kpis small{display:block;margin-top:3px;font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:#818b98}.ecc-map-layout{display:grid;grid-template-columns:minmax(0,1.72fr) minmax(285px,.72fr);min-height:520px}.ecc-map-stage{position:relative;min-height:520px;background:#e9edf2}.ecc-map-stage #eccBaghdadMap{position:absolute;inset:0;z-index:2}.ecc-map-offline{position:absolute;inset:0;display:grid;place-items:center;color:#657180;font-size:13px;z-index:1}.ecc-map-list{border-left:1px solid #e2e6ec;background:#fbfcfe;min-width:0}.ecc-map-filters{display:flex;gap:6px;padding:11px;border-bottom:1px solid #e2e6ec;position:sticky;top:0;background:#fff;z-index:3}.ecc-map-filters button{border:1px solid #dce2e9;background:#fff;color:#576271;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:800;cursor:pointer}.ecc-map-filters button.active{background:#8f1d2d;color:#fff;border-color:#8f1d2d}#eccBaghdadLocations{height:468px;overflow:auto;padding:7px}.ecc-loc{width:100%;display:grid;grid-template-columns:9px minmax(0,1fr) auto;align-items:center;gap:10px;border:0;border-bottom:1px solid #edf0f4;background:transparent;padding:10px 8px;text-align:left;cursor:pointer}.ecc-loc:hover{background:#f1f4f8;border-radius:8px}.ecc-loc i{width:8px;height:8px;border-radius:50%;box-shadow:0 0 0 4px rgba(36,49,65,.06)}.ecc-loc b{display:block;color:#243140;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ecc-loc small{display:block;color:#87919e;font-size:9.5px;margin-top:2px}.ecc-loc strong{font-size:12px}.ecc-map-marker{display:grid!important;place-items:center;border:2px solid #fff;border-radius:50%;box-shadow:0 3px 10px rgba(17,28,42,.35);color:#fff;font:800 10px Arial}.ecc-map-popup b{display:block;font-size:13px;color:#1e2b39;margin-bottom:5px}.ecc-map-popup span{display:block;font-size:11px;color:#697584}.ecc-map-popup strong{display:block;font-size:20px;margin-top:8px}.leaflet-control-attribution{font-size:8px!important}@media(max-width:900px){.ecc-map-head{align-items:flex-start;flex-direction:column}.ecc-map-kpis{width:100%;display:grid;grid-template-columns:repeat(4,1fr)}.ecc-map-kpis b{min-width:0}.ecc-map-layout{grid-template-columns:1fr}.ecc-map-stage{min-height:410px}.ecc-map-list{border-left:0;border-top:1px solid #e2e6ec}#eccBaghdadLocations{height:320px}}';document.head.appendChild(st);}
   if(!document.getElementById('eccMapInteractionStyle')){var si=document.createElement('style');si.id='eccMapInteractionStyle';si.textContent='.ecc-map-selection{margin:10px 11px 4px;padding:12px 14px;border-radius:11px;background:linear-gradient(125deg,#281017,#7f1b2b);color:#fff;box-shadow:0 8px 18px rgba(91,18,31,.18)}.ecc-map-selection span{display:block;font-size:9px;font-weight:900;letter-spacing:1px;color:#e8b9c1}.ecc-map-selection b{display:block;margin-top:4px;font-size:13px;line-height:1.3}.ecc-map-selection small{display:block;margin-top:4px;font-size:10px;color:#e7d8dc;line-height:1.35}.ecc-loc.selected{background:#fff3f5!important;border:1px solid #b51e3a!important;border-radius:9px;box-shadow:0 5px 14px rgba(99,20,34,.1)}.ecc-marker-selected .ecc-map-marker{transform:scale(1.55);box-shadow:0 0 0 8px rgba(181,30,58,.23),0 7px 18px rgba(17,28,42,.48)!important}.ecc-map-marker{transition:transform .2s,box-shadow .2s}#execCanvas.exec-story-running .pbi-canvas>*{display:none!important}#execCanvas.exec-story-running .pbi-canvas>.ecc-story-focus{display:block!important;margin-top:0;min-height:calc(100vh - 150px)}#execCanvas.exec-story-running .pbi-canvas>.ecc-brief.ecc-story-focus,#execCanvas.exec-story-running .pbi-canvas>.pbi-grid.ecc-story-focus{display:grid!important}#execCanvas.exec-map-only .pbi-canvas>*{display:none!important}#execCanvas.exec-map-only .pbi-canvas>#eccBaghdadMapSection{display:block!important;margin-top:0}#execCanvas.exec-map-only #eccBaghdadMapSection .ecc-map-stage{min-height:calc(100vh - 285px)}';document.head.appendChild(si);}
   section.querySelectorAll('.ecc-map-filters button').forEach(function(b){b.onclick=function(){section.querySelectorAll('.ecc-map-filters button').forEach(function(x){x.classList.remove('active');});b.classList.add('active');var want=b.getAttribute('data-side');section.querySelectorAll('.ecc-loc').forEach(function(x){x.style.display=(want==='All'||x.getAttribute('data-side')===want)?'grid':'none';x.classList.remove('selected');});if(__kpBaghdadMap&&__kpBaghdadMap._kpMarkers)__kpBaghdadMap._kpMarkers.forEach(function(m){var show=want==='All'||m._kpData.side===want;if(m._icon)m._icon.classList.remove('ecc-marker-selected');if(show){if(!__kpBaghdadMap.hasLayer(m))m.addTo(__kpBaghdadMap);}else if(__kpBaghdadMap.hasLayer(m))__kpBaghdadMap.removeLayer(m);});var sel=section.querySelector('#eccMapSelection');if(sel)sel.innerHTML='<span>'+want.toUpperCase()+' VIEW</span><b>Select a municipality</b><small>Its exact pin and progress will appear here.</small>';};});
   ensureBaghdadMapAssets(function(){renderBaghdadLeaflet(rows,section);});
@@ -106909,7 +106981,7 @@ function importTrackerSheet(p,rows){
 
 
 
-    if(t==='num'||/^(ks|ks total|ks done|count|qty|trainers)$/i.test(c.label)){
+    if(t==='num'||t==='number'||/^(latitude|longitude|lat|lng|lon|ks|ks total|ks done|count|qty|trainers)$/i.test(c.label)){
 
 
 
@@ -118331,10 +118403,24 @@ setTimeout(dcInstall,1200);setTimeout(dcInstallButton,4000);
      are left exactly as they are.
    • It never writes a project the import did not change.
    ═══════════════════════════════════════════════════════════════════════════ */
-(function(){
-if(window.__kpXlsVaultV2) return; window.__kpXlsVaultV2=true;
-
-var VAULT='kp_unsent_imports';
+(function(){
+if(window.__kpXlsVaultV2) return; window.__kpXlsVaultV2=true;
+
+/* DATA-SAFETY OVERRIDE (2026-09-10)
+   The legacy vault could restore an old, device-cached Excel import after a
+   later Firebase snapshot and then retry that stale project automatically.
+   Disable it completely. Current imports still use the normal verified portal
+   save path, but no previous workbook may replay itself on page load. */
+try{ localStorage.removeItem('kp_unsent_imports'); }catch(e){}
+try{ localStorage.removeItem('kp_sync_blackbox'); }catch(e){}
+window.kpUnsentImports=function(){return [];};
+window.kpForceCloudSync=function(){
+  try{toast('No old Excel import is waiting. Use Import Excel to apply the current workbook.',true);}catch(e){}
+  return Promise.resolve({ok:true,nothing:true});
+};
+return;
+
+var VAULT='kp_unsent_imports';
 var LOGK='kp_sync_blackbox';
 var BUILD='XLS-VAULT-v3';
 var ILL=/[.#$\[\]]/;
