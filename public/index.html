@@ -19548,6 +19548,197 @@ if(document.readyState==='loading'){
 
 </script>
 
+<style id="kpMasterExcelStyleV1">
+.kp-master-excel-btn{display:none!important;align-items:center;gap:7px}
+body.role-dev .kp-master-excel-btn{display:inline-flex!important}
+.kp-master-excel-layer{position:fixed;inset:0;z-index:100080;background:rgba(11,18,32,.72);backdrop-filter:blur(9px);display:none;align-items:center;justify-content:center;padding:20px}
+.kp-master-excel-layer.open{display:flex}
+.kp-master-excel-card{width:min(680px,96vw);background:#fff;border-radius:24px;box-shadow:0 30px 90px rgba(0,0,0,.32);overflow:hidden;color:#172033}
+.kp-master-excel-head{background:linear-gradient(135deg,#8d1628,#c82e42);color:#fff;padding:24px 26px;display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
+.kp-master-excel-head h2{font-size:24px;margin:0 0 5px}.kp-master-excel-head p{margin:0;opacity:.86;font-size:13px}
+.kp-master-excel-x{border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;border-radius:12px;width:38px;height:38px;font-size:20px;cursor:pointer}
+.kp-master-excel-body{padding:25px}.kp-master-excel-note{background:#f4f7fb;border:1px solid #dfe5ee;border-radius:14px;padding:14px 16px;font-size:13px;line-height:1.55;margin-bottom:18px}
+.kp-master-excel-actions{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.kp-master-excel-action{border:1px solid #dce2eb;background:#fff;border-radius:16px;padding:20px;text-align:left;cursor:pointer;transition:.18s;min-height:130px}
+.kp-master-excel-action:hover{transform:translateY(-2px);border-color:#b12836;box-shadow:0 10px 28px rgba(177,40,54,.12)}
+.kp-master-excel-action b{display:block;font-size:17px;margin-bottom:8px;color:#9d1f31}.kp-master-excel-action span{font-size:12.5px;line-height:1.45;color:#5c677b}
+.kp-master-excel-foot{font-size:12px;color:#6b7280;margin-top:17px;padding-top:15px;border-top:1px solid #edf0f4}
+@media(max-width:640px){.kp-master-excel-actions{grid-template-columns:1fr}.kp-master-excel-card{border-radius:18px}.kp-master-excel-body{padding:18px}}
+</style>
+
+<script id="kpMasterExcelV1">
+/* Developer-only master Excel. Full-fidelity path/value sheets preserve every
+   field of every project. Existing project-level Excel controls are untouched. */
+(function(){
+  var VERSION='KP-MASTER-1';
+  var MAX_CELL=30000;
+
+  function canUse(){
+    try{return typeof ROLE!=='undefined'&&ROLE==='dev';}catch(e){return false;}
+  }
+  function note(msg,ok){
+    try{toast(msg,ok!==false);}catch(e){alert(msg);}
+  }
+  function cleanName(v){return String(v||'Project').replace(/[\\\/:*?"<>|\[\]]/g,' ').replace(/\s+/g,' ').trim();}
+  function uniqueSheet(base,used){
+    base=cleanName(base).slice(0,31)||'Project';var name=base,n=2;
+    while(used[name]){var suffix=' '+n++;name=base.slice(0,31-suffix.length)+suffix;}
+    used[name]=1;return name;
+  }
+  function projects(){
+    var arr=[];
+    try{arr=(STORE&&Array.isArray(STORE.projects))?STORE.projects:[];}catch(e){}
+    return arr.filter(function(p){return p&&p.id;});
+  }
+  function flatten(value,path,out){
+    if(value===null){out.push([JSON.stringify(path),'null',1,1,'']);return;}
+    if(Array.isArray(value)){
+      if(!value.length){out.push([JSON.stringify(path),'empty-array',1,1,'']);return;}
+      value.forEach(function(v,i){flatten(v,path.concat(i),out);});return;
+    }
+    if(typeof value==='object'){
+      var keys=Object.keys(value);
+      if(!keys.length){out.push([JSON.stringify(path),'empty-object',1,1,'']);return;}
+      keys.forEach(function(k){flatten(value[k],path.concat(k),out);});return;
+    }
+    var type=typeof value;
+    if(type==='undefined'){out.push([JSON.stringify(path),'undefined',1,1,'']);return;}
+    var s=type==='string'?value:String(value),chunks=Math.max(1,Math.ceil(s.length/MAX_CELL));
+    for(var c=0;c<chunks;c++)out.push([JSON.stringify(path),type,c+1,chunks,s.slice(c*MAX_CELL,(c+1)*MAX_CELL)]);
+  }
+  function addSheet(wb,rows,name,widths){
+    var ws=XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols']=(widths||[22,22,16,16,48]).map(function(w){return {wch:w};});
+    if(rows.length>2)ws['!autofilter']={ref:'A3:'+XLSX.utils.encode_col((rows[2]||[]).length-1)+rows.length};
+    XLSX.utils.book_append_sheet(wb,ws,name);
+  }
+  function isoStamp(){return new Date().toISOString().replace(/[:.]/g,'-');}
+  function exportAll(){
+    if(!canUse()){note('Developer access is required.',false);return;}
+    var ps=projects();if(!ps.length){note('No projects are available to export.',false);return;}
+    loadXLSX(function(){try{
+      var wb=XLSX.utils.book_new(),used={README:1,PROJECTS:1};
+      addSheet(wb,[
+        ['Knowledge Papers — Master Project Workbook'],
+        ['Format',VERSION],['Exported UTC',new Date().toISOString()],
+        ['Purpose','Developer-only full portfolio export/import'],
+        ['Safety','Do not rename sheets, project IDs, JSON paths, data types, chunk numbers or the format marker.'],
+        ['Editing','Edit only cells in the Value column. Existing project-level Excel files remain available inside every project.'],
+        ['Import','Close other open portal tabs before importing. The portal downloads a JSON backup before applying any change.']
+      ],'README',[34,95]);
+      var manifest=[['KP_MASTER_WORKBOOK',VERSION,'Exported UTC',new Date().toISOString()],['IMPORTANT','Every current project must remain in this sheet. Import is rejected if a project sheet is missing.'],['Order','Project ID','Arabic Name','English Name','Progress','Data Sheet','Data Rows']];
+      ps.forEach(function(p,i){
+        var sh=uniqueSheet((p.id||('P'+(i+1)))+' '+(p.nameEn||p.name||'Project'),used),flat=[];
+        flatten(p,[],flat);
+        var rows=[['KP_MASTER_PROJECT',VERSION,p.id],['Edit only the Value column. Keep all path/type/chunk columns unchanged.'],['JSON Path','Data Type','Chunk','Chunks','Value']].concat(flat);
+        addSheet(wb,rows,sh,[44,16,10,10,70]);
+        manifest.push([i+1,p.id,p.name||'',p.nameEn||'',p.progress==null?'':p.progress,sh,flat.length]);
+      });
+      addSheet(wb,manifest,'PROJECTS',[10,18,34,38,12,31,12]);
+      XLSX.writeFile(wb,'Knowledge_Papers_ALL_PROJECTS_MASTER_'+isoStamp().slice(0,19)+'.xlsx');
+      note('Master Excel exported — '+ps.length+' project(s), with every project field included.',true);
+    }catch(e){console.error(e);note('Master export failed: '+e.message,false);}});
+  }
+  function parsePrimitive(type,text){
+    if(type==='string')return String(text==null?'':text);
+    if(type==='number'){var n=Number(text);if(!isFinite(n))throw new Error('Invalid number: '+text);return n;}
+    if(type==='boolean')return String(text).toLowerCase()==='true'||String(text)==='1';
+    if(type==='null')return null;
+    if(type==='undefined')return undefined;
+    if(type==='empty-array')return [];
+    if(type==='empty-object')return {};
+    throw new Error('Unsupported data type: '+type);
+  }
+  function setAt(root,path,value){
+    if(!path.length)throw new Error('Empty JSON path is not allowed.');
+    var cur=root;
+    for(var i=0;i<path.length-1;i++){
+      var key=path[i],next=path[i+1];
+      if(cur[key]===undefined||cur[key]===null||typeof cur[key]!=='object')cur[key]=(typeof next==='number')?[]:{};
+      cur=cur[key];
+    }
+    if(value!==undefined)cur[path[path.length-1]]=value;
+  }
+  function projectFromSheet(wb,sheet,id){
+    var ws=wb.Sheets[sheet];if(!ws)throw new Error('Missing sheet: '+sheet);
+    var rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
+    if(!rows[0]||rows[0][0]!=='KP_MASTER_PROJECT'||rows[0][1]!==VERSION||String(rows[0][2])!==String(id))throw new Error(sheet+': invalid project marker.');
+    var groups={};
+    rows.slice(3).forEach(function(r,idx){
+      if(!r||r[0]==='')return;
+      var key=String(r[0]),type=String(r[1]||''),chunk=Number(r[2]||1),count=Number(r[3]||1);
+      var path;try{path=JSON.parse(key);}catch(e){throw new Error(sheet+' row '+(idx+4)+': invalid JSON path.');}
+      if(!Array.isArray(path)||!path.length)throw new Error(sheet+' row '+(idx+4)+': invalid path.');
+      var g=groups[key]||(groups[key]={path:path,type:type,count:count,parts:{}});
+      if(g.type!==type||g.count!==count)throw new Error(sheet+' row '+(idx+4)+': inconsistent chunks.');
+      g.parts[chunk]=String(r[4]==null?'':r[4]);
+    });
+    var obj={};Object.keys(groups).forEach(function(k){
+      var g=groups[k],txt='';
+      for(var c=1;c<=g.count;c++){if(!(c in g.parts))throw new Error(sheet+': missing chunk '+c+' for '+k);txt+=g.parts[c];}
+      setAt(obj,g.path,parsePrimitive(g.type,txt));
+    });
+    if(!obj||String(obj.id)!==String(id))throw new Error(sheet+': Project ID does not match the manifest.');
+    return obj;
+  }
+  function backupStore(){
+    var data=JSON.stringify(STORE,null,2),blob=new Blob([data],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download='Knowledge_Papers_PRE_MASTER_IMPORT_BACKUP_'+isoStamp().slice(0,19)+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},1500);
+  }
+  function importAll(file){
+    if(!canUse()){note('Developer access is required.',false);return;}
+    if(!file)return;
+    loadXLSX(function(){var rd=new FileReader();rd.onload=function(ev){try{
+      var wb=XLSX.read(ev.target.result,{type:'array',raw:true}),ws=wb.Sheets.PROJECTS;
+      if(!ws)throw new Error('PROJECTS manifest sheet is missing.');
+      var rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
+      if(!rows[0]||rows[0][0]!=='KP_MASTER_WORKBOOK'||rows[0][1]!==VERSION)throw new Error('This is not a valid Knowledge Papers Master workbook.');
+      var manifest=rows.slice(3).filter(function(r){return r&&r[1]!=='';}).map(function(r){return {id:String(r[1]),sheet:String(r[5]||'')};});
+      if(!manifest.length)throw new Error('No projects were found in the workbook.');
+      var duplicate={};manifest.forEach(function(m){if(duplicate[m.id])throw new Error('Duplicate Project ID: '+m.id);duplicate[m.id]=1;if(!m.sheet)throw new Error('Missing data sheet for '+m.id);});
+      var current=projects();current.forEach(function(p){if(!duplicate[String(p.id)])throw new Error('Safety stop: current project '+p.id+' is missing from the workbook. Nothing was changed.');});
+      var parsed=manifest.map(function(m){return projectFromSheet(wb,m.sheet,m.id);});
+      if(!confirm('Import '+parsed.length+' projects from this Master Excel?\n\nA JSON backup will download first. Close other portal tabs before continuing.'))return;
+      backupStore();
+      var oldOrder={};current.forEach(function(p,i){oldOrder[String(p.id)]=i;});
+      parsed.sort(function(a,b){var ai=oldOrder[String(a.id)],bi=oldOrder[String(b.id)];return (ai==null?9999:ai)-(bi==null?9999:bi);});
+      STORE.projects=parsed;
+      /* mainProjects() prefers the first engagement list, so keep both pointers
+         on the exact same imported array. This prevents a later render from
+         showing the pre-import list again. */
+      try{if(STORE.engagements&&STORE.engagements[0])STORE.engagements[0].projects=STORE.projects;}catch(e){}
+      parsed.forEach(function(p){try{persist(p.id);}catch(e){throw new Error('Could not save '+p.id+': '+e.message);}});
+      try{if(typeof renderHub==='function')renderHub();}catch(e){}
+      try{if(CUR_PROJ&&typeof renderProjectView==='function')renderProjectView(CUR_PROJ);}catch(e){}
+      closeModal();note('Master Excel imported successfully — '+parsed.length+' project(s) updated. Existing project Excel tools are unchanged.',true);
+    }catch(e){console.error(e);note('Master import stopped safely: '+e.message,false);}finally{var input=document.getElementById('kpMasterExcelFile');if(input)input.value='';}};rd.readAsArrayBuffer(file);});
+  }
+  function openModal(){if(!canUse()){note('Developer access is required.',false);return;}var x=document.getElementById('kpMasterExcelLayer');if(x)x.classList.add('open');}
+  function closeModal(){var x=document.getElementById('kpMasterExcelLayer');if(x)x.classList.remove('open');}
+  function button(label,id){return '<button class="chb kp-master-excel-btn" id="'+id+'" type="button" onclick="kpOpenMasterExcel()" title="Developer-only export/import for all projects"><span style="font-size:17px">▦</span>'+label+'</button>';}
+  function install(){
+    if(!document.getElementById('kpMasterExcelLayer')){
+      var layer=document.createElement('div');layer.id='kpMasterExcelLayer';layer.className='kp-master-excel-layer';layer.onclick=function(e){if(e.target===layer)closeModal();};
+      layer.innerHTML='<div class="kp-master-excel-card"><div class="kp-master-excel-head"><div><h2>Master Excel · All Projects</h2><p>Developer-only full portfolio workbook</p></div><button class="kp-master-excel-x" onclick="kpCloseMasterExcel()">×</button></div><div class="kp-master-excel-body"><div class="kp-master-excel-note"><b>Full-fidelity and data-safe:</b> Export includes every field in every project. Import validates the workbook and every Project ID before changing anything, then downloads a backup first.</div><div class="kp-master-excel-actions"><button class="kp-master-excel-action" onclick="kpExportAllProjectsExcel()"><b>↓ Export All Projects</b><span>Downloads one Master workbook containing every project and all nested data.</span></button><button class="kp-master-excel-action" onclick="document.getElementById(\'kpMasterExcelFile\').click()"><b>↑ Import All Projects</b><span>Updates all projects from a validated Master workbook. Close other portal tabs first.</span></button></div><div class="kp-master-excel-foot">The Excel buttons already available inside each project remain exactly as they are.</div><input id="kpMasterExcelFile" type="file" accept=".xlsx,.xls" hidden onchange="kpImportAllProjectsExcel(this.files[0])"></div></div>';
+      document.body.appendChild(layer);
+    }
+    var bar=document.querySelector('.company-header .ch-bar');
+    if(bar&&!document.getElementById('kpMasterExcelCompanyBtn')){
+      var wrap=document.createElement('span');wrap.innerHTML=button('Master Excel','kpMasterExcelCompanyBtn');bar.insertBefore(wrap.firstChild,document.getElementById('portfolioPptBtn'));
+    }
+    var chips=document.querySelector('.appbar .app-chips');
+    if(chips&&!document.getElementById('kpMasterExcelProjectBtn')){
+      var wrap2=document.createElement('span');wrap2.innerHTML=button('Master Excel','kpMasterExcelProjectBtn');chips.appendChild(wrap2.firstChild);
+    }
+  }
+  window.kpOpenMasterExcel=openModal;window.kpCloseMasterExcel=closeModal;
+  window.kpExportAllProjectsExcel=exportAll;window.kpImportAllProjectsExcel=importAll;
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
+  setTimeout(install,800);setTimeout(install,2500);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal();});
+})();
+</script>
+
 <script id="kpBrandedExcelFullSyncV31">
 /* Knowledge Papers branded Excel runtime.
    Export styling is applied in-place so sheet names, rows, hidden keys and all
