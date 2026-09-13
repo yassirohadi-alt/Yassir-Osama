@@ -19252,30 +19252,18 @@ function exportProjectExcel(){
 
 
       }
-
-
-
-
-
-      // Sub status / start / end occupy the first phase's Status/Start/End cells so they re-import cleanly.
-
-
-
-
-
-      srow.push(statusText(sub.status||'n'), sub.planStart||'', sub.planEnd||'', sdur);
-
-
-
-
-
-      for(let k=1;k<P;k++){ srow.push('','','',''); }
-
-
-
-
-
-      srow.push(sdur||'', '', '');
+      // Preserve all phase statuses and dates for a lossless export/import round-trip.
+      let subTotalDays = 0;
+      for(let k=0;k<P;k++){
+        const sph = (sub.phases && sub.phases[k]) || {};
+        let phaseDays = '';
+        if(sph.planStart && sph.planEnd){
+          const d1 = new Date(sph.planStart), d2 = new Date(sph.planEnd);
+          if(!isNaN(d1) && !isNaN(d2)){ phaseDays = Math.round((d2-d1)/86400000); subTotalDays += phaseDays; }
+        }
+        srow.push(statusText(sph.status||'n'), sph.planStart||'', sph.planEnd||'', phaseDays);
+      }
+      srow.push(subTotalDays||'', sub.actualLaunch||'', sub.planEnd||'');
 
 
 
@@ -119239,6 +119227,42 @@ window.kpfReset=function(){if(!confirm('Replace only the Financial Dashboard edi
 function needXLSX(cb){if(window.XLSX){cb();return;}if(typeof window.loadXLSX==='function'){window.loadXLSX(cb);return;}alert('Excel library is unavailable. Connect to the internet and try again.');}
 window.kpfExport=function(){needXLSX(function(){var wb=XLSX.utils.book_new();KPF_STATE.sheets.forEach(function(s){var aoa=s.rows.map(function(r){return r.map(function(c){return raw(c);});});var ws=XLSX.utils.aoa_to_sheet(aoa);s.rows.forEach(function(r,ri){r.forEach(function(c,ci){var rv=raw(c);if(typeof rv==='string'&&rv.charAt(0)==='='){var ad=XLSX.utils.encode_cell({r:ri,c:ci});ws[ad]=ws[ad]||{};ws[ad].f=rv.slice(1);if(c.v!=null&&typeof c.v==='number'){ws[ad].v=c.v;ws[ad].t='n';}}});});ws['!freeze']={xSplit:3,ySplit:s.dataStart||2};ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:s.headerRow||1,c:0},e:{r:Math.max(s.rows.length-1,s.headerRow||1),c:s.maxCols-1}})};ws['!cols']=Array.from({length:s.maxCols},function(_,i){return {wch:i<6?24:16};});XLSX.utils.book_append_sheet(wb,ws,s.name.slice(0,31));});XLSX.writeFile(wb,'Final_Financial_Projection_Updated.xlsx');toast('Financial workbook exported');});};
 window.kpfImport=function(file){if(!file)return;if(!confirm('Importing will replace only the Financial Dashboard tables. Continue?'))return;needXLSX(function(){var rd=new FileReader();rd.onload=function(e){try{var wb=XLSX.read(e.target.result,{type:'array',cellDates:true,cellFormula:true}),required=['Over All','Traking of Payments','Budget'];var missing=required.filter(function(n){return !wb.Sheets[n];});if(missing.length)throw new Error('Missing sheet(s): '+missing.join(', '));var sheets=required.map(function(name){var ws=wb.Sheets[name],rg=XLSX.utils.decode_range(ws['!ref']||'A1:A1'),rows=[];for(var rr=0;rr<=rg.e.r;rr++){var row=[];for(var cc=0;cc<=rg.e.c;cc++){var cell=ws[XLSX.utils.encode_cell({r:rr,c:cc})];var rv=cell?(cell.f?'='+cell.f:cell.v):'',dv=cell?(cell.w!=null?cell.w:cell.v):'';row.push({r:rv==null?'':rv,v:dv==null?'':dv});}rows.push(row);}return {name:name,maxCols:rg.e.c+1,headerRow:1,dataStart:2,rows:rows};});KPF_STATE={version:1,source:file.name,sheets:sheets};save();KPF_TAB='overview';render();toast('Financial workbook imported');}catch(err){alert('Import failed: '+err.message);}};rd.readAsArrayBuffer(file);});};
+})();
+</script>
+
+
+<script id="kp-systems-roundtrip-scroll-fix-v1">
+(function(){
+'use strict';
+/* Install after every earlier renderer wrapper. Status/date clicks rebuild the
+   matrix, so retain both the page position and the matrix position. */
+function install(){
+  var original=window.renderProjectView;
+  if(typeof original!=='function'||original.__kpSystemsPositionFix)return;
+  var wrapped=function(id){
+    var body=document.querySelector('.pv-body');
+    var matrix=document.querySelector('.phase-matrix-wrap');
+    var bodyTop=body?body.scrollTop:0;
+    var matrixTop=matrix?matrix.scrollTop:0;
+    var matrixLeft=matrix?matrix.scrollLeft:0;
+    var result=original.apply(this,arguments);
+    function restore(){
+      var nextBody=document.querySelector('.pv-body');
+      var nextMatrix=document.querySelector('.phase-matrix-wrap');
+      if(nextBody)nextBody.scrollTop=bodyTop;
+      if(nextMatrix){nextMatrix.scrollTop=matrixTop;nextMatrix.scrollLeft=matrixLeft;}
+    }
+    restore();
+    requestAnimationFrame(function(){restore();requestAnimationFrame(restore);});
+    setTimeout(restore,40);setTimeout(restore,140);
+    return result;
+  };
+  wrapped.__kpSystemsPositionFix=true;
+  window.renderProjectView=wrapped;
+}
+install();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);
+setTimeout(install,500);
 })();
 </script>
 
