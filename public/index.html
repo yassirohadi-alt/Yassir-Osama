@@ -18293,6 +18293,37 @@ function bindXlsxImport(){
 
 
 
+
+function p1LiveProject(){
+  var p=null;
+  try{ if(typeof projByID==='function')p=projByID(P1_ID); }catch(e){}
+  try{ if(!p&&STORE&&Array.isArray(STORE.projects))p=STORE.projects.find(function(x){return x&&x.id===P1_ID;}); }catch(e){}
+  if(!p)return null;
+  try{
+    if(!Array.isArray(STORE.projects))STORE.projects=[];
+    var i=STORE.projects.findIndex(function(x){return x&&x.id===P1_ID;});
+    if(i<0)STORE.projects.push(p);else STORE.projects[i]=p;
+    (STORE.engagements||[]).forEach(function(eng){
+      if(!eng||!Array.isArray(eng.projects))return;
+      var j=eng.projects.findIndex(function(x){return x&&x.id===P1_ID;});
+      if(j>=0)eng.projects[j]=p;
+    });
+  }catch(e){}
+  return p;
+}
+
+function flushP1BeforeExport(){
+  try{
+    var a=document.activeElement;
+    if(a&&a!==document.body&&typeof a.blur==='function')a.blur();
+  }catch(e){}
+  var p=p1LiveProject();
+  if(!p)return null;
+  try{ clearTimeout(__schT); }catch(e){}
+  try{ persist(P1_ID); }catch(e){ try{persist();}catch(_){} }
+  return p;
+}
+
 function importP1FromRows(rows){
 
 
@@ -18717,7 +18748,7 @@ function importP1FromRows(rows){
 
 
 
-  const p = STORE.projects.find(x=>x.id===P1_ID);
+  const p = p1LiveProject();
 
 
 
@@ -18927,7 +18958,7 @@ function exportProjectExcel(){
 
 
 
-  const p = STORE.projects.find(x=>x.id===P1_ID);
+  const p = flushP1BeforeExport();
 
 
 
@@ -22880,7 +22911,7 @@ body.god-on .clogo, body.god-on .exec-logo, body.god-on .pmo-logo{ pointer-event
 
 
 
-        renderProjectView(pid); setTimeout(function(){ try{ renderProjectView(pid); }catch(e){} },30);
+        renderProjectViewStable(pid); setTimeout(function(){ try{ renderProjectViewStable(pid); }catch(e){} },30);
 
 
 
@@ -55552,7 +55583,7 @@ function addPhase(pid){
 
 
 
-  renderProjectView(pid);
+  renderProjectViewStable(pid);
 
 
 
@@ -55648,7 +55679,7 @@ function delPhase(pid,i){
 
 
 
-  renderProjectView(pid);
+  renderProjectViewStable(pid);
 
 
 
@@ -55702,7 +55733,7 @@ function cyclePhase(pid,i){
 
 
 
-  persist();renderProjectView(pid);renderHub();
+  persist();renderProjectViewStable(pid);renderHub();
 
 
 
@@ -55738,7 +55769,7 @@ function cyclePhasePlan(pid,i){
 
 
 
-  p.phases[i].planPct=nxt;persist();renderProjectView(pid);
+  p.phases[i].planPct=nxt;persist();renderProjectViewStable(pid);
 
 
 
@@ -57124,7 +57155,7 @@ function openGmDt(pid,si,field,anchor){
 
 
 
-  inp.addEventListener('change',()=>{if(inp.value){p.milestones[si][field]=inp.value;persist();renderProjectView(pid);}inp.remove();__dpActive=null;});
+  inp.addEventListener('change',()=>{if(inp.value){p.milestones[si][field]=inp.value;persist();renderProjectViewStable(pid);}inp.remove();__dpActive=null;});
 
 
 
@@ -57166,13 +57197,13 @@ function addMs(pid){if(!isEditor())return;const p=projByID(pid);if(!p)return;
 
 
 
-  persist();renderProjectView(pid);toast('Milestone added');}
+  persist();renderProjectViewStable(pid);toast('Milestone added');}
 
 
 
 
 
-function delMs(pid,i){if(!isEditor())return;const p=projByID(pid);if(!p||!confirm('Delete this milestone?'))return;p.milestones.splice(i,1);persist();renderProjectView(pid);toast('Milestone deleted');}
+function delMs(pid,i){if(!isEditor())return;const p=projByID(pid);if(!p||!confirm('Delete this milestone?'))return;p.milestones.splice(i,1);persist();renderProjectViewStable(pid);toast('Milestone deleted');}
 
 
 
@@ -57226,7 +57257,7 @@ function cycleMsStatus(pid,i){
 
 
 
-  p.progress=overallPct(p);persist();renderProjectView(pid);renderHub();
+  p.progress=overallPct(p);persist();renderProjectViewStable(pid);renderHub();
 
 
 
@@ -57340,19 +57371,19 @@ function renderQA(p){
 
 
 
-function addQA(pid){if(!isEditor())return;const p=projByID(pid);if(!p)return;p.qa.push({item:'New Item',standard:'',status:'n',notes:''});persist();renderProjectView(pid);}
+function addQA(pid){if(!isEditor())return;const p=projByID(pid);if(!p)return;p.qa.push({item:'New Item',standard:'',status:'n',notes:''});persist();renderProjectViewStable(pid);}
 
 
 
 
 
-function delQA(pid,i){if(!isEditor())return;const p=projByID(pid);if(!p||!confirm('حذف هذا البند؟'))return;p.qa.splice(i,1);persist();renderProjectView(pid);}
+function delQA(pid,i){if(!isEditor())return;const p=projByID(pid);if(!p||!confirm('حذف هذا البند؟'))return;p.qa.splice(i,1);persist();renderProjectViewStable(pid);}
 
 
 
 
 
-function cycleQA(pid,i){if(!isEditor())return;const p=projByID(pid);if(!p)return;const m={d:'p',p:'n',n:'d',pass:'fail',fail:'pending',pending:'pass'};p.qa[i].status=m[p.qa[i].status]||'n';persist();renderProjectView(pid);}
+function cycleQA(pid,i){if(!isEditor())return;const p=projByID(pid);if(!p)return;const m={d:'p',p:'n',n:'d',pass:'fail',fail:'pending',pending:'pass'};p.qa[i].status=m[p.qa[i].status]||'n';persist();renderProjectViewStable(pid);}
 
 
 
@@ -57490,13 +57521,13 @@ function renderBudget(p){
 
 
 
-function addBud(pid){if(!isEditor())return;const p=projByID(pid);if(!p)return;p.budget.push({category:'New Item',planned:0,actual:0});persist();renderProjectView(pid);}
+function addBud(pid){if(!isEditor())return;const p=projByID(pid);if(!p)return;p.budget.push({category:'New Item',planned:0,actual:0});persist();renderProjectViewStable(pid);}
 
 
 
 
 
-function delBud(pid,i){if(!isEditor())return;const p=projByID(pid);if(!p||!confirm('حذف هذا البند؟'))return;p.budget.splice(i,1);persist();renderProjectView(pid);}
+function delBud(pid,i){if(!isEditor())return;const p=projByID(pid);if(!p||!confirm('حذف هذا البند؟'))return;p.budget.splice(i,1);persist();renderProjectViewStable(pid);}
 
 
 
@@ -57616,25 +57647,25 @@ function renderRisks(p){
 
 
 
-function addRisk(pid){if(!isEditor())return;const p=projByID(pid);if(!p)return;const n=window.prompt('Risk description:','');if(!n)return;p.risks.push({risk:n.trim(),impact:'me',prob:'me',status:'open',owner:'',mitigation:''});logActivity('Risk Added',p,'Risk',n.trim(),'warn','risk');persist();renderProjectView(pid);}
+function addRisk(pid){if(!isEditor())return;const p=projByID(pid);if(!p)return;const n=window.prompt('Risk description:','');if(!n)return;p.risks.push({risk:n.trim(),impact:'me',prob:'me',status:'open',owner:'',mitigation:''});logActivity('Risk Added',p,'Risk',n.trim(),'warn','risk');persist();renderProjectViewStable(pid);}
 
 
 
 
 
-function delRisk(pid,i){if(!isEditor())return;const p=projByID(pid);if(!p||!confirm('Delete this risk?'))return;var rn=(p.risks[i]?p.risks[i].risk:'');p.risks.splice(i,1);logActivity('Risk Deleted',p,'Risk',rn,'risk','risk');persist();renderProjectView(pid);}
+function delRisk(pid,i){if(!isEditor())return;const p=projByID(pid);if(!p||!confirm('Delete this risk?'))return;var rn=(p.risks[i]?p.risks[i].risk:'');p.risks.splice(i,1);logActivity('Risk Deleted',p,'Risk',rn,'risk','risk');persist();renderProjectViewStable(pid);}
 
 
 
 
 
-function cycleRisk(pid,i){if(!isEditor())return;const p=projByID(pid);if(!p)return;p.risks[i].status=p.risks[i].status==='open'?'closed':'open';persist();renderProjectView(pid);}
+function cycleRisk(pid,i){if(!isEditor())return;const p=projByID(pid);if(!p)return;p.risks[i].status=p.risks[i].status==='open'?'closed':'open';persist();renderProjectViewStable(pid);}
 
 
 
 
 
-function cycleImp(pid,i,field){if(!isEditor())return;const p=projByID(pid);if(!p)return;const m={hi:'me',me:'lo',lo:'hi'};p.risks[i][field]=m[p.risks[i][field]]||'me';persist();renderProjectView(pid);}
+function cycleImp(pid,i,field){if(!isEditor())return;const p=projByID(pid);if(!p)return;const m={hi:'me',me:'lo',lo:'hi'};p.risks[i][field]=m[p.risks[i][field]]||'me';persist();renderProjectViewStable(pid);}
 
 
 
@@ -57844,13 +57875,13 @@ function renderTeam(p){
 
 
 
-function addTeam(pid){if(!isEditor())return;const p=projByID(pid);if(!p)return;const n=window.prompt('Member name:','');if(!n)return;p.team.push({name:n.trim(),tasks:{done:0,prog:0,pend:0}});persist();renderProjectView(pid);}
+function addTeam(pid){if(!isEditor())return;const p=projByID(pid);if(!p)return;const n=window.prompt('Member name:','');if(!n)return;p.team.push({name:n.trim(),tasks:{done:0,prog:0,pend:0}});persist();renderProjectViewStable(pid);}
 
 
 
 
 
-function delTeam(pid,i){if(!isEditor())return;const p=projByID(pid);if(!p||!confirm('حذف هذا العضو؟'))return;p.team.splice(i,1);persist();renderProjectView(pid);}
+function delTeam(pid,i){if(!isEditor())return;const p=projByID(pid);if(!p||!confirm('حذف هذا العضو؟'))return;p.team.splice(i,1);persist();renderProjectViewStable(pid);}
 
 
 
@@ -57952,13 +57983,13 @@ function _subRef(pid,mi){const p=projByID(pid);if(!p||!Array.isArray(p.milestone
 
 
 
-function addSub(pid,mi){ if(!isEditor())return; const r=_subRef(pid,mi); if(!r)return; const nm=window.prompt('Sub-milestone name (will show as '+r.m.idx+'.'+(r.m.subs.length+1)+', with the same 9-phase flow):',''); if(!nm)return; const phs=(r.m.phases||[]).map(function(ph){return {name:ph.name,status:'n',planStart:'',planEnd:''};}); r.m.subs.push({name:nm.trim(),status:'n',planStart:'',planEnd:'',phases:phs}); persist(); renderProjectView(pid); }
+function addSub(pid,mi){ if(!isEditor())return; const r=_subRef(pid,mi); if(!r)return; const nm=window.prompt('Sub-milestone name (will show as '+r.m.idx+'.'+(r.m.subs.length+1)+', with the same 9-phase flow):',''); if(!nm)return; const phs=(r.m.phases||[]).map(function(ph){return {name:ph.name,status:'n',planStart:'',planEnd:''};}); r.m.subs.push({name:nm.trim(),status:'n',planStart:'',planEnd:'',phases:phs}); persist(); renderProjectViewStable(pid); }
 
 
 
 
 
-function delSub(pid,mi,si){ if(!isEditor())return; const r=_subRef(pid,mi); if(!r||!r.m.subs[si])return; if(!confirm('Delete this sub-milestone?'))return; r.m.subs.splice(si,1); persist(); renderProjectView(pid); }
+function delSub(pid,mi,si){ if(!isEditor())return; const r=_subRef(pid,mi); if(!r||!r.m.subs[si])return; if(!confirm('Delete this sub-milestone?'))return; r.m.subs.splice(si,1); persist(); renderProjectViewStable(pid); }
 
 
 
@@ -58072,7 +58103,7 @@ function addSiteSub(pid,i){
 
 
 
-  persist(); renderProjectView(pid);
+  persist(); renderProjectViewStable(pid);
 
 
 
@@ -58114,7 +58145,7 @@ function delSiteSub(pid,i,si){
 
 
 
-  subs.splice(si,1); persist(); renderProjectView(pid);
+  subs.splice(si,1); persist(); renderProjectViewStable(pid);
 
 
 
@@ -58144,7 +58175,7 @@ function cycleSiteSubField(pid,i,si,field){
 
 
 
-  s[field]=stNext(s[field]||'n'); persist(); renderProjectView(pid);
+  s[field]=stNext(s[field]||'n'); persist(); renderProjectViewStable(pid);
 
 
 
@@ -58246,7 +58277,7 @@ function openSiteSubDatePick(pid,i,si,field,anchor){
 
 
 
-  inp.addEventListener('change',function(){ s[field]=inp.value||''; persist(); renderProjectView(pid); try{ inp.remove(); }catch(e){} });
+  inp.addEventListener('change',function(){ s[field]=inp.value||''; persist(); renderProjectViewStable(pid); try{ inp.remove(); }catch(e){} });
 
 
 
@@ -58462,7 +58493,7 @@ function renderSiteSubRow(p,parent,pi,sub,si,cols,PM){
 
 
 
-function cycleSub(pid,mi,si){ if(!isEditor())return; const r=_subRef(pid,mi); if(!r||!r.m.subs[si])return; r.m.subs[si].status=phNext(r.m.subs[si].status||'n'); persist(); renderProjectView(pid); }
+function cycleSub(pid,mi,si){ if(!isEditor())return; const r=_subRef(pid,mi); if(!r||!r.m.subs[si])return; r.m.subs[si].status=phNext(r.m.subs[si].status||'n'); persist(); renderProjectViewStable(pid); }
 
 
 
@@ -58528,7 +58559,7 @@ function openSubDt(pid,mi,si,field,anchor){
 
 
 
-  inp.addEventListener('change',()=>{if(inp.value){r.m.subs[si][field]=inp.value;persist();renderProjectView(pid);}inp.remove();__dpActive=null;});
+  inp.addEventListener('change',()=>{if(inp.value){r.m.subs[si][field]=inp.value;persist();renderProjectViewStable(pid);}inp.remove();__dpActive=null;});
 
 
 
@@ -58666,7 +58697,30 @@ function subRollup(sub){
 
 
 
-function cycleSubPhase(pid,mi,si,phi){ if(!isEditor())return; const r=_subRef(pid,mi); if(!r||!r.m.subs[si])return; const sub=r.m.subs[si]; if(!Array.isArray(sub.phases))sub.phases=[]; if(!sub.phases[phi]){ const pn=(r.m.phases&&r.m.phases[phi]&&r.m.phases[phi].name)||''; sub.phases[phi]={name:pn,status:'n',planStart:'',planEnd:''}; } sub.phases[phi].status=phNext(sub.phases[phi].status||'n'); persist(); renderProjectView(pid); }
+
+function renderProjectViewStable(pid){
+  var body=document.querySelector('.pv-body'), matrix=document.querySelector('.phase-matrix-wrap'), grid=document.getElementById('pvGrid');
+  var snap={winX:window.pageXOffset||0,winY:window.pageYOffset||0,bodyTop:body?body.scrollTop:0,bodyLeft:body?body.scrollLeft:0,matrixTop:matrix?matrix.scrollTop:0,matrixLeft:matrix?matrix.scrollLeft:0};
+  if(grid){grid.style.minHeight=Math.max(grid.offsetHeight,grid.scrollHeight)+'px';grid.dataset.kpPositionLock='1';}
+  var result=renderProjectView(pid);
+  function restore(){
+    var b=document.querySelector('.pv-body'),m=document.querySelector('.phase-matrix-wrap');
+    if(b){b.scrollTop=snap.bodyTop;b.scrollLeft=snap.bodyLeft;}
+    if(m){m.scrollTop=snap.matrixTop;m.scrollLeft=snap.matrixLeft;}
+    window.scrollTo(snap.winX,snap.winY);
+  }
+  function release(){
+    restore();
+    var g=document.getElementById('pvGrid');if(g&&g.dataset.kpPositionLock==='1'){g.style.minHeight='';delete g.dataset.kpPositionLock;}
+    restore();
+  }
+  restore();
+  requestAnimationFrame(function(){restore();requestAnimationFrame(restore);});
+  setTimeout(restore,45);setTimeout(release,240);
+  return result;
+}
+
+function cycleSubPhase(pid,mi,si,phi){ if(!isEditor())return; const r=_subRef(pid,mi); if(!r||!r.m.subs[si])return; const sub=r.m.subs[si]; if(!Array.isArray(sub.phases))sub.phases=[]; if(!sub.phases[phi]){ const pn=(r.m.phases&&r.m.phases[phi]&&r.m.phases[phi].name)||''; sub.phases[phi]={name:pn,status:'n',planStart:'',planEnd:''}; } sub.phases[phi].status=phNext(sub.phases[phi].status||'n'); persist(); renderProjectViewStable(pid); }
 
 
 
@@ -58750,7 +58804,7 @@ function openSubPhaseDt(pid,mi,si,field,phi,anchor){
 
 
 
-  inp.addEventListener('change',()=>{ sub.phases[phi][key]=inp.value; persist(); renderProjectView(pid); inp.remove(); __dpActive=null; });
+  inp.addEventListener('change',()=>{ sub.phases[phi][key]=inp.value; persist(); renderProjectViewStable(pid); inp.remove(); __dpActive=null; });
 
 
 
@@ -59074,7 +59128,7 @@ function addMilestone(pid){
 
 
 
-  persist();renderProjectView(pid);renderHub();
+  persist();renderProjectViewStable(pid);renderHub();
 
 
 
@@ -59128,7 +59182,7 @@ function delMilestone(pid,i){
 
 
 
-  persist();renderProjectView(pid);renderHub();
+  persist();renderProjectViewStable(pid);renderHub();
 
 
 
@@ -59164,7 +59218,7 @@ function cycleMsPhase(pid,mi,phi){
 
 
 
-  persist();renderProjectView(pid);renderHub();
+  persist();renderProjectViewStable(pid);renderHub();
 
 
 
@@ -59308,7 +59362,7 @@ function openMsDtPick(pid,mi,kind,phi,anchor){
 
 
 
-      persist();renderProjectView(pid);renderHub();
+      persist();renderProjectViewStable(pid);renderHub();
 
 
 
@@ -59350,7 +59404,7 @@ function openMsDtPick(pid,mi,kind,phi,anchor){
 
 
 
-function setMsFilter(pid,f){siteFilter=f;renderProjectView(pid);}
+function setMsFilter(pid,f){siteFilter=f;renderProjectViewStable(pid);}
 
 
 
@@ -61200,7 +61254,7 @@ function delSiteCol(pid,key){
 
 
 
-  if(CUR_PROJ===pid)renderProjectView(pid);
+  if(CUR_PROJ===pid)renderProjectViewStable(pid);
 
 
 
@@ -61248,7 +61302,7 @@ function restoreSiteCols(pid){
 
 
 
-  if(CUR_PROJ===pid)renderProjectView(pid);
+  if(CUR_PROJ===pid)renderProjectViewStable(pid);
 
 
 
@@ -61302,7 +61356,7 @@ function moveSiteCol(pid,key,dir){
 
 
 
-  persist(); if(CUR_PROJ===pid)renderProjectView(pid);
+  persist(); if(CUR_PROJ===pid)renderProjectViewStable(pid);
 
 
 
@@ -61338,13 +61392,13 @@ function renameSiteCol(pid,key,label){
 
 
 
-  var v=String(label||'').trim(); if(!v){ if(CUR_PROJ===pid)renderProjectView(pid); return; }
+  var v=String(label||'').trim(); if(!v){ if(CUR_PROJ===pid)renderProjectViewStable(pid); return; }
 
 
 
 
 
-  col.label=v; persist(); if(CUR_PROJ===pid)renderProjectView(pid);
+  col.label=v; persist(); if(CUR_PROJ===pid)renderProjectViewStable(pid);
 
 
 
@@ -61440,7 +61494,7 @@ function addSiteColumn(pid){
 
 
 
-  if(CUR_PROJ===pid)renderProjectView(pid);
+  if(CUR_PROJ===pid)renderProjectViewStable(pid);
 
 
 
@@ -61524,7 +61578,7 @@ function applySiteColsToAll(pid){
 
 
 
-  if(CUR_PROJ===pid)renderProjectView(pid);
+  if(CUR_PROJ===pid)renderProjectViewStable(pid);
 
 
 
@@ -61596,7 +61650,7 @@ function addSite(pid){
 
 
 
-  persist(); renderProjectView(pid);
+  persist(); renderProjectViewStable(pid);
 
 
 
@@ -61632,7 +61686,7 @@ function delSite(pid,i){ if(!isEditor())return; var p=projByID(pid); if(!p||!con
 
 
 
-  persist(); renderProjectView(pid); try{renderHub();}catch(e){} }
+  persist(); renderProjectViewStable(pid); try{renderHub();}catch(e){} }
 
 
 
@@ -61674,7 +61728,7 @@ function moveSiteRow(pid,i,dir){
 
 
 
-  persist(); renderProjectView(pid);
+  persist(); renderProjectViewStable(pid);
 
 
 
@@ -61722,7 +61776,7 @@ function cycleSiteField(pid,i,field){ if(!isEditor())return; var p=projByID(pid)
 
 
 
-  persist(); renderProjectView(pid); renderHub(); }
+  persist(); renderProjectViewStable(pid); renderHub(); }
 
 
 
@@ -61788,7 +61842,7 @@ function openSiteDatePick(pid,si,field,anchor){
 
 
 
-  inp.addEventListener('change',function(){ p.sites[si][field]=inp.value||''; persist(); renderProjectView(pid); inp.remove(); __dpActive=null; });
+  inp.addEventListener('change',function(){ p.sites[si][field]=inp.value||''; persist(); renderProjectViewStable(pid); inp.remove(); __dpActive=null; });
 
 
 
@@ -61878,7 +61932,7 @@ function siteFieldBlur(pid,row,key,el,type){
 
 
 
-  if(CUR_PROJ===pid)renderProjectView(pid);
+  if(CUR_PROJ===pid)renderProjectViewStable(pid);
 
 
 
@@ -95695,7 +95749,7 @@ if(window.__v502) return; window.__v502=true;
 
 
 
-   renderProjectView(pid), which rewrites #pvGrid.innerHTML wholesale. The
+   renderProjectViewStable(pid), which rewrites #pvGrid.innerHTML wholesale. The
 
 
 
@@ -119231,38 +119285,45 @@ window.kpfImport=function(file){if(!file)return;if(!confirm('Importing will repl
 </script>
 
 
-<script id="kp-systems-roundtrip-scroll-fix-v1">
+<script id="kp-systems-roundtrip-scroll-fix-v2">
 (function(){
 'use strict';
-/* Install after every earlier renderer wrapper. Status/date clicks rebuild the
-   matrix, so retain both the page position and the matrix position. */
-function install(){
-  var original=window.renderProjectView;
-  if(typeof original!=='function'||original.__kpSystemsPositionFix)return;
-  var wrapped=function(id){
-    var body=document.querySelector('.pv-body');
-    var matrix=document.querySelector('.phase-matrix-wrap');
-    var bodyTop=body?body.scrollTop:0;
-    var matrixTop=matrix?matrix.scrollTop:0;
-    var matrixLeft=matrix?matrix.scrollLeft:0;
-    var result=original.apply(this,arguments);
-    function restore(){
-      var nextBody=document.querySelector('.pv-body');
-      var nextMatrix=document.querySelector('.phase-matrix-wrap');
-      if(nextBody)nextBody.scrollTop=bodyTop;
-      if(nextMatrix){nextMatrix.scrollTop=matrixTop;nextMatrix.scrollLeft=matrixLeft;}
-    }
-    restore();
-    requestAnimationFrame(function(){restore();requestAnimationFrame(restore);});
-    setTimeout(restore,40);setTimeout(restore,140);
-    return result;
-  };
-  wrapped.__kpSystemsPositionFix=true;
-  window.renderProjectView=wrapped;
+/* Fallback guard for every click inside the Systems matrix.  The main fix is
+   renderProjectViewStable(), wired directly into the mutation handlers. This
+   observer also covers old/third-party handlers that rebuild #pvGrid. */
+var snap=null, observer=null;
+function capture(ev){
+  try{
+    if(typeof CUR_PROJ==='undefined'||CUR_PROJ!=='p1')return;
+    if(ev&&ev.target&&!ev.target.closest('.phase-matrix-wrap'))return;
+    var body=document.querySelector('.pv-body'), matrix=document.querySelector('.phase-matrix-wrap'), grid=document.getElementById('pvGrid');
+    snap={winX:window.pageXOffset||0,winY:window.pageYOffset||0,bodyTop:body?body.scrollTop:0,bodyLeft:body?body.scrollLeft:0,matrixTop:matrix?matrix.scrollTop:0,matrixLeft:matrix?matrix.scrollLeft:0};
+    if(grid){grid.style.minHeight=Math.max(grid.offsetHeight,grid.scrollHeight)+'px';grid.dataset.kpPositionLock='1';}
+  }catch(e){}
 }
-install();
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);
-setTimeout(install,500);
+function restore(){
+  if(!snap)return;
+  try{
+    var body=document.querySelector('.pv-body'), matrix=document.querySelector('.phase-matrix-wrap');
+    if(body){body.scrollTop=snap.bodyTop;body.scrollLeft=snap.bodyLeft;}
+    if(matrix){matrix.scrollTop=snap.matrixTop;matrix.scrollLeft=snap.matrixLeft;}
+    window.scrollTo(snap.winX,snap.winY);
+  }catch(e){}
+}
+function release(){
+  restore();
+  var grid=document.getElementById('pvGrid');
+  if(grid&&grid.dataset.kpPositionLock==='1'){grid.style.minHeight='';delete grid.dataset.kpPositionLock;}
+  restore();snap=null;
+}
+function install(){
+  if(window.__kpSystemsPositionGuardV2)return;window.__kpSystemsPositionGuardV2=true;
+  document.addEventListener('pointerdown',capture,true);
+  var grid=document.getElementById('pvGrid');
+  if(grid&&window.MutationObserver){observer=new MutationObserver(function(){if(!snap)return;restore();requestAnimationFrame(restore);setTimeout(restore,35);setTimeout(release,220);});observer.observe(grid,{childList:true,subtree:true});}
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
+setTimeout(install,700);
 })();
 </script>
 
