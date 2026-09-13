@@ -108420,6 +108420,8 @@ function runImport(file,fallbackPid){
 
 
 
+        try{ if(typeof syncProjectArrays==='function') syncProjectArrays(); }catch(e){}
+
         persist();
 
 
@@ -109686,6 +109688,7 @@ function setBaseline(obj){
 
 
 window.__syncBaseline=function(){ return BASE; };
+window.__syncSetBaseline=function(obj){ setBaseline(obj); };
 
 
 
@@ -119391,25 +119394,38 @@ setTimeout(install,700);
 </script>
 
 
-<script id="kp-import-cloud-commit-v2">
+<script id="kp-import-cloud-commit-v3">
 (function(){
 'use strict';
-if(window.__kpImportCloudCommitV2)return;window.__kpImportCloudCommitV2=true;
-var jobs=new WeakMap();
-var pendingTimer=null;
+if(window.__kpImportCloudCommitV3)return;window.__kpImportCloudCommitV3=true;
+var jobs=new WeakMap(),pendingTimer=null;
 function setPending(on){
-  window.__kpImportSyncPending=!!on;
-  clearTimeout(pendingTimer);
-  /* A failed/unchanged import must never leave the browser permanently locked. */
+  window.__kpImportSyncPending=!!on;clearTimeout(pendingTimer);
   if(on)pendingTimer=setTimeout(function(){window.__kpImportSyncPending=false;},30000);
 }
 function copy(x){try{return JSON.parse(JSON.stringify(x));}catch(e){return x;}}
-function projects(){
-  try{if(typeof mainProjects==='function'){var a=mainProjects();if(Array.isArray(a))return a;}}catch(e){}
-  try{return STORE&&Array.isArray(STORE.projects)?STORE.projects:[];}catch(e){return [];}
+function lists(){
+  var top=[],eng=[];
+  try{top=STORE&&Array.isArray(STORE.projects)?STORE.projects:[];}catch(e){}
+  try{eng=STORE&&STORE.engagements&&STORE.engagements[0]&&Array.isArray(STORE.engagements[0].projects)?STORE.engagements[0].projects:[];}catch(e){}
+  return {top:top,eng:eng};
 }
-function snapshot(){var a=projects();return {ids:a.map(function(p){return p&&p.id||'';}),sig:a.map(function(p){try{return JSON.stringify(p);}catch(e){return '' ;}})};}
-function changed(before,after){var out=[],struct=before.ids.length!==after.ids.length||before.ids.join('|')!==after.ids.join('|');if(struct)return {ids:after.ids.filter(Boolean),struct:true};for(var i=0;i<after.ids.length;i++)if(before.sig[i]!==after.sig[i])out.push(after.ids[i]);return {ids:out.filter(Boolean),struct:false};}
+function describe(a){
+  var ids=[],sig={},obj={};
+  (a||[]).forEach(function(p){if(!p||!p.id)return;ids.push(p.id);obj[p.id]=p;try{sig[p.id]=JSON.stringify(p);}catch(e){sig[p.id]='';}});
+  return {ids:ids,sig:sig,obj:obj};
+}
+function snapshot(){var x=lists();return {top:describe(x.top),eng:describe(x.eng)};}
+function changed(before,after){
+  var ids={},struct=false;
+  ['top','eng'].forEach(function(k){
+    var b=before[k],a=after[k],all={};
+    if(b.ids.join('|')!==a.ids.join('|'))struct=true;
+    b.ids.concat(a.ids).forEach(function(id){if(id)all[id]=1;});
+    Object.keys(all).forEach(function(id){if((b.sig[id]||'')!==(a.sig[id]||''))ids[id]=1;});
+  });
+  return {ids:Object.keys(ids),struct:struct};
+}
 function waitForSync(limit){
   limit=limit||0;
   return new Promise(function(resolve,reject){
@@ -119420,16 +119436,32 @@ function waitForSync(limit){
   });
 }
 function topIndex(id,a){for(var i=0;i<a.length;i++){var p=a[i];if(!p)continue;if(p.id===id)return i;var subs=Array.isArray(p.subProjects)?p.subProjects:[];for(var j=0;j<subs.length;j++)if(subs[j]&&subs[j].id===id)return i;}return -1;}
-window.kpCommitImportedProjects=function(ids,struct){
+function chooseImported(id,before,after){
+  var bt=before.top.sig[id]||'',be=before.eng.sig[id]||'',at=after.top.sig[id]||'',ae=after.eng.sig[id]||'';
+  var tc=at!==bt,ec=ae!==be;
+  if(tc&&!ec)return after.top.obj[id];
+  if(ec&&!tc)return after.eng.obj[id];
+  if(tc&&ec&&at===ae)return after.top.obj[id]||after.eng.obj[id];
+  return after.top.obj[id]||after.eng.obj[id];
+}
+function reconcile(before,after,ids){
+  var x=lists(),chosen={},order=[];
+  ids.forEach(function(id){var p=chooseImported(id,before,after);if(p)chosen[id]=p;});
+  x.top.concat(x.eng).forEach(function(p){if(p&&p.id&&order.indexOf(p.id)<0)order.push(p.id);});
+  var canonical=order.map(function(id){return chosen[id]||after.eng.obj[id]||after.top.obj[id];}).filter(Boolean);
+  if(!canonical.length)throw new Error('The project list is empty after import.');
+  var eng=STORE&&STORE.engagements&&STORE.engagements[0];
+  STORE.projects=canonical;if(eng)eng.projects=canonical;
+  return {projects:canonical,engagement:eng};
+}
+window.kpCommitImportedProjects=function(ids,struct,before,after){
   ids=Array.from(new Set((ids||[]).filter(Boolean)));
   if(!ids.length){setPending(false);return Promise.resolve({count:0});}
   setPending(true);
   try{if(typeof toast==='function')toast('Excel imported. Uploading the update to Firebase…',true);}catch(e){}
   return waitForSync(0).then(function(){
-    var a=projects(),eng=STORE&&STORE.engagements&&STORE.engagements[0],map={},indices=[];
-    if(!Array.isArray(a)||!a.length)throw new Error('The project list is empty after import.');
-    /* Keep the two historical main-portfolio pointers on the same live array. */
-    try{STORE.projects=a;if(eng)eng.projects=a;localStorage.setItem(SK,JSON.stringify(STORE));}catch(e){}
+    var fixed=reconcile(before,after,ids),a=fixed.projects,eng=fixed.engagement,map={},indices=[];
+    try{localStorage.setItem(SK,JSON.stringify(STORE));}catch(e){}
     if(struct){map.projects=copy(a);if(eng)map['engagements/0/projects']=copy(a);}
     else{
       ids.forEach(function(id){var i=topIndex(id,a);if(i>=0&&indices.indexOf(i)<0)indices.push(i);});
@@ -119438,6 +119470,7 @@ window.kpCommitImportedProjects=function(ids,struct){
     if(!Object.keys(map).length)throw new Error('No matching project was found for the imported workbook.');
     try{clearTimeout(SYNC.pushT);}catch(e){}
     return SYNC.ref.update(map).then(function(){
+      try{if(typeof window.__syncBaseline==='function'&&typeof window.__syncSetBaseline==='function')window.__syncSetBaseline(copy(STORE));}catch(e){}
       try{if(typeof window.__syncClearDirty==='function')window.__syncClearDirty();}catch(e){}
       try{if(typeof window.__syncClearPending==='function')window.__syncClearPending();}catch(e){}
       try{if(typeof setSyncUI==='function')setSyncUI('live');}catch(e){}
@@ -119446,8 +119479,7 @@ window.kpCommitImportedProjects=function(ids,struct){
       return {count:struct?a.length:indices.length};
     });
   }).catch(function(err){
-    setPending(false);
-    console.error('[Excel cloud commit]',err);
+    setPending(false);console.error('[Excel cloud commit]',err);
     try{if(typeof toast==='function')toast('Import is NOT synced: '+(err&&err.message||err),false);}catch(e){alert('Import is NOT synced: '+(err&&err.message||err));}
     throw err;
   });
@@ -119456,10 +119488,10 @@ function monitor(input){
   setPending(true);
   var before=snapshot(),started=Date.now(),last='',stable=0;
   var timer=setInterval(function(){
-    var now=snapshot(),diff=changed(before,now),sig=now.sig.join('||');
+    var now=snapshot(),diff=changed(before,now),sig=JSON.stringify({t:now.top.sig,e:now.eng.sig});
     if(diff.ids.length){
       if(sig===last)stable++;else{last=sig;stable=0;}
-      if(stable>=2){clearInterval(timer);jobs.delete(input);window.kpCommitImportedProjects(diff.ids,diff.struct).catch(function(){});}
+      if(stable>=1){clearInterval(timer);jobs.delete(input);window.kpCommitImportedProjects(diff.ids,diff.struct,before,now).catch(function(){});}
     }
     if(Date.now()-started>15000){clearInterval(timer);jobs.delete(input);setPending(false);}
   },350);
@@ -119471,8 +119503,8 @@ document.addEventListener('change',function(e){
   if(!/\.xlsx?$/.test(name)&&accept.indexOf('.xls')<0)return;
   if(jobs.has(x))clearInterval(jobs.get(x));monitor(x);
 },true);
-window.addEventListener('beforeunload',function(e){if(!window.__kpImportSyncPending)return;e.preventDefault();e.returnValue='';});
+window.addEventListener('beforeunload',function(){setPending(false);});
 })();
 </script>
 
-<script id="kp-build-2026-09-13-v7">window.__KP_BUILD__="2026-09-13-v7";</script>
+<script id="kp-build-2026-09-13-v10">window.__KP_BUILD__="2026-09-13-v10";</script>
