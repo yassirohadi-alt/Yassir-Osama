@@ -14159,6 +14159,201 @@ window.__kpExecutiveInstallV3=function(){if(window.__kpExecutiveWrappedV3||typeo
 })();
 </script>
 
+<style id="kp-systems-canonical-firebase-v13-css">
+.kp-sys13-state{display:inline-flex;align-items:center;gap:6px;margin-inline-start:10px;padding:5px 10px;border-radius:999px;background:#eef2f6;color:#657184;font-size:10px;font-weight:800;white-space:nowrap}.kp-sys13-state:before{content:"";width:7px;height:7px;border-radius:50%;background:#9aa4b2}.kp-sys13-state.saving{background:#fff7e6;color:#8a651d}.kp-sys13-state.saving:before{background:#e6a423}.kp-sys13-state.saved{background:#e9f7f1;color:#227453}.kp-sys13-state.saved:before{background:#2e9a6c}.kp-sys13-state.failed{background:#fff0f2;color:#a72035}.kp-sys13-state.failed:before{background:#bd293d}
+</style>
+<script id="kp-systems-canonical-firebase-v13">
+(function(){
+'use strict';
+if(window.__kpSystemsCanonicalV13)return;
+window.__kpSystemsCanonicalV13=true;
+window.__KP_BUILD__='2026-09-14-v13-systems-canonical';
+
+var PID='p1',PATH='_liveProjects/p1',ref=null,base=null,pendingRemote=null;
+var saveTimer=null,saveSeq=0,ready=false,installAttempts=0;
+
+function copy(v){try{return JSON.parse(JSON.stringify(v));}catch(e){return v;}}
+function current(){try{return typeof projByID==='function'?projByID(PID):null;}catch(e){return null;}}
+function editing(){
+  var a=document.activeElement;
+  return !!(a&&typeof CUR_PROJ!=='undefined'&&CUR_PROJ===PID&&
+    (a.matches('input,textarea,select,[contenteditable="true"]')));
+}
+function badge(mode,text){
+  try{
+    var host=document.querySelector('.phase-matrix-meta');
+    if(!host||typeof CUR_PROJ==='undefined'||CUR_PROJ!==PID)return;
+    var el=document.getElementById('kpSys13State');
+    if(!el){el=document.createElement('span');el.id='kpSys13State';host.appendChild(el);}
+    el.className='kp-sys13-state '+mode;el.textContent=text;
+  }catch(e){}
+}
+function putLocal(p){
+  if(!p||p.id!==PID)return;
+  try{
+    var top=STORE&&Array.isArray(STORE.projects)?STORE.projects:null;
+    var eng=STORE&&STORE.engagements&&STORE.engagements[0]&&Array.isArray(STORE.engagements[0].projects)?STORE.engagements[0].projects:null;
+    function put(arr){if(!arr)return;var i=arr.findIndex(function(x){return x&&x.id===PID;});if(i<0)arr.push(copy(p));else arr[i]=copy(p);}
+    put(top);if(eng&&eng!==top)put(eng);
+    try{if(eng)STORE.projects=eng;}catch(e){}
+    try{if(typeof PCT==='object')PCT[PID]=Math.round(Number(typeof overallPct==='function'?overallPct(p):(p.progress||0))||0);}catch(e){}
+    try{localStorage.setItem(SK,JSON.stringify(STORE));}catch(e){}
+    try{if(typeof systemsAdvanceBaseline==='function')systemsAdvanceBaseline(p);}catch(e){}
+  }catch(e){console.error('[Systems canonical local apply]',e);}
+}
+function applyRemote(p){
+  if(!p||p.id!==PID)return;
+  if(editing()){pendingRemote=copy(p);return;}
+  pendingRemote=null;base=copy(p);putLocal(p);
+  badge('saved','Systems Firebase Live');
+  try{
+    if(typeof CUR_PROJ!=='undefined'&&CUR_PROJ===PID&&typeof renderProjectViewStable==='function')renderProjectViewStable(PID);
+  }catch(e){}
+}
+document.addEventListener('blur',function(){
+  if(!pendingRemote)return;
+  setTimeout(function(){if(pendingRemote&&!editing())applyRemote(pendingRemote);},80);
+},true);
+
+function makeOps(a,b,path,out){
+  path=path||[];out=out||[];
+  if(JSON.stringify(a)===JSON.stringify(b))return out;
+  if(Array.isArray(a)&&Array.isArray(b)&&a.length===b.length){
+    for(var i=0;i<b.length;i++)makeOps(a[i],b[i],path.concat(i),out);
+    return out;
+  }
+  if(a&&b&&typeof a==='object'&&typeof b==='object'&&!Array.isArray(a)&&!Array.isArray(b)){
+    var keys={},k;Object.keys(a).forEach(function(x){keys[x]=1;});Object.keys(b).forEach(function(x){keys[x]=1;});
+    Object.keys(keys).forEach(function(x){makeOps(a[x],b[x],path.concat(x),out);});return out;
+  }
+  out.push({path:path,value:copy(b),remove:typeof b==='undefined'});return out;
+}
+function applyOps(target,ops){
+  var root=copy(target)||{};
+  ops.forEach(function(op){
+    if(!op.path.length){root=op.remove?{}:copy(op.value);return;}
+    var obj=root;
+    for(var i=0;i<op.path.length-1;i++){
+      var key=op.path[i],next=op.path[i+1];
+      if(!obj[key]||typeof obj[key]!=='object')obj[key]=typeof next==='number'?[]:{};
+      obj=obj[key];
+    }
+    var last=op.path[op.path.length-1];if(op.remove){if(Array.isArray(obj))obj.splice(Number(last),1);else delete obj[last];}else obj[last]=copy(op.value);
+  });
+  return root;
+}
+function rootMirror(project){
+  if(!SYNC||!SYNC.ref)return Promise.resolve();
+  var primary=SYNC.ref.child('projects'),mirror=SYNC.ref.child('engagements/0/projects');
+  return Promise.all([primary.once('value'),mirror.once('value')]).then(function(snaps){
+    var pk=typeof systemsServerKey==='function'?systemsServerKey(snaps[0],PID):null;
+    var mk=typeof systemsServerKey==='function'?systemsServerKey(snaps[1],PID):null;
+    if(pk===null)pk='0';if(mk===null)mk=pk;
+    var map={};map['projects/'+pk]=copy(project);map['engagements/0/projects/'+mk]=copy(project);
+    return SYNC.ref.update(map);
+  });
+}
+function doSave(seq,attempt){
+  if(seq!==saveSeq)return;attempt=attempt||0;
+  if(!ref){
+    badge('saving','Connecting Systems…');
+    if(attempt<100)return void setTimeout(function(){doSave(seq,attempt+1);},200);
+    badge('failed','Systems Firebase unavailable');return;
+  }
+  var local=current();if(!local){badge('failed','Systems project missing');return;}
+  var next=copy(local),ops=makeOps(base||{},next,[],[]),token=new Date().toISOString();
+  next.updatedAt=token;ops=makeOps(base||{},next,[],[]);
+  badge('saving','Saving Systems to Firebase…');
+  ref.transaction(function(remote){
+    var merged=applyOps(remote||{},ops);merged.id=PID;merged.updatedAt=token;merged.sharedUpdatedAt=token;return merged;
+  },function(err,committed,snap){
+    if(seq!==saveSeq)return;
+    if(err||!committed){badge('failed','Systems NOT saved');try{toast('Systems update was NOT saved to Firebase: '+((err&&err.message)||'transaction rejected'),false);}catch(e){}return;}
+    var saved=snap&&snap.val?snap.val():next;base=copy(saved);putLocal(saved);
+    rootMirror(saved).then(function(){
+      return ref.once('value');
+    }).then(function(check){
+      var v=check&&check.val();if(!v||v.updatedAt!==token)throw new Error('Firebase read-back did not match');
+      try{if(typeof window.__syncClearPending==='function')window.__syncClearPending();}catch(e){}
+      try{if(typeof setSyncUI==='function')setSyncUI('live');}catch(e){}
+      badge('saved','Saved — visible to team');
+    }).catch(function(err2){badge('failed','Systems confirmation failed');try{toast('Systems save could not be confirmed: '+((err2&&err2.message)||err2),false);}catch(e){}});
+  },false);
+}
+function queueSave(){clearTimeout(saveTimer);saveSeq++;var seq=saveSeq;badge('saving','Saving Systems…');saveTimer=setTimeout(function(){doSave(seq,0);},140);}
+
+function install(){
+  installAttempts++;
+  try{if(typeof SYNC!=='undefined'&&SYNC.ref){ref=SYNC.ref.child(PATH);}}
+  catch(e){ref=null;}
+  if(!ref){if(installAttempts<150)setTimeout(install,200);else badge('failed','Systems Firebase unavailable');return;}
+  if(!ensureHooks()){
+    var hookTries=0,hookTimer=setInterval(function(){hookTries++;if(ensureHooks()||hookTries>150)clearInterval(hookTimer);},200);
+  }
+  ref.on('value',function(snap){
+    var v=snap.val();
+    if(v&&v.id===PID){ready=true;applyRemote(v);}
+    else if(!ready){ready=true;base={};queueSave();}
+  },function(err){badge('failed','Systems Firebase permission denied');console.error('[Systems canonical listener]',err);});
+  badge('saving','Connecting Systems…');
+}
+
+/* Keep every existing save path, and add one canonical p1 transaction. */
+var hooksInstalled=false;
+function ensureHooks(){
+  if(hooksInstalled)return true;
+  try{
+    if(typeof persist!=='function'||typeof acceptRemoteProject!=='function'||typeof reconcileProjectStructure!=='function')return false;
+    var priorPersist=persist;
+    persist=function(changedPid){
+      var out=priorPersist.apply(this,arguments);
+      var pid=changedPid||((typeof CUR_PROJ!=='undefined'&&CUR_PROJ)?CUR_PROJ:'');
+      if(pid===PID&&!(typeof SYNC!=='undefined'&&SYNC.applying))queueSave();
+      return out;
+    };
+    window.persist=persist;
+
+    /* Once the canonical Systems record is loaded, an older root snapshot
+       cannot replace it during refresh. Other projects use normal sync. */
+    var priorAccept=acceptRemoteProject;
+    acceptRemoteProject=function(snap){var v=snap&&snap.val?snap.val():null;if(ready&&v&&v.id===PID){if(base)putLocal(base);return;}return priorAccept.apply(this,arguments);};
+    window.acceptRemoteProject=acceptRemoteProject;
+
+    var priorReconcile=reconcileProjectStructure;
+    reconcileProjectStructure=function(remote){
+      if(ready&&base&&Array.isArray(remote))remote=remote.map(function(p){return p&&p.id===PID?copy(base):p;});
+      return priorReconcile.call(this,remote);
+    };
+    window.reconcileProjectStructure=reconcileProjectStructure;
+    hooksInstalled=true;return true;
+  }catch(e){console.error('[Systems canonical hook install]',e);return false;}
+}
+
+/* Status updates are applied in place so the table and page keep their exact
+   vertical/horizontal positions instead of being rebuilt on every click. */
+function rowProgress(row,pct){
+  if(!row)return;var n=Math.max(0,Math.min(100,Number(pct)||0)),f=row.querySelector('.pm-progress-fill'),t=row.querySelector('.pm-progress-val');
+  if(f)f.style.width=n+'%';if(t)t.textContent=n+'%';
+}
+document.addEventListener('click',function(ev){
+  if(typeof CUR_PROJ==='undefined'||CUR_PROJ!==PID)return;
+  var el=ev.target&&ev.target.closest?ev.target.closest('.phase-matrix-wrap .pm-status[onclick]'):null;if(!el)return;
+  var code=el.getAttribute('onclick')||'';
+  var m=code.match(/cycleMsPhase\(['\"]p1['\"],(\d+),(\d+)\)/);
+  var s=code.match(/cycleSubPhase\(['\"]p1['\"],(\d+),(\d+),(\d+)\)/);
+  if(!m&&!s)return;ev.preventDefault();ev.stopImmediatePropagation();
+  var p=current(),phases,mi,phi,rowPct,status;
+  if(!p)return;
+  if(s){mi=+s[1];var si=+s[2];phi=+s[3];var sub=p.milestones[mi]&&p.milestones[mi].subs&&p.milestones[mi].subs[si];if(!sub)return;if(!Array.isArray(sub.phases))sub.phases=[];if(!sub.phases[phi])sub.phases[phi]={name:'',status:'n',planStart:'',planEnd:''};sub.phases[phi].status=phNext(sub.phases[phi].status||'n');phases=sub.phases;rowPct=sysProgress(phases);}
+  else{mi=+m[1];phi=+m[2];var ph=p.milestones[mi]&&p.milestones[mi].phases&&p.milestones[mi].phases[phi];if(!ph)return;ph.status=phNext(ph.status||'n');recalcP1Milestone(p,mi);phases=p.milestones[mi].phases;rowPct=p.milestones[mi].actualPct||0;}
+  p.progress=overallPct(p);status=phases[phi].status||'n';el.className='pm-status st-'+status;el.textContent=phLabel(status);rowProgress(el.closest('tr'),rowPct);
+  try{persist(PID);}catch(e){}try{if(typeof renderHub==='function')renderHub();}catch(e){}
+},true);
+
+install();
+})();
+</script>
+
 
 
 
@@ -119693,3 +119888,4 @@ try{renderProjectViewStable=window.renderProjectViewStable;}catch(e){}
 window.__KP_BUILD__='2026-09-14-v11-systems-live';
 })();
 </script>
+<script id="kp-build-2026-09-14-v13-final">window.__KP_BUILD__='2026-09-14-v13-systems-canonical';</script>
