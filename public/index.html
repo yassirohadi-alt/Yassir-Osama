@@ -119359,6 +119359,9 @@ window.kpfImport=function(file){if(!file)return;if(!confirm('Importing will repl
    observer also covers old/third-party handlers that rebuild #pvGrid. */
 var snap=null, observer=null;
 function capture(ev){
+  /* v11 uses an inline Systems update and a single stable redraw.  Disable
+     the older repeated scroll restoration, which caused visible bouncing. */
+  return;
   try{
     if(typeof CUR_PROJ==='undefined'||CUR_PROJ!=='p1')return;
     if(ev&&ev.target&&!ev.target.closest('.phase-matrix-wrap'))return;
@@ -119507,4 +119510,107 @@ window.addEventListener('beforeunload',function(){setPending(false);});
 })();
 </script>
 
-<script id="kp-build-2026-09-13-v10">window.__KP_BUILD__="2026-09-13-v10";</script>
+<script id="kp-build-2026-09-14-v11">window.__KP_BUILD__="2026-09-14-v11-systems-live";</script>
+
+<style id="kp-systems-live-save-v11-css">
+.kp-system-save-state{display:inline-flex;align-items:center;gap:6px;margin-left:10px;padding:5px 9px;border-radius:999px;background:#eef2f6;color:#657184;font-size:10px;font-weight:800;white-space:nowrap}.kp-system-save-state:before{content:"";width:7px;height:7px;border-radius:50%;background:#9aa4b2}.kp-system-save-state.saving{background:#fff7e6;color:#8a651d}.kp-system-save-state.saving:before{background:#e6a423}.kp-system-save-state.saved{background:#e9f7f1;color:#227453}.kp-system-save-state.saved:before{background:#2e9a6c}.kp-system-save-state.failed{background:#fff0f2;color:#a72035}.kp-system-save-state.failed:before{background:#bd293d}
+</style>
+<script id="kp-systems-live-persist-scroll-v11">
+(function(){
+'use strict';
+if(window.__kpSystemsLivePersistV11)return;window.__kpSystemsLivePersistV11=true;
+var P1='p1',commitTimer=null,commitSeq=0;
+function clone(x){try{return JSON.parse(JSON.stringify(x));}catch(e){return x;}}
+function currentProject(){try{return typeof projByID==='function'?projByID(P1):null;}catch(e){return null;}}
+function gateReady(){try{var g=typeof window.__syncGate==='function'?window.__syncGate():null;return !!(window.SYNC&&SYNC.ref&&(!g||g.writable));}catch(e){return false;}}
+function stateChip(mode,text){
+  var host=document.querySelector('.phase-matrix-meta');if(!host)return;
+  var el=document.getElementById('kpSystemSaveState');
+  if(!el){el=document.createElement('span');el.id='kpSystemSaveState';el.className='kp-system-save-state';host.appendChild(el);}
+  el.className='kp-system-save-state '+mode;el.textContent=text;
+}
+function replaceBaselineProject(project){
+  try{
+    if(typeof window.__syncBaseline!=='function'||typeof window.__syncSetBaseline!=='function')return;
+    var b=clone(window.__syncBaseline()||{}),i,j;
+    if(Array.isArray(b.projects)){i=b.projects.findIndex(function(x){return x&&x.id===P1;});if(i>=0)b.projects[i]=clone(project);}
+    if(b.engagements&&b.engagements[0]&&Array.isArray(b.engagements[0].projects)){j=b.engagements[0].projects.findIndex(function(x){return x&&x.id===P1;});if(j>=0)b.engagements[0].projects[j]=clone(project);}
+    window.__syncSetBaseline(b);
+  }catch(e){}
+}
+function commitSystems(attempt,seq){
+  if(seq!==commitSeq)return;
+  attempt=attempt||0;
+  if(!gateReady()){
+    stateChip('saving','Waiting for Firebase…');
+    if(attempt<50)commitTimer=setTimeout(function(){commitSystems(attempt+1,seq);},300);
+    else{stateChip('failed','Not saved — Firebase offline');try{toast('Systems update is still on this device, but Firebase is not connected. Keep the portal open and reconnect.',false);}catch(e){}}
+    return;
+  }
+  var p=currentProject(),top=STORE&&Array.isArray(STORE.projects)?STORE.projects:[],eng=STORE&&STORE.engagements&&STORE.engagements[0],ti=top.findIndex(function(x){return x&&x.id===P1;}),ei=eng&&Array.isArray(eng.projects)?eng.projects.findIndex(function(x){return x&&x.id===P1;}):-1;
+  if(!p||ti<0){stateChip('failed','Systems project not found');return;}
+  p.updatedAt=new Date().toISOString();
+  var map={};map['projects/'+ti]=clone(p);if(ei>=0)map['engagements/0/projects/'+ei]=clone(p);
+  stateChip('saving','Saving Systems…');
+  SYNC.ref.update(map).then(function(){
+    if(seq!==commitSeq)return;
+    replaceBaselineProject(p);
+    try{localStorage.setItem(SK,JSON.stringify(STORE));}catch(e){}
+    try{if(typeof setSyncUI==='function')setSyncUI('live');}catch(e){}
+    stateChip('saved','Systems saved live');
+    setTimeout(function(){var el=document.getElementById('kpSystemSaveState');if(el&&el.textContent==='Systems saved live')el.textContent='Live';},1400);
+  }).catch(function(err){
+    console.error('[Systems direct save]',err);stateChip('failed','Systems not saved');
+    try{toast('Systems update was NOT saved to Firebase: '+((err&&err.message)||err),false);}catch(e){}
+  });
+}
+function queueSystemsCommit(){clearTimeout(commitTimer);commitSeq++;var seq=commitSeq;commitTimer=setTimeout(function(){commitSystems(0,seq);},60);}
+
+/* Keep the existing general persistence for every project, and add a direct,
+   explicit p1 commit so Systems updates cannot remain local-only. */
+try{
+  var basePersist=persist;
+  persist=function(changedPid){var out=basePersist.apply(this,arguments),pid=changedPid||(typeof CUR_PROJ!=='undefined'?CUR_PROJ:'');if(pid===P1)queueSystemsCommit();return out;};
+  window.persist=persist;
+}catch(e){console.error('[Systems persist install]',e);}
+
+function updateRow(row,pct){
+  if(!row)return;var val=Math.max(0,Math.min(100,Number(pct)||0)),fill=row.querySelector('.pm-progress-fill'),txt=row.querySelector('.pm-progress-val'),col=val>=70?'#2E7D5B':val>=35?'#8A6A2C':'#B0202E';
+  if(fill){fill.style.width=val+'%';fill.style.background=col;}if(txt){txt.textContent=val+'%';txt.style.color=col;}
+}
+function updateFilterCounts(p){
+  try{var c={all:0,d:0,p:0,h:0,n:0};(p.milestones||[]).forEach(function(m){var s=typeof sysStatus==='function'?sysStatus(m.phases||[]):(m.status||'n');c.all++;c[s]=(c[s]||0)+1;});var buttons=document.querySelectorAll('.phase-matrix-filters .sf-btn');var keys=['all','d','p','h','n'];buttons.forEach(function(b,i){var k=keys[i];if(!k)return;var label=k==='all'?'All':k==='d'?'Done':k==='p'?'In Progress':k==='h'?'Hold':'Not Started';b.textContent=label+' ('+(c[k]||0)+')';});}catch(e){}
+}
+function inlineStatus(el,sub,mi,si,phi){
+  var p=currentProject();if(!p||!p.milestones||!p.milestones[mi])return;
+  var phases,rowPct;
+  if(sub){var s=p.milestones[mi].subs&&p.milestones[mi].subs[si];if(!s)return;if(!Array.isArray(s.phases))s.phases=[];if(!s.phases[phi])s.phases[phi]={name:'',status:'n',planStart:'',planEnd:''};s.phases[phi].status=phNext(s.phases[phi].status||'n');phases=s.phases;rowPct=sysProgress(phases);}
+  else{var ph=p.milestones[mi].phases&&p.milestones[mi].phases[phi];if(!ph)return;ph.status=phNext(ph.status||'n');recalcP1Milestone(p,mi);phases=p.milestones[mi].phases;rowPct=p.milestones[mi].actualPct||0;}
+  p.progress=overallPct(p);
+  var status=phases[phi].status||'n';el.className='pm-status st-'+status;el.textContent=phLabel(status);updateRow(el.closest('tr'),rowPct);updateFilterCounts(p);
+  try{persist(P1);}catch(e){console.error(e);}
+  try{if(typeof renderHub==='function')renderHub();}catch(e){}
+}
+
+/* Intercept only Systems status clicks. The cell is updated in place, so the
+   table is not destroyed/recreated and neither vertical nor horizontal scroll moves. */
+document.addEventListener('click',function(ev){
+  if(typeof CUR_PROJ==='undefined'||CUR_PROJ!==P1)return;
+  var el=ev.target&&ev.target.closest?ev.target.closest('.phase-matrix-wrap .pm-status[onclick]'):null;if(!el)return;
+  var code=el.getAttribute('onclick')||'',m=code.match(/cycleMsPhase\('p1',(\d+),(\d+)\)/),s=code.match(/cycleSubPhase\('p1',(\d+),(\d+),(\d+)\)/);if(!m&&!s)return;
+  ev.preventDefault();ev.stopImmediatePropagation();
+  if(s)inlineStatus(el,true,+s[1],+s[2],+s[3]);else inlineStatus(el,false,+m[1],0,+m[2]);
+},true);
+
+/* For date/name/add/delete changes that genuinely need a redraw, restore only
+   the two internal scroll containers once. Repeated window.scrollTo calls were
+   the source of the up/down bounce. */
+window.renderProjectViewStable=function(pid){
+  var b=document.querySelector('.pv-body'),m=document.querySelector('.phase-matrix-wrap'),bt=b?b.scrollTop:0,bl=b?b.scrollLeft:0,mt=m?m.scrollTop:0,ml=m?m.scrollLeft:0,result=renderProjectView(pid);
+  function restore(){var nb=document.querySelector('.pv-body'),nm=document.querySelector('.phase-matrix-wrap');if(nb){nb.scrollTop=bt;nb.scrollLeft=bl;}if(nm){nm.scrollTop=mt;nm.scrollLeft=ml;}}
+  restore();requestAnimationFrame(restore);return result;
+};
+try{renderProjectViewStable=window.renderProjectViewStable;}catch(e){}
+window.__KP_BUILD__='2026-09-14-v11-systems-live';
+})();
+</script>
