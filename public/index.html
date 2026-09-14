@@ -119889,3 +119889,76 @@ window.__KP_BUILD__='2026-09-14-v11-systems-live';
 })();
 </script>
 <script id="kp-build-2026-09-14-v13-final">window.__KP_BUILD__='2026-09-14-v13-systems-canonical';</script>
+<style id="kp-field-survey-daily-recovery-v30-css">
+.kp-daily-recovery{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:#fff7e6;color:#8a651d;font-size:10px;font-weight:800}.kp-daily-recovery:before{content:"";width:7px;height:7px;border-radius:50%;background:#e6a423}.kp-daily-recovery.ok{background:#e9f7f1;color:#227453}.kp-daily-recovery.ok:before{background:#2e9a6c}.kp-daily-recovery.fail{background:#fff0f2;color:#a72035}.kp-daily-recovery.fail:before{background:#bd293d}
+</style>
+<script id="kp-field-survey-daily-recovery-v30">
+(function(){
+'use strict';
+if(window.__kpFieldSurveyDailyRecoveryV30)return;
+window.__kpFieldSurveyDailyRecoveryV30=true;
+window.__KP_BUILD__='2026-09-14-v30-field-survey-daily-recovery';
+
+/* Last verified Field Survey daily history from the Firebase backup. Only
+   missing date leaves are restored; newer/current values are never replaced. */
+var RECOVERY={
+  'mob-admy':{'2026-09-08':31},
+  'mob-sdr2':{'2026-09-08':154,'2026-09-09':206},
+  'mob-nbgd':{'2026-09-08':162,'2026-09-09':114},
+  'mob-mnsr':{'2026-09-08':145,'2026-09-09':92},
+  'mob-rshd':{'2026-09-08':311,'2026-09-09':234},
+  'mob-dora':{'2026-09-08':102,'2026-09-09':104}
+};
+var tries=0,finished=false;
+function clean(x){return String(x||'').trim().toLowerCase();}
+function findProject(snap){var out=null;try{snap.forEach(function(ch){var v=ch.val();if(!out&&v&&v.id==='p11')out={key:String(ch.key),value:v};});}catch(e){}return out;}
+function localProject(){try{var a=(STORE&&STORE.projects)||[];return a.find(function(p){return p&&p.id==='p11';})||null;}catch(e){return null;}}
+function badge(mode,text){
+  try{
+    if(typeof CUR_PROJ==='undefined'||CUR_PROJ!=='p11')return;
+    var host=document.querySelector('.res-sec-h')||document.querySelector('.pv-body');if(!host)return;
+    var el=document.getElementById('kpDailyRecoveryState');if(!el){el=document.createElement('span');el.id='kpDailyRecoveryState';host.appendChild(el);}
+    el.className='kp-daily-recovery '+mode;el.textContent=text;
+  }catch(e){}
+}
+function addMissing(map,prefix,project){
+  var added=0,rows=(project&&project.survey)||[];
+  rows.forEach(function(row,i){
+    var src=RECOVERY[clean(row&&row.code)];if(!src)return;
+    var existing=(row&&row.dailyProgressByDate&&typeof row.dailyProgressByDate==='object')?row.dailyProgressByDate:{};
+    Object.keys(src).forEach(function(date){
+      if(typeof existing[date]==='undefined'||existing[date]===null||existing[date]===''){
+        map[prefix+'/survey/'+i+'/dailyProgressByDate/'+date]=src[date];added++;
+      }
+    });
+  });
+  return added;
+}
+function applyLocal(){
+  var p=localProject();if(!p)return;var changed=false;
+  (p.survey||[]).forEach(function(row){var src=RECOVERY[clean(row&&row.code)];if(!src)return;if(!row.dailyProgressByDate||typeof row.dailyProgressByDate!=='object')row.dailyProgressByDate={};Object.keys(src).forEach(function(d){if(typeof row.dailyProgressByDate[d]==='undefined'){row.dailyProgressByDate[d]=src[d];changed=true;}});});
+  if(changed){try{localStorage.setItem(SK,JSON.stringify(STORE));}catch(e){}try{if(typeof CUR_PROJ!=='undefined'&&CUR_PROJ==='p11'&&typeof renderProjectViewStable==='function')renderProjectViewStable('p11');}catch(e){}}
+}
+function verify(primaryKey){
+  return SYNC.ref.child('projects/'+primaryKey).once('value').then(function(s){
+    var p=s.val(),present=0;(p&&p.survey||[]).forEach(function(r){var src=RECOVERY[clean(r&&r.code)],m=r&&r.dailyProgressByDate||{};if(src)Object.keys(src).forEach(function(d){if(typeof m[d]!=='undefined'&&m[d]!==null&&m[d]!=='')present++;});});
+    if(present!==11)throw new Error('Firebase confirmed only '+present+' of 11 daily entries');return present;
+  });
+}
+function run(){
+  if(finished)return;tries++;
+  if(typeof SYNC==='undefined'||!SYNC.ref){if(tries<150)return void setTimeout(run,200);badge('fail','Daily recovery: Firebase unavailable');return;}
+  badge('','Checking daily history…');
+  Promise.all([SYNC.ref.child('projects').once('value'),SYNC.ref.child('engagements/0/projects').once('value')]).then(function(snaps){
+    var top=findProject(snaps[0]),mirror=findProject(snaps[1]);if(!top)throw new Error('Field Survey p11 is missing from Firebase');
+    var map={},count=addMissing(map,'projects/'+top.key,top.value);if(mirror)count+=addMissing(map,'engagements/0/projects/'+mirror.key,mirror.value);
+    if(!Object.keys(map).length){finished=true;applyLocal();return verify(top.key).then(function(){badge('ok','Daily history live');});}
+    return SYNC.ref.update(map).then(function(){return verify(top.key);}).then(function(){
+      finished=true;applyLocal();badge('ok','Daily history restored');
+      try{if(typeof toast==='function')toast('Field Survey daily history restored from the verified Firebase backup.',true);}catch(e){}
+    });
+  }).catch(function(err){badge('fail','Daily history not restored');console.error('[Field Survey daily recovery]',err);try{if(typeof toast==='function')toast('Field Survey daily recovery failed: '+((err&&err.message)||err),false);}catch(e){}});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(run,500);});else setTimeout(run,500);
+})();
+</script>
