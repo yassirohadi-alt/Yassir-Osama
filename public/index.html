@@ -36219,6 +36219,82 @@ window.__syncClearPending=clearSyncPending;
 
 
 
+/* v12 — Systems & Applications acknowledged Firebase writer.
+   p1 is resolved by its project id on the server instead of assuming that its
+   array position is always zero.  A save is only reported as complete after a
+   read-back confirms the same updatedAt token. */
+var SYS_CORE_SAVE_T=null,SYS_CORE_SAVE_SEQ=0;
+
+function systemsCoreBadge(mode,text){
+  try{
+    var host=document.querySelector('.phase-matrix-meta');if(!host)return;
+    var el=document.getElementById('kpSystemSaveState');
+    if(!el){el=document.createElement('span');el.id='kpSystemSaveState';el.className='kp-system-save-state';host.appendChild(el);}
+    el.className='kp-system-save-state '+mode;el.textContent=text;
+  }catch(e){}
+}
+
+function systemsServerKey(snap,pid){
+  var found=null;
+  try{snap.forEach(function(ch){var v=ch.val();if(found===null&&v&&v.id===pid)found=String(ch.key);});}catch(e){}
+  return found;
+}
+
+function systemsAdvanceBaseline(project){
+  try{
+    if(typeof window.__syncBaseline!=='function'||typeof window.__syncSetBaseline!=='function')return;
+    var b=JSON.parse(JSON.stringify(window.__syncBaseline()||{})),i;
+    function put(a){if(!Array.isArray(a))return;i=a.findIndex(function(x){return x&&x.id==='p1';});if(i>=0)a[i]=JSON.parse(JSON.stringify(project));}
+    put(b.projects);try{put(b.engagements&&b.engagements[0]&&b.engagements[0].projects);}catch(e){}
+    window.__syncSetBaseline(b);
+  }catch(e){}
+}
+
+function systemsCommitCore(seq,attempt){
+  if(seq!==SYS_CORE_SAVE_SEQ)return;
+  attempt=attempt||0;
+  var ready=false;
+  try{var g=typeof window.__syncGate==='function'?window.__syncGate():null;ready=!!(typeof SYNC!=='undefined'&&SYNC.ref&&(!g||g.writable));}catch(e){}
+  if(!ready){
+    systemsCoreBadge('saving','Waiting for Firebase…');
+    if(attempt<80)SYS_CORE_SAVE_T=setTimeout(function(){systemsCommitCore(seq,attempt+1);},250);
+    else{systemsCoreBadge('failed','Not saved — Firebase offline');try{toast('Systems update was not saved: Firebase is not connected.',false);}catch(e){}}
+    return;
+  }
+  var p=null;
+  try{p=projByID('p1');}catch(e){}
+  if(!p){systemsCoreBadge('failed','Systems project not found');return;}
+  var token=new Date().toISOString();p.updatedAt=token;
+  systemsCoreBadge('saving','Saving Systems…');
+  var primary=SYNC.ref.child('projects'),mirror=SYNC.ref.child('engagements/0/projects');
+  Promise.all([primary.once('value'),mirror.once('value')]).then(function(snaps){
+    if(seq!==SYS_CORE_SAVE_SEQ)return;
+    var pk=systemsServerKey(snaps[0],'p1'),mk=systemsServerKey(snaps[1],'p1');
+    if(pk===null){throw new Error('Systems project ID p1 is missing from Firebase');}
+    if(mk===null)mk=pk;
+    var clean=JSON.parse(JSON.stringify(p)),map={};
+    map['projects/'+pk]=clean;map['engagements/0/projects/'+mk]=clean;
+    return SYNC.ref.update(map).then(function(){return primary.child(pk).once('value');}).then(function(check){
+      var saved=check&&check.val();
+      if(!saved||saved.id!=='p1'||saved.updatedAt!==token)throw new Error('Firebase did not confirm the Systems update');
+      systemsAdvanceBaseline(saved);
+      try{localStorage.setItem(SK,JSON.stringify(STORE));}catch(e){}
+      try{if(typeof window.__syncClearPending==='function')window.__syncClearPending();}catch(e){}
+      try{if(typeof setSyncUI==='function')setSyncUI('live');}catch(e){}
+      systemsCoreBadge('saved','Systems saved to Firebase');
+      setTimeout(function(){var x=document.getElementById('kpSystemSaveState');if(x&&x.textContent==='Systems saved to Firebase')x.textContent='Live';},1800);
+    });
+  }).catch(function(err){
+    console.error('[Systems acknowledged save]',err);systemsCoreBadge('failed','Systems NOT saved');
+    try{toast('Systems update was NOT saved to Firebase: '+((err&&err.message)||err),false);}catch(e){}
+  });
+}
+
+function queueSystemsCoreSave(){
+  clearTimeout(SYS_CORE_SAVE_T);SYS_CORE_SAVE_SEQ++;var seq=SYS_CORE_SAVE_SEQ;
+  SYS_CORE_SAVE_T=setTimeout(function(){systemsCommitCore(seq,0);},120);
+}
+
 function persist(changedPid){
 
 
@@ -36328,6 +36404,14 @@ function persist(changedPid){
 
 
   schedulePush();
+
+  /* p1 gets a dedicated acknowledged write in addition to the general leaf
+     sync. This is the authoritative path used by status, date, add, delete,
+     inline edit and Excel-import changes in Systems & Applications. */
+  try{
+    var effectivePid=changedPid||((typeof CUR_PROJ!=='undefined'&&CUR_PROJ)?CUR_PROJ:'');
+    if(effectivePid==='p1'&&!(typeof SYNC!=='undefined'&&SYNC.applying))queueSystemsCoreSave();
+  }catch(e){}
 
 
 
@@ -58699,24 +58783,18 @@ function subRollup(sub){
 
 
 function renderProjectViewStable(pid){
-  var body=document.querySelector('.pv-body'), matrix=document.querySelector('.phase-matrix-wrap'), grid=document.getElementById('pvGrid');
-  var snap={winX:window.pageXOffset||0,winY:window.pageYOffset||0,bodyTop:body?body.scrollTop:0,bodyLeft:body?body.scrollLeft:0,matrixTop:matrix?matrix.scrollTop:0,matrixLeft:matrix?matrix.scrollLeft:0};
-  if(grid){grid.style.minHeight=Math.max(grid.offsetHeight,grid.scrollHeight)+'px';grid.dataset.kpPositionLock='1';}
+  /* Keep only the project's own scroll containers. Calling window.scrollTo
+     repeatedly after every edit made the entire page jump up and down. */
+  var body=document.querySelector('.pv-body'), matrix=document.querySelector('.phase-matrix-wrap');
+  var snap={bodyTop:body?body.scrollTop:0,bodyLeft:body?body.scrollLeft:0,matrixTop:matrix?matrix.scrollTop:0,matrixLeft:matrix?matrix.scrollLeft:0};
   var result=renderProjectView(pid);
   function restore(){
     var b=document.querySelector('.pv-body'),m=document.querySelector('.phase-matrix-wrap');
     if(b){b.scrollTop=snap.bodyTop;b.scrollLeft=snap.bodyLeft;}
     if(m){m.scrollTop=snap.matrixTop;m.scrollLeft=snap.matrixLeft;}
-    window.scrollTo(snap.winX,snap.winY);
-  }
-  function release(){
-    restore();
-    var g=document.getElementById('pvGrid');if(g&&g.dataset.kpPositionLock==='1'){g.style.minHeight='';delete g.dataset.kpPositionLock;}
-    restore();
   }
   restore();
-  requestAnimationFrame(function(){restore();requestAnimationFrame(restore);});
-  setTimeout(restore,45);setTimeout(release,240);
+  requestAnimationFrame(restore);
   return result;
 }
 
@@ -119510,7 +119588,7 @@ window.addEventListener('beforeunload',function(){setPending(false);});
 })();
 </script>
 
-<script id="kp-build-2026-09-14-v11">window.__KP_BUILD__="2026-09-14-v11-systems-live";</script>
+<script id="kp-build-2026-09-14-v12">window.__KP_BUILD__="2026-09-14-v12-systems-ack";</script>
 
 <style id="kp-systems-live-save-v11-css">
 .kp-system-save-state{display:inline-flex;align-items:center;gap:6px;margin-left:10px;padding:5px 9px;border-radius:999px;background:#eef2f6;color:#657184;font-size:10px;font-weight:800;white-space:nowrap}.kp-system-save-state:before{content:"";width:7px;height:7px;border-radius:50%;background:#9aa4b2}.kp-system-save-state.saving{background:#fff7e6;color:#8a651d}.kp-system-save-state.saving:before{background:#e6a423}.kp-system-save-state.saved{background:#e9f7f1;color:#227453}.kp-system-save-state.saved:before{background:#2e9a6c}.kp-system-save-state.failed{background:#fff0f2;color:#a72035}.kp-system-save-state.failed:before{background:#bd293d}
@@ -119518,7 +119596,8 @@ window.addEventListener('beforeunload',function(){setPending(false);});
 <script id="kp-systems-live-persist-scroll-v11">
 (function(){
 'use strict';
-if(window.__kpSystemsLivePersistV11)return;window.__kpSystemsLivePersistV11=true;
+/* Superseded by the acknowledged writer installed directly inside persist(). */
+if(window.__kpSystemsLivePersistV11)return;window.__kpSystemsLivePersistV11=true;window.__KP_BUILD__='2026-09-14-v12-systems-ack';return;
 var P1='p1',commitTimer=null,commitSeq=0;
 function clone(x){try{return JSON.parse(JSON.stringify(x));}catch(e){return x;}}
 function currentProject(){try{return typeof projByID==='function'?projByID(P1):null;}catch(e){return null;}}
