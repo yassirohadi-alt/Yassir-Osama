@@ -18268,36 +18268,27 @@ function excelSerialToISO(v){
 
 
 
+function sysPhaseProgress(ph,today){
+  if(!ph)return 0;
+  var st=ph.status||'n';
+  if(st==='d')return 100;
+  if(st!=='p')return 0;
+  /* An active phase is no longer a fixed 50%. Its contribution follows the
+     edited Start/End window, so changing either date immediately changes the
+     system row, project overview and dashboard card. */
+  var s=String(ph.planStart||'').slice(0,10),e=String(ph.planEnd||'').slice(0,10);
+  if(!s||!e)return 50;
+  var a=new Date(s+'T12:00:00'),b=new Date(e+'T12:00:00'),n=today||new Date();
+  if(isNaN(a.getTime())||isNaN(b.getTime())||b<=a)return 50;
+  var pct=(n-a)/(b-a)*100;
+  return Math.round(Math.max(1,Math.min(99,pct))*10)/10;
+}
+
 function sysProgress(phases){
-
-
-
-
-
-  if(!phases||!phases.length) return 0;
-
-
-
-
-
-  let sum = 0;
-
-
-
-
-
-  phases.forEach(p=>{ if(p.status==='d') sum+=100; else if(p.status==='p') sum+=50; });
-
-
-
-
-
-  return Math.round(sum/phases.length);
-
-
-
-
-
+  if(!phases||!phases.length)return 0;
+  var now=new Date(),sum=0;
+  phases.forEach(function(ph){sum+=sysPhaseProgress(ph,now);});
+  return Math.round(sum/phases.length*10)/10;
 }
 
 
@@ -37318,11 +37309,13 @@ function renderCompany(){
 
 
 
-    var isRes=(typeof hasResourceModel==='function'&&hasResourceModel(p));
+    /* v39: every project card must expose its real completion percentage.
+       Resource/payment cards previously hid it behind a row/order count. */
+    var isRes=!!(p&&(String(p.id)==='p9'||(p.meta&&p.meta.resourceModel===true)||/^resources?$/i.test(String(p.nameEn||p.name||'').trim())));
 
 
 
-    var isPay=(typeof hasPaymentModel==='function'&&hasPaymentModel(p));
+    var isPay=false;
 
 
 
@@ -37398,7 +37391,7 @@ function renderCompany(){
 
 
 
-      (cntCard?'<div class="wcard-foot"><span class="wcard-pct">'+rc+'</span><span style="font-size:10.5px;font-weight:700;color:var(--muted-st)">'+rcLbl+'</span></div>':'<div class="wcard-foot"><span class="wcard-pct">'+pct+'%</span><span class="proj-status '+ps.cls+'"><i class="ps-dot"></i>'+ps.lb+'</span></div>')+
+      (cntCard?'<div class="wcard-foot"><span class="wcard-pct">'+rc+'</span><span style="font-size:10.5px;font-weight:700;color:var(--muted-st)">'+rcLbl+'</span></div>':'<div class="wcard-foot"><span class="wcard-pct">'+Number(pct).toFixed(1)+'%</span><span class="proj-status '+ps.cls+'"><i class="ps-dot"></i>'+ps.lb+'</span></div>')+
 
 
 
@@ -43124,11 +43117,12 @@ function renderHub(){
 
 
 
-    var isRes=(typeof hasResourceModel==='function'&&hasResourceModel(p));
+    /* v39: show the real percentage on every project card. */
+    var isRes=!!(p&&(String(p.id)==='p9'||(p.meta&&p.meta.resourceModel===true)||/^resources?$/i.test(String(p.nameEn||p.name||'').trim())));
 
 
 
-    var isPay=(typeof hasPaymentModel==='function'&&hasPaymentModel(p));
+    var isPay=false;
 
 
 
@@ -54110,25 +54104,25 @@ function ensureFloors(site){ if(!site) return []; var cols=getFloorCols(site); i
 
 
 
-function floorPct(f,site){ var cols=getFloorCols(site); var s=cols.reduce(function(a,x){var v=(f.items||{})[x[0]]||'n';return a+(v==='d'?1:v==='p'?0.5:0);},0); return Math.round(s/Math.max(1,cols.length)*100); }
+function floorPct(f,site){ var cols=getFloorCols(site); var s=cols.reduce(function(a,x){var v=(f.items||{})[x[0]]||'n';return a+(v==='d'?1:v==='p'?0.5:0);},0); return Math.round(s/Math.max(1,cols.length)*1000)/10; }
 
 
 
 
 
-function siteFloorPct(site){ var fl=(site&&site.floors)||[]; if(!fl.length) return 0; return Math.round(fl.reduce(function(a,f){return a+floorPct(f,site);},0)/fl.length); }
+function siteFloorPct(site){ var fl=(site&&site.floors)||[]; if(!fl.length) return 0; return Math.round(fl.reduce(function(a,f){return a+floorPct(f,site);},0)/fl.length*10)/10; }
 
 
 
 
 
-function siteDesignPct(s){ if(!s)return 0; var d=(s.survey==='d'?1:0)+(s.design==='d'?1:0)+(s.submit==='d'?1:0); return Math.round(d/3*100); }
+function siteDesignPct(s){ if(!s)return 0; function w(v){return v==='d'?1:v==='p'?.5:0;} var d=w(s.survey)+w(s.design)+w(s.submit); return Math.round(d/3*1000)/10; }
 
 
 
 
 
-function siteFinalPct(s){ if(!s)return 0; return Math.round((siteDesignPct(s)+siteFloorPct(s))/2); }
+function siteFinalPct(s){ if(!s)return 0; return Math.round((siteDesignPct(s)+siteFloorPct(s))/2*10)/10; }
 
 
 
@@ -54188,7 +54182,7 @@ function floorSave(){ try{ if(typeof persist==='function')persist(); }catch(e){}
 
 
 
-function cycleFloorItem(fi,k){ if(!CUR_FLOOR||!isEditor())return; var s=projByID(CUR_FLOOR.pid).sites[CUR_FLOOR.idx]; var f=s.floors[fi]; var o=['n','p','d']; f.items[k]=o[(o.indexOf(f.items[k]||'n')+1)%3]; floorSave(); renderFloors(); }
+function cycleFloorItem(fi,k){ if(!CUR_FLOOR||!isEditor())return; var p=projByID(CUR_FLOOR.pid),s=p&&p.sites[CUR_FLOOR.idx]; if(!p||!s)return; var f=s.floors[fi]; var o=['n','p','d']; f.items[k]=o[(o.indexOf(f.items[k]||'n')+1)%3]; p.progress=overallPct(p); floorSave(); renderFloors(); try{if(typeof renderHub==='function')renderHub();if(typeof window.kpRefreshProjectInfographic==='function')window.kpRefreshProjectInfographic();}catch(e){} }
 
 
 
@@ -59160,29 +59154,9 @@ function recalcPhaseAggregates(p){
 
 
   p.phases.forEach((pp,pi)=>{
-
-
-
-
-
-    let done=0,prog=0;
-
-
-
-
-
-    p.milestones.forEach(mm=>{const st=mm.phases[pi]&&mm.phases[pi].status;if(st==='d')done++;else if(st==='p')prog++;});
-
-
-
-
-
-    pp.actualPct=Math.round((done*100+prog*50)/Math.max(1,total));
-
-
-
-
-
+    var now=new Date(),sum=0;
+    p.milestones.forEach(function(mm){sum+=sysPhaseProgress(mm.phases&&mm.phases[pi],now);});
+    pp.actualPct=Math.round(sum/Math.max(1,total)*10)/10;
   });
 
 
@@ -59647,6 +59621,8 @@ function openMsDtPick(pid,mi,kind,phi,anchor){
 
       persist();renderProjectViewStable(pid);renderHub();
 
+      try{if(typeof window.kpRefreshProjectInfographic==='function')window.kpRefreshProjectInfographic();}catch(e){}
+
 
 
 
@@ -59969,7 +59945,7 @@ function renderPhaseTracker(p){
 
 
 
-      +rowProgressCell(m.actualPct||0)
+      +rowProgressCell(typeof window.kpSystemsRowPct==='function'?window.kpSystemsRowPct(m):(typeof sysProgress==='function'?sysProgress(m.phases||[]):(m.actualPct||0)))
 
 
 
@@ -62059,7 +62035,7 @@ function cycleSiteField(pid,i,field){ if(!isEditor())return; var p=projByID(pid)
 
 
 
-  persist(); renderProjectViewStable(pid); renderHub(); }
+  persist(); renderProjectViewStable(pid); renderHub(); try{if(typeof window.kpRefreshProjectInfographic==='function')window.kpRefreshProjectInfographic();}catch(e){} }
 
 
 
@@ -110938,7 +110914,7 @@ function mergeConcurrentProject(base,local,remote){
 
 
 
-function saveRemoteLocally(){
+function saveRemoteLocally(changedPid){
   /* Preserve the server project structure exactly as received. */
 
 
@@ -110957,13 +110933,38 @@ function saveRemoteLocally(){
 
 
 
-  try{ refreshProjectGrids(); }catch(e){}
-
-
-
-
-
-  try{ if(window.CUR_PROJ&&typeof renderProjectView==='function') renderProjectView(CUR_PROJ); }catch(e){}
+  /* v40: a teammate changing one project must not rebuild both complete
+     dashboard grids underneath the full-screen project view. That needless
+     layout pass was the visible shake/jump. While a project is open, repaint
+     only when that exact project (or its parent) changed; the hidden cards are
+     refreshed naturally when the project is closed. */
+  var open='';try{open=window.CUR_PROJ||'';}catch(e){}
+  var overlay=false;try{var pv=document.getElementById('projView');overlay=!!(pv&&pv.classList.contains('show'));}catch(e){}
+  if(overlay&&open){
+    var affectsOpen=!changedPid||String(changedPid)===String(open);
+    if(!affectsOpen){
+      try{var changed=typeof projByID==='function'?projByID(changedPid):null;affectsOpen=!!(changed&&typeof projectOwnsOpenView==='function'&&projectOwnsOpenView(changed));}catch(e){}
+    }
+    if(affectsOpen){
+      try{document.body.classList.add('kp-remote-patch');}catch(e){}
+      try{if(typeof renderProjectView==='function')renderProjectView(open);}catch(e){}
+      requestAnimationFrame(function(){requestAnimationFrame(function(){try{document.body.classList.remove('kp-remote-patch');}catch(e){}});});
+    }
+    return;
+  }
+  /* On the dashboard, preserve the exact viewport while updating cards. */
+  var sx=window.scrollX||0,sy=window.scrollY||0;
+  try{
+    document.body.classList.add('kp-remote-patch');
+    if(document.body.classList.contains('on-company')){
+      if(typeof renderCompany==='function')renderCompany();
+    }else if(typeof renderHub==='function')renderHub();
+  }catch(e){}
+  try{window.scrollTo(sx,sy);}catch(e){}
+  requestAnimationFrame(function(){
+    try{window.scrollTo(sx,sy);}catch(e){}
+    requestAnimationFrame(function(){try{document.body.classList.remove('kp-remote-patch');window.scrollTo(sx,sy);}catch(e){}});
+  });
 
 
 
@@ -111281,7 +111282,7 @@ function acceptRemoteProject(snap){
 
 
 
-    saveRemoteLocally();
+    saveRemoteLocally(v.id);
 
 
 
@@ -111327,7 +111328,7 @@ function acceptRemoteProject(snap){
 
 
 
-  saveRemoteLocally();
+  saveRemoteLocally(v.id);
 
 
 
@@ -119499,7 +119500,7 @@ function st(v){v=String(v==null?'':v).toLowerCase().trim();if(/^(d|done|closed|c
 function subPct(r){if(!r)return 0;var ph=Array.isArray(r.phases)?r.phases.filter(Boolean):[];if(ph.length)return pc(ph.reduce(function(s,x){return s+n(x.actualPct!=null?x.actualPct:(x.pct!=null?x.pct:st(x.status)))},0)/ph.length);var ms=Array.isArray(r.milestones)?r.milestones.filter(Boolean):[];if(ms.length)return pc(ms.reduce(function(s,x){return s+n(x.actualPct!=null?x.actualPct:st(x.status))},0)/ms.length);return pc(r.progress!=null?r.progress:(r.actualPct!=null?r.actualPct:0))}
 function kind(p){var m=p&&p.meta||{},nm=String(p&&(p.nameEn||p.name)||'').toLowerCase();if(m.surveyModel||Array.isArray(p.survey))return'survey';if(String(p.id)==='p3'||m.supplyTracker||Array.isArray(p.supplyItems))return'supply';if(m.trainingModel||Array.isArray(p.training))return'training';if(m.resourceModel||Array.isArray(p.resources))return'resources';if(m.paymentModel||Array.isArray(p.payments))return'payments';if(String(p.id)==='p8'||Array.isArray(p.suppliers))return'suppliers';if(Array.isArray(p.subProjects)&&p.subProjects.length)return'container';if(String(p.id)==='p1'||/systems?\s*&\s*applications?/.test(nm))return'systems';if(Array.isArray(p.sites)&&p.sites.length)return'sites';if(Array.isArray(p.items)&&p.items.length)return'items';if(Array.isArray(p.milestones)&&p.milestones.length)return'milestones';return'phases'}
 function name(r,k){if(!r)return'Tracked item';if(k==='systems'){var x=String(r.name||'');if(!x||/^system\s*#?\s*\d+/i.test(x))return String(r.nameAr||r.nameEn||r.systemName||r.title||x||'System')}return String(r.nameEn||r.name||r.nameAr||r.systemName||r.code||r.order||r.vendor||r.poNo||r.item||r.title||r.system||r.group||'Tracked item')}
-function value(r,k,p){if(!r)return 0;if(k==='container')return subPct(r);if(k==='survey'){var a=n(r.assignees),d=n(r.daily);return a?pc(Math.min(a,d)/a*100):0}if(k==='supply'){var x=n(r.assigned),y=n(r.supplied);return x?pc(Math.min(x,y)/x*100):0}if(k==='sites'){try{if(typeof hasFloorModel==='function'&&hasFloorModel(p)&&typeof siteFinalPct==='function')return pc(siteFinalPct(r))}catch(e){}}var ds=[r.actualPct,r.progress,r.completion,r.pct,r.percent,r.finalPct,r.score];for(var i=0;i<ds.length;i++)if(ds[i]!==undefined&&ds[i]!==null&&ds[i]!=='')return pc(ds[i]);if(k==='resources'&&r.status)return st(r.status);if(r.done!==undefined&&n(r.sites)>0)return pc(n(r.done)/n(r.sites)*100);var ks=['survey','design','submit'],sum=0,c=0;ks.forEach(function(q){if(r[q]!==undefined){sum+=st(r[q]);c++}});return c?pc(sum/c):st(r.status||r.state)}
+function value(r,k,p){if(!r)return 0;if(k==='container')return subPct(r);if(k==='systems'){try{if(typeof window.kpSystemsRowPct==='function')return pc(window.kpSystemsRowPct(r));if(Array.isArray(r.phases)&&r.phases.length&&typeof sysProgress==='function')return pc(sysProgress(r.phases))}catch(e){}}if(k==='survey'){var a=n(r.assignees),d=n(r.daily);return a?pc(Math.min(a,d)/a*100):0}if(k==='supply'){var x=n(r.assigned),y=n(r.supplied);return x?pc(Math.min(x,y)/x*100):0}if(k==='sites'){try{if(typeof hasFloorModel==='function'&&hasFloorModel(p)&&typeof siteFinalPct==='function')return pc(siteFinalPct(r))}catch(e){}}var ds=[r.actualPct,r.progress,r.completion,r.pct,r.percent,r.finalPct,r.score];for(var i=0;i<ds.length;i++)if(ds[i]!==undefined&&ds[i]!==null&&ds[i]!=='')return pc(ds[i]);if(k==='resources'&&r.status)return st(r.status);if(r.done!==undefined&&n(r.sites)>0)return pc(n(r.done)/n(r.sites)*100);var ks=['survey','design','submit'],sum=0,c=0;ks.forEach(function(q){if(r[q]!==undefined){sum+=st(r[q]);c++}});return c?pc(sum/c):st(r.status||r.state)}
 function rowState(r,k,actual){return actual>=100?'completed':actual>0?'in-progress':'not-started'}
 function rows(p,k){var a=[];if(k==='survey')a=p.survey||[];else if(k==='supply')a=p.supplyItems||[];else if(k==='training')a=p.training||[];else if(k==='resources')a=p.resources||p.sites||[];else if(k==='payments')a=p.payments||[];else if(k==='suppliers')a=p.suppliers||[];else if(k==='container')a=p.subProjects||[];else if(k==='systems')a=(p.milestones&&p.milestones.length?p.milestones:p.sites)||[];else if(k==='sites')a=(p.sites&&p.sites.length?p.sites:p.milestones&&p.milestones.length?p.milestones:p.phases)||[];else if(k==='items')a=p.items||[];else if(k==='milestones')a=p.milestones||[];else a=p.phases||[];return a.map(function(r){var actual=value(r,k,p);return{name:name(r,k),actual:actual,plan:r&&r.planPct!=null?pc(r.planPct):100,state:rowState(r,k,actual),raw:r}})}
 function overall(p,k,rs){if(k==='survey'){var a=0,d=0;(p.survey||[]).forEach(function(r){a+=n(r.assignees);d+=Math.min(n(r.assignees),n(r.daily))});return a?pc(d/a*100):0}if(k==='supply'){var x=0,y=0;(p.supplyItems||[]).forEach(function(r){x+=n(r.assigned);y+=Math.min(n(r.assigned),n(r.supplied))});return x?pc(y/x*100):0}if(k==='container')return rs.length?pc(rs.reduce(function(s,r){return s+r.actual},0)/rs.length):0;try{if(typeof overallPct==='function')return pc(overallPct(p))}catch(e){}if(p.progress!==undefined&&p.progress!==null&&p.progress!=='')return pc(p.progress);return rs.length?pc(rs.reduce(function(s,r){return s+r.actual},0)/rs.length):0}
@@ -119510,7 +119511,7 @@ function hideOld(grid){Array.prototype.forEach.call(grid.querySelectorAll('.sec-
 function paint(id){var p=null;try{p=typeof projByID==='function'?projByID(id):null}catch(e){}if(!p)return;var grid=document.getElementById('pvGrid');if(!grid)return;var old=grid.querySelector('.kp-exec-infographic');if(old)old.remove();var k=kind(p),all=rows(p,k),ov=overall(p,k,all),ms=metrics(p,k,all,ov),key=String(p.id||id),max=Math.max(1,Math.ceil(all.length/SIZE)),page=Math.max(0,Math.min(max-1,pages[key]||0)),start=page*SIZE,show=all.slice(start,start+SIZE),plist=projects(),pi=Math.max(0,plist.findIndex(function(q){return String(q.id)===String(id)}));pages[key]=page;
 var cards=ms.map(function(m){return'<div class="s4-metric" style="--metric:'+m.color+'"><small>'+E(m.label)+'</small><strong>'+E(m.value)+'</strong><em>'+E(m.note)+'</em></div>'}).join('');var groups=[{label:'Completed',count:all.filter(function(r){return r.state==='completed'}).length,color:'#15966d'},{label:'In progress',count:all.filter(function(r){return r.state==='in-progress'}).length,color:'#df971f'},{label:'Not started',count:all.filter(function(r){return r.state==='not-started'||r.state==='delayed'}).length,color:'#bd293d'}],gm=Math.max.apply(null,[1].concat(groups.map(function(g){return g.count}))),chart=groups.map(function(g){return'<div class="s4-status-col"><div class="s4-status-track"><div class="s4-status-fill" style="height:'+Math.max(3,g.count/gm*100)+'%;--tone:'+g.color+'"></div></div><div class="s4-status-label"><span>'+E(g.label)+'</span><strong>'+g.count+'</strong></div></div>'}).join('');var rr=show.length?show.map(function(r){var c=tone(r.actual);return'<div class="s4-row"><div class="s4-name" title="'+E(r.name)+'">'+E(r.name)+'</div><div class="s4-progress"><div class="s4-progress-top"><span>Actual '+pf(r.actual)+'%</span><span>Plan '+pf(r.plan)+'%</span></div><div class="s4-track"><div class="s4-plan" style="width:'+r.plan+'%"></div><div class="s4-actual" style="width:'+r.actual+'%;--tone:'+c+'"></div></div></div><div class="s4-value" style="--tone:'+c+'">'+pf(r.actual)+'%</div></div>'}).join(''):'<div class="s4-empty">No tracked records are currently available.</div>';var dots='';for(var di=0;di<max;di++)dots+='<button class="s4-dot '+(di===page?'on':'')+'" aria-label="Records page '+(di+1)+'" onclick="kpStageGo('+di+')"></button>';
 var el=document.createElement('section');el.className='kp-exec-infographic kp-stage4';el.innerHTML='<div class="s4-body"><div class="s4-titlebar"><div><h2>'+E(p.nameEn||p.name)+'</h2><p>Single-screen executive view · chart, donut and five-record navigation</p></div><span class="s4-one-screen">ONE EXECUTIVE STAGE</span></div><div class="s4-metrics">'+cards+'</div><div class="s4-analytics"><div><h3>Status Distribution</h3><p>Completed, in progress and not started from the project’s real tracker statuses</p><div class="s4-status-bars">'+chart+'</div></div><div class="s4-donut-zone"><div class="s4-donut" style="--pct:'+ov+';--tone:'+tone(ov)+'"><div class="s4-donut-copy"><strong>'+pf(ov)+'%</strong><span>Overall progress</span></div></div></div></div><div class="s4-list-head"><span>Tracked item</span><span>Plan and actual</span><span>Progress</span></div><div class="s4-list">'+rr+'</div><div class="s4-footer"><button class="s4-page-arrow" onclick="kpStagePage(-1)" '+(page===0?'disabled':'')+'>‹ Previous five</button><span class="s4-dots">'+dots+'</span><span class="s4-count">'+(all.length?start+1:0)+'–'+Math.min(start+SIZE,all.length)+' of '+all.length+'</span><button class="s4-page-arrow" onclick="kpStagePage(1)" '+(page>=max-1?'disabled':'')+'>Next five ›</button></div></div>';grid.insertBefore(el,grid.firstChild);var strip=document.getElementById('pvKpis');if(strip)strip.style.display='none';hideOld(grid)}
-window.kpStagePage=function(delta){var id=current(),p=id&&typeof projByID==='function'?projByID(id):null;if(!p)return;var all=rows(p,kind(p)),key=String(p.id||id),max=Math.max(1,Math.ceil(all.length/SIZE));pages[key]=Math.max(0,Math.min(max-1,(pages[key]||0)+delta));paint(id)};window.kpStageGo=function(page){var id=current();if(!id)return;pages[String(id)]=page;paint(id)};window.kpStageSelect=function(id){if(typeof openProject==='function')openProject(id);else if(typeof renderProjectView==='function')renderProjectView(id)};window.kpStageProject=function(delta){var ps=projects(),id=current(),i=ps.findIndex(function(p){return String(p.id)===String(id)});if(!ps.length)return;i=(Math.max(0,i)+delta+ps.length)%ps.length;window.kpStageSelect(ps[i].id)};
+window.kpStagePage=function(delta){var id=current(),p=id&&typeof projByID==='function'?projByID(id):null;if(!p)return;var all=rows(p,kind(p)),key=String(p.id||id),max=Math.max(1,Math.ceil(all.length/SIZE));pages[key]=Math.max(0,Math.min(max-1,(pages[key]||0)+delta));paint(id)};window.kpStageGo=function(page){var id=current();if(!id)return;pages[String(id)]=page;paint(id)};window.kpStageSelect=function(id){if(typeof openProject==='function')openProject(id);else if(typeof renderProjectView==='function')renderProjectView(id)};window.kpStageProject=function(delta){var ps=projects(),id=current(),i=ps.findIndex(function(p){return String(p.id)===String(id)});if(!ps.length)return;i=(Math.max(0,i)+delta+ps.length)%ps.length;window.kpStageSelect(ps[i].id)};window.kpRefreshProjectInfographic=function(){var id=current();if(id)paint(id)};
 function install(){if(window.__kpSingleStageWrappedV4||typeof window.renderProjectView!=='function')return false;window.__kpSingleStageWrappedV4=true;var prev=window.renderProjectView;window.renderProjectView=function(id){var out=prev.apply(this,arguments);setTimeout(function(){try{paint(id)}catch(e){console.warn('[Single Stage Executive]',e)}},55);return out};var id=current();if(id)setTimeout(function(){paint(id)},500);return true}if(!install()){var tries=0,t=setInterval(function(){tries++;if(install()||tries>80)clearInterval(t)},100)}
 })();
 </script>
@@ -119911,6 +119912,7 @@ function inlineStatus(el,sub,mi,si,phi){
   var status=phases[phi].status||'n';el.className='pm-status st-'+status;el.textContent=phLabel(status);updateRow(el.closest('tr'),rowPct);updateFilterCounts(p);
   try{persist(P1);}catch(e){console.error(e);}
   try{if(typeof renderHub==='function')renderHub();}catch(e){}
+  try{if(typeof window.kpRefreshProjectInfographic==='function')window.kpRefreshProjectInfographic();}catch(e){}
 }
 
 /* Intercept only Systems status clicks. The cell is updated in place, so the
@@ -120006,7 +120008,117 @@ function run(){
     });
   }).catch(function(err){badge('fail','Daily history not restored');console.error('[Field Survey daily recovery]',err);try{if(typeof toast==='function')toast('Field Survey daily recovery failed: '+((err&&err.message)||err),false);}catch(e){}});
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(run,500);});else setTimeout(run,500);
+/* v39: historical recovery is intentionally manual-only. Automatically
+   inserting old daily leaves after every import could change the user's newly
+   restored Field Survey dataset merely by opening the portal. */
+window.__kpRunFieldSurveyDailyRecovery=run;
+})();
+</script>
+<style id="kp-canonical-progress-v43-css">
+/* The card percentage is always visible, including narrow cards. */
+#projGrid .proj-card-body .pcbar-pct{display:block!important;visibility:visible!important;opacity:1!important;min-width:58px!important;white-space:nowrap!important;overflow:visible!important}
+#projGrid .proj-card-body .pcbar-track{display:block!important;visibility:visible!important;opacity:1!important}
+</style>
+<script id="kp-canonical-progress-v43">
+(function(){
+'use strict';
+if(window.__kpCanonicalProgressV43)return;window.__kpCanonicalProgressV43=true;
+var inherited=window.overallPct;
+function n(v){v=Number(String(v==null?'0':v).replace(/[,٬]/g,''));return isFinite(v)?v:0;}
+function pc(v){return Math.max(0,Math.min(100,Math.round(n(v)*10)/10));}
+function canonical(p){
+  if(!p)return 0;
+  try{
+    if(String(p.id)==='p1'&&typeof window.kpSystemsPct==='function'){var s=window.kpSystemsPct(p);if(s!==null)return pc(s);}
+    if((String(p.id)==='p5'||p.floorModel===true||(p.meta&&p.meta.floorModel===true))&&typeof window.kpNetworkPct==='function'){var x=window.kpNetworkPct(p);if(x!==null)return pc(x);}
+    if(p.meta&&p.meta.surveyModel===true&&typeof window.kpSurveyPct==='function')return pc(window.kpSurveyPct(p));
+    if(typeof inherited==='function')return pc(inherited(p));
+  }catch(e){}
+  return pc(p.progress);
+}
+window.kpCanonicalProjectPct=canonical;
+window.overallPct=canonical;try{overallPct=canonical;}catch(e){}
+
+/* The original progress panel must receive exactly the same number as the
+   executive panel and dashboard card; it may not recalculate its own total. */
+var progressBase=window.renderProgress;
+if(typeof progressBase==='function'&&!progressBase.__kpCanonicalV43){
+  var progressFixed=function(p){return progressBase.call(this,p,canonical(p));};
+  progressFixed.__kpCanonicalV43=true;window.renderProgress=progressFixed;
+  try{renderProgress=progressFixed;}catch(e){}
+}
+
+function projectById(id){try{return typeof projByID==='function'?projByID(id):((STORE.projects||[]).find(function(p){return String(p.id)===String(id);})||null);}catch(e){return null;}}
+function setText(el,text){if(el&&el.textContent!==text)el.textContent=text;}
+function paintCard(card){
+  var p=projectById(card&&card.getAttribute('data-pid'));if(!p)return;
+  if(String(p.id)==='p9'||(p.meta&&p.meta.resourceModel===true)||/^resources?$/i.test(String(p.nameEn||p.name||'').trim()))return;
+  var pct=canonical(p),txt=pct.toFixed(1)+'%',body=card.querySelector('.proj-card-body');if(!body)return;
+  var bar=body.querySelector('.proj-card-bar');
+  if(!bar){bar=document.createElement('div');bar.className='proj-card-bar kp-canonical-card-progress';bar.innerHTML='<div class="pcbar-track"><div class="pcbar-fill"></div></div><div class="pcbar-pct"></div>';body.insertBefore(bar,body.firstChild);}
+  var num=bar.querySelector('.pcbar-pct'),fill=bar.querySelector('.pcbar-fill');setText(num,txt);if(fill&&fill.style.width!==pct+'%')fill.style.width=pct+'%';
+  var status=body.querySelector('.proj-status');if(status){status.classList.remove('s-d','s-p','s-n');status.classList.add(pct>=100?'s-d':pct>0?'s-p':'s-n');var label=pct>=100?'Completed':pct>0?'In Progress':'Not Started',dot=status.querySelector('.ps-dot');if(String(status.textContent||'').trim()!==label){if(dot){Array.prototype.slice.call(status.childNodes).forEach(function(node){if(node!==dot&&node.nodeType===3)node.remove();});status.appendChild(document.createTextNode(label));}else setText(status,label);}}
+}
+var painting=false;
+function paintCards(){if(painting)return;painting=true;try{Array.prototype.forEach.call(document.querySelectorAll('#projGrid .proj-card[data-pid]'),paintCard);}finally{painting=false;}}
+var hubBase=window.renderHub;
+if(typeof hubBase==='function'&&!hubBase.__kpCanonicalV43){var hubFixed=function(){var out=hubBase.apply(this,arguments);paintCards();requestAnimationFrame(paintCards);return out;};hubFixed.__kpCanonicalV43=true;window.renderHub=hubFixed;try{renderHub=hubFixed;}catch(e){}}
+function installObserver(){var grid=document.getElementById('projGrid');if(!grid||grid.__kpCanonicalObserver)return;grid.__kpCanonicalObserver=true;new MutationObserver(function(){requestAnimationFrame(paintCards);}).observe(grid,{childList:true,subtree:true});paintCards();}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installObserver);else installObserver();setTimeout(installObserver,500);setTimeout(paintCards,900);setTimeout(function(){try{if(typeof CUR_PROJ!=='undefined'&&CUR_PROJ&&typeof renderProjectViewStable==='function')renderProjectViewStable(CUR_PROJ);}catch(e){}},1200);
+window.__KP_BUILD__='2026-09-16-v47-resources-count-card';
+})();
+</script>
+
+<!-- v39 — authoritative project-card percentages.
+     Calculated directly from the current imported rows; never writes data. -->
+<script id="kp-authoritative-card-progress-v39">
+(function(){
+'use strict';
+if(window.__kpAuthoritativeCardProgressV39)return;
+window.__kpAuthoritativeCardProgressV39=true;
+var previous=window.overallPct;
+function num(v){var n=Number(String(v==null?'0':v).replace(/,/g,''));return isFinite(n)?n:0;}
+function bounded(v){v=Number(v);return isFinite(v)?Math.max(0,Math.min(100,Math.round(v*10)/10)):0;}
+function systemsPct(p){
+  var rows=Array.isArray(p&&p.milestones)?p.milestones.filter(function(m){return m&&Array.isArray(m.phases)&&m.phases.length;}):[];
+  if(!rows.length)return null;
+  var sum=0;rows.forEach(function(m){sum+=typeof sysProgress==='function'?sysProgress(m.phases):num(m.actualPct);});
+  return bounded(sum/rows.length);
+}
+function surveyPct(p){
+  var target=0,done=0,rows=Array.isArray(p&&p.survey)?p.survey:[];
+  rows.forEach(function(r){var a=Math.max(0,num(r&&r.assignees)),d=Math.max(0,num(r&&r.daily));target+=a;done+=Math.min(a,d);});
+  return target?bounded(done/target*100):0;
+}
+function networkPct(p){
+  var sites=Array.isArray(p&&p.sites)?p.sites.filter(Boolean):[];
+  if(!sites.length)return null;
+  var total=0,usable=0;
+  sites.forEach(function(site){
+    if(typeof siteFinalPct==='function'){total+=siteFinalPct(site);usable++;return;}
+    function w(v){return v==='d'?1:v==='p'?.5:0;}
+    var design=(w(site.survey)+w(site.design)+w(site.submit))/3*100;
+    var floors=Array.isArray(site.floors)?site.floors.filter(Boolean):[],floorTotal=0;
+    if(floors.length){floors.forEach(function(f){var cols=(Array.isArray(site.floorColumns)&&site.floorColumns.length)?site.floorColumns:(typeof FLOOR_ITEMS_DEFAULT!=='undefined'?FLOOR_ITEMS_DEFAULT:[]);if(!cols.length)return;var score=0;cols.forEach(function(c){score+=w((f.items||{})[c[0]]||'n');});floorTotal+=score/cols.length*100;});floorTotal/=floors.length;}
+    total+=(design+floorTotal)/2;usable++;
+  });
+  return usable?bounded(total/usable):null;
+}
+window.kpSystemsPct=systemsPct;
+window.kpNetworkPct=networkPct;
+window.kpSurveyPct=surveyPct;
+window.kpActualProjectPct=function(p){
+  /* Systems & Applications is authoritative from all 23 system rows and all
+     nine phase cells — never from the old three-column sites proxy. */
+  if(p&&String(p.id)==='p1'){var s=systemsPct(p);if(s!==null)return s;}
+  if(p&&p.meta&&p.meta.surveyModel===true)return surveyPct(p);
+  if(p&&(p.id==='p5'||p.floorModel===true||(p.meta&&p.meta.floorModel===true))){var n=networkPct(p);if(n!==null)return n;}
+  var v=typeof previous==='function'?previous.apply(this,arguments):num(p&&p.progress);
+  return bounded(v);
+};
+window.overallPct=window.kpActualProjectPct;
+try{overallPct=window.overallPct;}catch(e){}
+window.__KP_BUILD__='2026-09-16-v47-resources-count-card';
 })();
 </script>
 <style id="kp-project-card-progress-v37">
@@ -120022,7 +120134,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 .proj-card-body:has(.proj-card-footer)>.proj-card-bar{display:contents!important}
 .proj-card-body:has(.proj-card-footer) .pcbar-pct{
   grid-area:pct!important;
-  min-width:48px!important;
+  min-width:58px!important;
   color:var(--brand-2)!important;
   font-size:15px!important;
   font-weight:800!important;
@@ -120045,7 +120157,118 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 }
 </style>
 <script id="kp-project-card-progress-v37-build">
-window.__KP_BUILD__='2026-09-16-v38-systems-root-persistence';
+window.__KP_BUILD__='2026-09-16-v47-resources-count-card';
+</script>
+
+<!-- v44 — Systems & Applications has one read-only calculation source:
+     the same 23 system-row percentages shown beside the date-entry matrix.
+     Nothing in this module writes to STORE, localStorage or Firebase. -->
+<style id="kp-systems-row-source-v44-css">
+#engGrid .wcard .wcard-pct{display:inline-block!important;visibility:visible!important;opacity:1!important;min-width:42px!important;white-space:nowrap!important;overflow:visible!important}
+#engGrid .wcard .wcard-bar{display:block!important;visibility:visible!important;opacity:1!important}
+#engGrid .wcard .wcard-foot{display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:flex-start!important;gap:5px!important;min-height:38px!important;margin-bottom:8px!important;overflow:hidden!important}
+#engGrid .wcard .wcard-foot .proj-status{display:inline-flex!important;max-width:100%!important;width:auto!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;font-size:8.5px!important;padding:2px 6px!important}
+</style>
+<script id="kp-systems-row-source-v44">
+(function(){
+'use strict';
+if(window.__kpSystemsRowSourceV44)return;window.__kpSystemsRowSourceV44=true;
+var P1='p1',previousOverall=window.overallPct;
+function num(v){v=Number(String(v==null?'0':v).replace(/[,٬]/g,''));return isFinite(v)?v:0;}
+function one(v){return Math.max(0,Math.min(100,Math.round(num(v)*10)/10));}
+function cellPct(ph){
+  try{if(typeof sysPhaseProgress==='function')return one(sysPhaseProgress(ph,new Date()));}catch(e){}
+  if(!ph)return 0;return ph.status==='d'?100:ph.status==='p'?50:0;
+}
+function cleanName(v){return String(v||'').toLowerCase().replace(/enterprise|management|system|department/g,' ').replace(/[()]/g,' ').replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();}
+function sameBusinessName(parent,child){var a=cleanName(parent).split(/\s+/).filter(function(x){return x&&!/^\d+$/.test(x);}),b=cleanName(child).split(/\s+/).filter(function(x){return x&&!/^\d+$/.test(x);});if(!a.length||!b.length)return false;var sa={};a.forEach(function(x){sa[x]=1;});return b.every(function(x){return !!sa[x];});}
+function plainRowPct(row){
+  if(!row)return 0;
+  try{if(typeof sysProgress==='function')return one(sysProgress(row.phases||[]));}catch(e){}
+  var cells=Array.isArray(row.phases)?row.phases:[];
+  return cells.length?one(cells.reduce(function(s,ph){return s+cellPct(ph);},0)/cells.length):one(row.actualPct);
+}
+function rowPct(row){
+  if(!row)return 0;
+  var subs=Array.isArray(row.subs)?row.subs.filter(Boolean):[];
+  if(subs.length){
+    /* If a detailed row has the same business name as its parent (for example
+       Human Resources under Enterprise Management System (Human Resources)),
+       its date-row percentage is the authoritative percentage for that system. */
+    /* Imported workbooks may swap name/nameAr/nameEn. Compare every available
+       label instead of trusting one field, so System 18 always resolves to
+       its Human Resources 18.1 detail rather than averaging it with 18.2. */
+    var parent=[row.nameAr,row.nameEn,row.name,row.systemName,row.title].join(' '),match=subs.find(function(s){var child=[s.nameEn,s.nameAr,s.name,s.systemName,s.title].join(' ');return sameBusinessName(parent,child);});
+    if(match)return plainRowPct(match);
+    /* Other parent systems with several detailed rows use the average of those
+       visible sub-milestone percentages, never the stale parent phase value. */
+    return one(subs.reduce(function(sum,s){return sum+plainRowPct(s);},0)/subs.length);
+  }
+  return plainRowPct(row);
+}
+function systemsPct(p){
+  var rows=Array.isArray(p&&p.milestones)?p.milestones.filter(Boolean):[];
+  if(!rows.length)return 0;
+  /* Average the exact percentages printed at the right of the 23 date rows. */
+  return one(rows.reduce(function(s,row){return s+rowPct(row);},0)/rows.length);
+}
+function systemsPhasePct(p,index){
+  var rows=Array.isArray(p&&p.milestones)?p.milestones.filter(Boolean):[];
+  if(!rows.length)return 0;
+  return one(rows.reduce(function(s,row){return s+cellPct(row&&row.phases&&row.phases[index]);},0)/rows.length);
+}
+function canonical(p){
+  if(p&&String(p.id)===P1)return systemsPct(p);
+  try{if(typeof previousOverall==='function')return one(previousOverall(p));}catch(e){}
+  return one(p&&p.progress);
+}
+window.kpSystemsRowPct=rowPct;
+window.kpSystemsPct=systemsPct;
+window.kpSystemsPhasePct=systemsPhasePct;
+window.kpCanonicalProjectPct=canonical;
+window.overallPct=canonical;try{overallPct=canonical;}catch(e){}
+
+/* Rebuild only the phase values passed to the summary panel. The underlying
+   project and its imported/Firebase data stay untouched. */
+var progressBase=window.renderProgress;
+if(typeof progressBase==='function'&&!progressBase.__kpSystemsRowsV44){
+  var progressFixed=function(p){
+    var view=p;
+    if(p&&String(p.id)===P1){
+      view=Object.assign({},p,{phases:(p.phases||[]).map(function(ph,i){return Object.assign({},ph,{actualPct:systemsPhasePct(p,i)});})});
+    }
+    return progressBase.call(this,view,canonical(p));
+  };
+  progressFixed.__kpSystemsRowsV44=true;window.renderProgress=progressFixed;try{renderProgress=progressFixed;}catch(e){}
+}
+
+function findProject(id){
+  try{var list=typeof mainProjects==='function'?mainProjects():(STORE.projects||[]);return (list||[]).find(function(p){return p&&String(p.id)===String(id);})||null;}catch(e){return null;}
+}
+function updateStatus(el,pct){
+  if(!el)return;var cls=pct>=100?'s-d':pct>0?'s-p':'s-n',label=pct>=100?'Completed':pct>0?'In Progress':'Not Started';
+  el.classList.remove('s-d','s-p','s-n');el.classList.add(cls);
+  var dot=el.querySelector('.ps-dot');if(String(el.textContent||'').trim()!==label){el.textContent='';if(dot)el.appendChild(dot);else{dot=document.createElement('i');dot.className='ps-dot';el.appendChild(dot);}el.appendChild(document.createTextNode(label));}
+}
+function paintOuterCard(card){
+  var p=findProject(card&&card.getAttribute('data-pid'));if(!p)return;
+  if(String(p.id)==='p9'||(p.meta&&p.meta.resourceModel===true)||/^resources?$/i.test(String(p.nameEn||p.name||'').trim())){var count=card.querySelector('.wcard-pct');if(count)count.textContent=String((p.resources||[]).length);var bar=card.querySelector('.wcard-bar');if(bar)bar.style.display='none';var status=card.querySelector('.proj-status');if(status)status.remove();return;}
+  var pct=canonical(p),txt=pct.toFixed(1)+'%',n=card.querySelector('.wcard-pct'),fill=card.querySelector('.wcard-bar i');
+  if(n&&n.textContent!==txt)n.textContent=txt;if(fill&&fill.style.width!==pct+'%')fill.style.width=pct+'%';updateStatus(card.querySelector('.proj-status'),pct);
+}
+var painting=false;
+function paintOuterCards(){if(painting)return;painting=true;try{Array.prototype.forEach.call(document.querySelectorAll('#engGrid .wcard[data-pid]'),paintOuterCard);}finally{painting=false;}}
+var companyBase=window.renderCompany;
+if(typeof companyBase==='function'&&!companyBase.__kpSystemsRowsV44){
+  var companyFixed=function(){var out=companyBase.apply(this,arguments);paintOuterCards();requestAnimationFrame(paintOuterCards);return out;};
+  companyFixed.__kpSystemsRowsV44=true;window.renderCompany=companyFixed;try{renderCompany=companyFixed;}catch(e){}
+}
+function observeCards(){var grid=document.getElementById('engGrid');if(!grid||grid.__kpSystemsRowsV44)return;grid.__kpSystemsRowsV44=true;new MutationObserver(function(){requestAnimationFrame(paintOuterCards);}).observe(grid,{childList:true,subtree:true});paintOuterCards();}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',observeCards);else observeCards();
+setTimeout(observeCards,350);setTimeout(paintOuterCards,850);
+setTimeout(function(){try{if(typeof CUR_PROJ!=='undefined'&&CUR_PROJ===P1&&typeof renderProjectViewStable==='function')renderProjectViewStable(P1);}catch(e){}},900);
+window.__KP_BUILD__='2026-09-16-v47-resources-count-card';
+})();
 </script>
 
 <!-- Universal acknowledged Firebase persistence — 2026-09-14 v31.
@@ -120057,7 +120280,7 @@ window.__KP_BUILD__='2026-09-16-v38-systems-root-persistence';
 <script id="kp-universal-firebase-save-v31">
 (function(){
 'use strict';
-if(window.__kpUniversalFirebaseSaveV31)return;window.__kpUniversalFirebaseSaveV31=true;window.__KP_BUILD__='2026-09-14-v34-fast-safe-firebase-bootstrap';
+if(window.__kpUniversalFirebaseSaveV31)return;window.__kpUniversalFirebaseSaveV31=true;window.__KP_BUILD__='2026-09-16-v47-resources-count-card';
 var jobs={},sigs={},scanReady=false,remoteInstalling=false;
 function cp(x){try{return JSON.parse(JSON.stringify(x));}catch(e){return x;}}
 function lists(){var a=[],b=[];try{a=STORE&&Array.isArray(STORE.projects)?STORE.projects:[];}catch(e){}try{b=STORE&&STORE.engagements&&STORE.engagements[0]&&Array.isArray(STORE.engagements[0].projects)?STORE.engagements[0].projects:[];}catch(e){}return{top:a,eng:b};}
@@ -120072,15 +120295,24 @@ function timed(p,label){return new Promise(function(resolve,reject){var done=fal
 function baseline(p){try{if(typeof window.__syncBaseline!=='function'||typeof window.__syncSetBaseline!=='function')return;var b=cp(window.__syncBaseline()||{});function put(a){if(!Array.isArray(a))return;var i=a.findIndex(function(x){return x&&x.id===p.id;});if(i<0)a.push(cp(p));else a[i]=cp(p);}put(b.projects);put(b.engagements&&b.engagements[0]&&b.engagements[0].projects);window.__syncSetBaseline(b);}catch(e){}}
 function clearPending(id){try{var m=typeof window.__syncPendingMap==='function'?window.__syncPendingMap():{};delete m[id];delete m['*'];if(Object.keys(m).length)localStorage.setItem('kp_sync_pending_projects',JSON.stringify(m));else{localStorage.removeItem('kp_sync_pending_projects');localStorage.removeItem('kp_sync_pending_rev');}}catch(e){}}
 function commit(id,seq,attempt){var j=jobs[id];if(!j||j.seq!==seq)return;attempt=attempt||0;if(!ready()){chip('','Connecting to Firebase…',true);if(attempt<80)j.t=setTimeout(function(){commit(id,seq,attempt+1);},250);else{delete jobs[id];chip('fail','Firebase is offline — update kept locally');}return;}var p=parent(id);if(!p){delete jobs[id];return;}var token=new Date().toISOString();p.updatedAt=token;link(p);try{localStorage.setItem(SK,JSON.stringify(STORE));}catch(e){}chip('','Saving '+(p.nameEn||p.name||'project')+'…',true);var pr=SYNC.ref.child('projects'),er=SYNC.ref.child('engagements/0/projects'),pq=pr.orderByChild('id').equalTo(p.id),eq=er.orderByChild('id').equalTo(p.id);Promise.all([timed(pq.once('value'),'Project lookup'),timed(eq.once('value'),'Project mirror lookup')]).then(function(ss){if(!jobs[id]||jobs[id].seq!==seq)return null;var pk=key(ss[0],p.id),ek=key(ss[1],p.id);if(pk===null&&ek===null)throw Error('Project was not found in Firebase');if(pk===null)pk=ek;if(ek===null)ek=pk;var clean=cp(p),map={};map['projects/'+pk]=clean;map['engagements/0/projects/'+ek]=clean;return timed(SYNC.ref.update(map),'Project save').then(function(){return Promise.all([timed(pr.child(pk).once('value'),'Save confirmation'),timed(er.child(ek).once('value'),'Mirror confirmation')]);}).then(function(cc){var a=cc[0]&&cc[0].val(),b=cc[1]&&cc[1].val();if(!a||!b||a.id!==p.id||b.id!==p.id||a.updatedAt!==token||b.updatedAt!==token)throw Error('Firebase read-back mismatch');if(!jobs[id]||jobs[id].seq!==seq)return;baseline(clean);clearPending(p.id);sigs[p.id]=JSON.stringify(clean);delete jobs[id];try{if(typeof window.__syncClearDirty==='function')window.__syncClearDirty();if(typeof setSyncUI==='function')setSyncUI('live');SYNC.lastOk=new Date();}catch(e){}chip('ok','Saved to Firebase — safe to refresh');});}).catch(function(e){console.error('[Universal Firebase save]',e);if(!jobs[id]||jobs[id].seq!==seq)return;if(attempt<2){j.t=setTimeout(function(){commit(id,seq,attempt+1);},900);return;}delete jobs[id];chip('fail','Firebase save failed — update kept locally');try{toast('Firebase did not confirm this update. Your local copy is protected; check Live Connectivity before refreshing.',false);}catch(x){}});}
-/* v32: the portal's proven leaf-diff writer remains the only Firebase writer.
-   The former acknowledged writer is disabled because its extra lookup could
-   time out and repeatedly save derived project calculations. */
-function queue(id){return;}
+/* v39: every real project edit gets one acknowledged whole-project write.
+   Display recalculations never call this queue, so opening/rendering a project
+   cannot overwrite the imported Firebase data. Systems (p1) keeps its own
+   dedicated acknowledged writer immediately above this module. */
+function queue(id){
+  if(remoteInstalling||(window.SYNC&&SYNC.applying))return;
+  id=id||((typeof CUR_PROJ!=='undefined'&&CUR_PROJ)?CUR_PROJ:'');
+  var p=parent(id);if(!p||!p.id||String(p.id)==='p1')return;
+  id=String(p.id);
+  var oldJob=jobs[id],seq=(oldJob&&oldJob.seq?oldJob.seq:0)+1;
+  if(oldJob&&oldJob.t)clearTimeout(oldJob.t);
+  jobs[id]={seq:seq,t:setTimeout(function(){commit(id,seq,0);},500)};
+}
 window.__kpSaveProjectNow=queue;
 /* Preserve all existing project-specific hooks. */
-var old=window.persist;if(typeof old==='function'){var wrapped=function(){return old.apply(this,arguments);};wrapped.__kpUniversalAck=true;window.persist=wrapped;try{persist=wrapped;}catch(e){}}
+var old=window.persist;if(typeof old==='function'){var wrapped=function(){var out=old.apply(this,arguments);try{queue(arguments[0]);}catch(e){}return out;};wrapped.__kpUniversalAck=true;window.persist=wrapped;try{persist=wrapped;}catch(e){}}
 /* Safety net for specialist tables that mutate STORE without persist(). */
-function scan(){if(window.SYNC&&SYNC.applying)return;var l=lists(),a=l.eng.length?l.eng:l.top,n={};a.forEach(function(p){if(!p||!p.id)return;var s='';try{s=JSON.stringify(p);}catch(e){}n[p.id]=s;if(scanReady&&sigs[p.id]!==undefined&&sigs[p.id]!==s&&!jobs[p.id])queue(p.id);});sigs=n;scanReady=true;}
+function scan(){if(window.SYNC&&SYNC.applying)return;var l=lists(),a=l.eng.length?l.eng:l.top,n={};a.forEach(function(p){if(!p||!p.id)return;var s='';try{s=JSON.stringify(p);}catch(e){}n[p.id]=s;});sigs=n;scanReady=true;}
 /* Initialise signatures once; never poll or save calculated display changes. */
 setTimeout(scan,1200);
 /* Re-link deserialised mirrors after every Firebase load, without writing. */
@@ -120093,12 +120325,18 @@ window.addEventListener('pagehide',function(){Object.keys(jobs).forEach(function
 /* Disable browser scroll anchoring while project HTML is replaced. */
 #projView,.pv-body,#pvGrid{overflow-anchor:none!important}
 .pv-body{scroll-behavior:auto!important}
+/* Suppress one-frame transitions while a teammate's Firebase patch is being
+   painted. The class exists for two animation frames only. */
+body.kp-remote-patch #projView,
+body.kp-remote-patch #projView *,
+body.kp-remote-patch #companyView *,
+body.kp-remote-patch #hubView *{transition:none!important;animation:none!important;scroll-behavior:auto!important}
 </style>
 <script id="kp-project-position-v35">
 (function(){
 'use strict';
 if(window.__kpProjectPositionV35)return;window.__kpProjectPositionV35=true;
-window.__KP_BUILD__='2026-09-16-v38-systems-root-persistence';
+window.__KP_BUILD__='2026-09-16-v47-resources-count-card';
 
 var OPENING=false,RENDERING=false;
 var SELECTORS=['.pv-body','.phase-matrix-wrap','.site-table-wrap','.gantt-wrap',
