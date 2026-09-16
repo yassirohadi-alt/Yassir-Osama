@@ -14169,6 +14169,14 @@ if(window.__kpSystemsCanonicalV13)return;
 window.__kpSystemsCanonicalV13=true;
 window.__KP_BUILD__='2026-09-14-v13-systems-canonical';
 
+/* Disabled in v38: this legacy shadow record (_liveProjects/p1) could be
+   older than the official projects records and overwrite newer Systems &
+   Applications updates whenever the portal reopened. The authoritative
+   sources are now projects/<p1> and engagements/0/projects/<p1>, which are
+   written and read back by systemsCommitCore(). Existing Firebase data is
+   left untouched; the stale shadow path is simply ignored. */
+return;
+
 var PID='p1',PATH='_liveProjects/p1',ref=null,base=null,pendingRemote=null;
 var saveTimer=null,saveSeq=0,ready=false,installAttempts=0;
 
@@ -36469,15 +36477,17 @@ function systemsCommitCore(seq,attempt){
     if(mk===null)mk=pk;
     var clean=JSON.parse(JSON.stringify(p)),map={};
     map['projects/'+pk]=clean;map['engagements/0/projects/'+mk]=clean;
-    return SYNC.ref.update(map).then(function(){return primary.child(pk).once('value');}).then(function(check){
-      var saved=check&&check.val();
-      if(!saved||saved.id!=='p1'||saved.updatedAt!==token)throw new Error('Firebase did not confirm the Systems update');
+    return SYNC.ref.update(map).then(function(){
+      return Promise.all([primary.child(pk).once('value'),mirror.child(mk).once('value')]);
+    }).then(function(checks){
+      var saved=checks[0]&&checks[0].val(),savedMirror=checks[1]&&checks[1].val();
+      if(!saved||saved.id!=='p1'||saved.updatedAt!==token||!savedMirror||savedMirror.id!=='p1'||savedMirror.updatedAt!==token)throw new Error('Firebase did not confirm both Systems records');
       systemsAdvanceBaseline(saved);
       try{localStorage.setItem(SK,JSON.stringify(STORE));}catch(e){}
       try{if(typeof window.__syncClearPending==='function')window.__syncClearPending();}catch(e){}
       try{if(typeof setSyncUI==='function')setSyncUI('live');}catch(e){}
-      systemsCoreBadge('saved','Systems saved to Firebase');
-      setTimeout(function(){var x=document.getElementById('kpSystemSaveState');if(x&&x.textContent==='Systems saved to Firebase')x.textContent='Live';},1800);
+      systemsCoreBadge('saved','Systems saved — safe to refresh');
+      setTimeout(function(){var x=document.getElementById('kpSystemSaveState');if(x&&x.textContent==='Systems saved — safe to refresh')x.textContent='Live';},2200);
     });
   }).catch(function(err){
     console.error('[Systems acknowledged save]',err);systemsCoreBadge('failed','Systems NOT saved');
@@ -120035,7 +120045,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 }
 </style>
 <script id="kp-project-card-progress-v37-build">
-window.__KP_BUILD__='2026-09-14-v37-card-progress-decimal';
+window.__KP_BUILD__='2026-09-16-v38-systems-root-persistence';
 </script>
 
 <!-- Universal acknowledged Firebase persistence — 2026-09-14 v31.
@@ -120088,7 +120098,7 @@ window.addEventListener('pagehide',function(){Object.keys(jobs).forEach(function
 (function(){
 'use strict';
 if(window.__kpProjectPositionV35)return;window.__kpProjectPositionV35=true;
-window.__KP_BUILD__='2026-09-14-v37-card-progress-decimal';
+window.__KP_BUILD__='2026-09-16-v38-systems-root-persistence';
 
 var OPENING=false,RENDERING=false;
 var SELECTORS=['.pv-body','.phase-matrix-wrap','.site-table-wrap','.gantt-wrap',
