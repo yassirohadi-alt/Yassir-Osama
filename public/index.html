@@ -120071,7 +120071,7 @@ var hubBase=window.renderHub;
 if(typeof hubBase==='function'&&!hubBase.__kpCanonicalV43){var hubFixed=function(){var out=hubBase.apply(this,arguments);paintCards();requestAnimationFrame(paintCards);return out;};hubFixed.__kpCanonicalV43=true;window.renderHub=hubFixed;try{renderHub=hubFixed;}catch(e){}}
 function installObserver(){var grid=document.getElementById('projGrid');if(!grid||grid.__kpCanonicalObserver)return;grid.__kpCanonicalObserver=true;new MutationObserver(function(){requestAnimationFrame(paintCards);}).observe(grid,{childList:true,subtree:true});paintCards();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installObserver);else installObserver();setTimeout(installObserver,500);setTimeout(paintCards,900);setTimeout(function(){try{if(typeof CUR_PROJ!=='undefined'&&CUR_PROJ&&typeof renderProjectViewStable==='function')renderProjectViewStable(CUR_PROJ);}catch(e){}},1200);
-window.__KP_BUILD__='2026-09-19-v52-legacy-month-submit-fix';
+window.__KP_BUILD__='2026-09-20-v53-detailed-after-hours-excel';
 })();
 </script>
 
@@ -120124,7 +120124,7 @@ window.kpActualProjectPct=function(p){
 };
 window.overallPct=window.kpActualProjectPct;
 try{overallPct=window.overallPct;}catch(e){}
-window.__KP_BUILD__='2026-09-19-v52-legacy-month-submit-fix';
+window.__KP_BUILD__='2026-09-20-v53-detailed-after-hours-excel';
 })();
 </script>
 <style id="kp-project-card-progress-v37">
@@ -120163,7 +120163,7 @@ window.__KP_BUILD__='2026-09-19-v52-legacy-month-submit-fix';
 }
 </style>
 <script id="kp-project-card-progress-v37-build">
-window.__KP_BUILD__='2026-09-19-v52-legacy-month-submit-fix';
+window.__KP_BUILD__='2026-09-20-v53-detailed-after-hours-excel';
 </script>
 
 <!-- v44 — Systems & Applications has one read-only calculation source:
@@ -120273,7 +120273,7 @@ function observeCards(){var grid=document.getElementById('engGrid');if(!grid||gr
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',observeCards);else observeCards();
 setTimeout(observeCards,350);setTimeout(paintOuterCards,850);
 setTimeout(function(){try{if(typeof CUR_PROJ!=='undefined'&&CUR_PROJ===P1&&typeof renderProjectViewStable==='function')renderProjectViewStable(P1);}catch(e){}},900);
-window.__KP_BUILD__='2026-09-19-v52-legacy-month-submit-fix';
+window.__KP_BUILD__='2026-09-20-v53-detailed-after-hours-excel';
 })();
 </script>
 
@@ -120367,11 +120367,43 @@ window.ahTrackerCurrent=function(){S.trackerMonth=nowMonth();drawInbox();};
 window.ahTrackerFilter=function(kind,value){if(kind==='search')S.trackerSearch=String(value||'').trim();if(kind==='project')S.trackerProject=String(value||'');if(kind==='status')S.trackerStatus=String(value||'');drawInbox();};
 window.ahTrackerOpen=function(rid){var month=trackerMonth();window.closeAfterHoursInbox();window.openAfterHoursProfile(rid);S.month=month;S.day=month===nowMonth()?today():month+'-01';S.edit=null;draw();};
 window.ahExportTracker=function(){if(!isHR()&&!isSuper())return;var month=trackerMonth(),rows=trackerRows(),summary=[['HR MONTHLY AFTER-HOURS TRACKER'],['Month',month],['Generated At',new Date().toLocaleString()],[],['Employee ID','Employee','Job Title','Department','Entries','Approved Hours','Pending Hours','Waiting HR Count','Returned / Rejected','Recorded Hours','Month Closed']],details=[['Employee ID','Employee','Month','Date','Project','Description','Start','End','Hours','Location','Reason','Evidence','Manager Approver','Status','Manager Approved By','Manager Approved At','HR Final Approved By','HR Final Approved At','Decision Note']];rows.forEach(function(z){summary.push([z.r.empId||z.r.id,z.r.name||'',z.r.position||'',z.r.dept||'',z.list.length,z.approved,z.manager+z.submitted,z.list.filter(function(x){return x.status==='Manager Approved';}).length,z.returned+z.rejected,z.total,z.closed?'Yes':'No']);z.list.forEach(function(x){details.push([z.r.empId||z.r.id,z.r.name||'',month,x.date||'',x.project||'',x.description||'',x.start||'',x.end||'',+x.hours||0,x.location||'',x.reason||'',x.evidence||'',x.approver||'',x.status||'',x.managerApprovedBy||'',x.managerApprovedAt||'',x.hrApprovedBy||'',x.hrApprovedAt||'',x.decisionNote||'']);});});function go(){try{var wb=XLSX.utils.book_new(),ws1=XLSX.utils.aoa_to_sheet(summary),ws2=XLSX.utils.aoa_to_sheet(details);ws1['!cols']=[{wch:14},{wch:28},{wch:24},{wch:22},{wch:10},{wch:16},{wch:15},{wch:16},{wch:19},{wch:16},{wch:14}];ws2['!cols']=[{wch:14},{wch:28},{wch:12},{wch:13},{wch:24},{wch:44},{wch:10},{wch:10},{wch:10},{wch:13},{wch:30},{wch:30},{wch:26},{wch:18},{wch:26},{wch:22},{wch:26},{wch:22},{wch:30}];ws1['!freeze']={xSplit:2,ySplit:5,topLeftCell:'C6',activePane:'bottomRight',state:'frozen'};ws2['!freeze']={xSplit:2,ySplit:1,topLeftCell:'C2',activePane:'bottomRight',state:'frozen'};if(summary.length>5)ws1['!autofilter']={ref:'A5:K'+summary.length};if(details.length>1)ws2['!autofilter']={ref:'A1:S'+details.length};XLSX.utils.book_append_sheet(wb,ws1,'Monthly Summary');XLSX.utils.book_append_sheet(wb,ws2,'Request Details');XLSX.writeFile(wb,'HR_After_Hours_'+month+'.xlsx');notice('HR monthly Excel downloaded');}catch(err){console.error('[HR Monthly Tracker export]',err);notice('Excel export failed');}}if(window.XLSX)go();else if(typeof loadXLSX==='function')loadXLSX(go);else notice('Excel library is unavailable');};
+/* v53 — HR evidence-grade Excel export. One row per activity with the full
+   manager/HR approval chain, timestamps, business detail and audit history. */
+window.ahExportTracker=function(){
+  if(!isHR()&&!isSuper())return;
+  var month=trackerMonth(),p=project(),search=norm(S.trackerSearch),projectFilter=norm(S.trackerProject),statusFilter=S.trackerStatus||'',summary=[['HR MONTHLY AFTER-HOURS TRACKER'],['Month',month],['Generated At',new Date().toLocaleString()],['Generated By',actor()],[],['Employee ID','Employee','Job Title','Department','Entries','Approved Hours','Pending Hours','Waiting HR','Returned / Rejected','Recorded Hours','Month Status','Closed By','Closed At']],details=[['Request ID','Employee ID','Employee','Job Title','Department','Month','Work Date','Project / Assignment','Work Completed / Activity','Reason / Business Need','Start Time','End Time','Hours','Location','Evidence / Reference','Selected Manager Approver','Request Status','Submitted At','Manager Approval Status','Manager Approved By','Manager Approved At','HR Final Approval Status','HR Final Approved By','HR Final Approved At','Decision By','Decision At','Return / Rejection Reason','Created At','Last Updated At','Month Status','Month Closed By','Month Closed At','Full Audit Trail']];
+  function monthEntries(r){var m=monthData(r,month,false);if(!m)return[];if(Array.isArray(m.entries))return m.entries;if(m.entries&&typeof m.entries==='object')return Object.keys(m.entries).map(function(k){return m.entries[k];}).filter(Boolean);return[];}
+  function matchesStatus(x){if(!statusFilter)return true;if(statusFilter==='Pending')return x.status==='Submitted'||x.status==='Manager Approved';return x.status===statusFilter;}
+  function stamp(v){if(!v)return'';var d=new Date(v);return isNaN(d.getTime())?String(v):d.toLocaleString();}
+  function auditTrail(x){return (Array.isArray(x.audit)?x.audit:[]).map(function(a){return [a.action||'Activity',a.by?'By: '+a.by:'',a.at?'At: '+stamp(a.at):'',a.note?'Note: '+a.note:''].filter(Boolean).join(' | ');}).join('\n');}
+  (p&&p.resources||[]).forEach(function(r){
+    var searchable=norm([r.name,r.nameAr,r.empId,r.id,r.position,r.dept].join(' '));if(search&&searchable.indexOf(search)<0)return;
+    var m=monthData(r,month,false),all=monthEntries(r),list=all.filter(function(x){return (!projectFilter||norm(x.project)===projectFilter)&&matchesStatus(x);});if((projectFilter||statusFilter)&&!list.length)return;
+    var approved=0,pending=0,waitingHR=0,returned=0,total=0;
+    list.forEach(function(x){var h=+x.hours||0;total+=h;if(x.status==='Approved')approved+=h;if(x.status==='Submitted'||x.status==='Manager Approved')pending+=h;if(x.status==='Manager Approved')waitingHR++;if(x.status==='Returned'||x.status==='Rejected')returned++;
+      var managerState=x.managerApprovedBy?'Approved':(x.status==='Submitted'?'Pending':(x.status==='Returned'||x.status==='Rejected'?x.status:'Not Reached'));
+      var hrState=x.status==='Approved'?'Approved':(x.status==='Manager Approved'?'Pending':(x.status==='Returned'||x.status==='Rejected'?x.status:'Not Reached'));
+      details.push([x.id||'',r.empId||r.id||'',r.name||'',r.position||'',r.dept||'',month,x.date||'',x.project||'',x.description||'',x.reason||'',x.start||'',x.end||'',+x.hours||0,x.location||'',x.evidence||'',x.approver||'',x.status||'',stamp(x.employeeSubmittedAt),managerState,x.managerApprovedBy||'',stamp(x.managerApprovedAt),hrState,x.hrApprovedBy||'',stamp(x.hrApprovedAt),x.decisionBy||'',stamp(x.decisionAt),x.decisionNote||'',stamp(x.createdAt),stamp(x.updatedAt),m&&m.closed?'Closed':'Open',m&&m.closedBy||'',stamp(m&&m.closedAt),auditTrail(x)]);
+    });
+    summary.push([r.empId||r.id||'',r.name||'',r.position||'',r.dept||'',list.length,approved,pending,waitingHR,returned,total,m&&m.closed?'Closed':'Open',m&&m.closedBy||'',stamp(m&&m.closedAt)]);
+  });
+  function go(){try{
+    var wb=XLSX.utils.book_new(),ws1=XLSX.utils.aoa_to_sheet(summary),ws2=XLSX.utils.aoa_to_sheet(details),headStyle={font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'20252D'}},alignment:{vertical:'center',wrapText:true}},titleStyle={font:{bold:true,color:{rgb:'FFFFFF'},sz:16},fill:{fgColor:{rgb:'B20D2A'}}};
+    ws1['!cols']=[{wch:14},{wch:28},{wch:24},{wch:22},{wch:10},{wch:16},{wch:15},{wch:12},{wch:20},{wch:16},{wch:14},{wch:25},{wch:22}];
+    ws2['!cols']=[{wch:18},{wch:14},{wch:28},{wch:24},{wch:22},{wch:10},{wch:13},{wch:28},{wch:48},{wch:36},{wch:11},{wch:11},{wch:9},{wch:13},{wch:34},{wch:28},{wch:20},{wch:22},{wch:22},{wch:27},{wch:22},{wch:24},{wch:27},{wch:22},{wch:24},{wch:22},{wch:34},{wch:22},{wch:22},{wch:14},{wch:24},{wch:22},{wch:60}];
+    ws1['!freeze']={xSplit:2,ySplit:6,topLeftCell:'C7',activePane:'bottomRight',state:'frozen'};ws2['!freeze']={xSplit:3,ySplit:1,topLeftCell:'D2',activePane:'bottomRight',state:'frozen'};
+    if(summary.length>6)ws1['!autofilter']={ref:'A6:M'+summary.length};if(details.length>1)ws2['!autofilter']={ref:'A1:AG'+details.length};
+    if(ws1.A1)ws1.A1.s=titleStyle;for(var c1=0;c1<13;c1++){var a1=XLSX.utils.encode_cell({r:5,c:c1});if(ws1[a1])ws1[a1].s=headStyle;}for(var c2=0;c2<33;c2++){var a2=XLSX.utils.encode_cell({r:0,c:c2});if(ws2[a2])ws2[a2].s=headStyle;}
+    ws1['!rows']=[{hpt:26},null,null,null,null,{hpt:34}];ws2['!rows']=[{hpt:42}];
+    XLSX.utils.book_append_sheet(wb,ws1,'Monthly Summary');XLSX.utils.book_append_sheet(wb,ws2,'Activity Approval Details');XLSX.writeFile(wb,'HR_After_Hours_Detailed_'+month+'.xlsx');notice('Detailed activity and approval Excel downloaded');
+  }catch(err){console.error('[Detailed HR Excel export]',err);notice('Detailed Excel export failed');}}
+  if(window.XLSX)go();else if(typeof loadXLSX==='function')loadXLSX(go);else notice('Excel library is unavailable');
+};
 window.ahInboxOpen=function(rid,month,date){window.closeAfterHoursInbox();window.openAfterHoursProfile(rid);S.month=month;S.day=date;draw();};
 window.ahInboxDecision=function(rid,month,id,status){S.rid=rid;S.month=month;S.day=month+'-01';window.ahDecision(id,status);drawInbox();};
 window.ahInboxDelete=function(rid,month,id){S.rid=rid;S.month=month;window.ahDeleteEntry(id);drawInbox();};
 window.ahExportMonth=function(){var r=resource(),list=entries(),rows=[['Employee ID','Employee','Month','Date','Project','Description','Start','End','Hours','Location','Reason','Evidence','Approver','Status','Decision By','Decision At','Decision Note']];list.forEach(function(x){rows.push([r.empId||r.id,r.name,S.month,x.date,x.project,x.description,x.start,x.end,x.hours,x.location,x.reason,x.evidence,x.approver,x.status,x.decisionBy||'',x.decisionAt||'',x.decisionNote||'']);});var csv=rows.map(function(row){return row.map(function(v){var s=String(v==null?'':v);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}).join(',');}).join('\n'),b=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='After_Hours_'+String(r.name||'Employee').replace(/[^a-z0-9]+/gi,'_')+'_'+S.month+'.csv';document.body.appendChild(a);a.click();a.remove();};
-window.__KP_BUILD__='2026-09-19-v52-legacy-month-submit-fix';
+window.__KP_BUILD__='2026-09-20-v53-detailed-after-hours-excel';
 })();
 </script>
 
@@ -120384,7 +120416,7 @@ window.__KP_BUILD__='2026-09-19-v52-legacy-month-submit-fix';
 <script id="kp-universal-firebase-save-v31">
 (function(){
 'use strict';
-if(window.__kpUniversalFirebaseSaveV31)return;window.__kpUniversalFirebaseSaveV31=true;window.__KP_BUILD__='2026-09-19-v52-legacy-month-submit-fix';
+if(window.__kpUniversalFirebaseSaveV31)return;window.__kpUniversalFirebaseSaveV31=true;window.__KP_BUILD__='2026-09-20-v53-detailed-after-hours-excel';
 var jobs={},sigs={},scanReady=false,remoteInstalling=false;
 function cp(x){try{return JSON.parse(JSON.stringify(x));}catch(e){return x;}}
 function lists(){var a=[],b=[];try{a=STORE&&Array.isArray(STORE.projects)?STORE.projects:[];}catch(e){}try{b=STORE&&STORE.engagements&&STORE.engagements[0]&&Array.isArray(STORE.engagements[0].projects)?STORE.engagements[0].projects:[];}catch(e){}return{top:a,eng:b};}
@@ -120440,7 +120472,7 @@ body.kp-remote-patch #hubView *{transition:none!important;animation:none!importa
 (function(){
 'use strict';
 if(window.__kpProjectPositionV35)return;window.__kpProjectPositionV35=true;
-window.__KP_BUILD__='2026-09-19-v52-legacy-month-submit-fix';
+window.__KP_BUILD__='2026-09-20-v53-detailed-after-hours-excel';
 
 var OPENING=false,RENDERING=false;
 var SELECTORS=['.pv-body','.phase-matrix-wrap','.site-table-wrap','.gantt-wrap',
