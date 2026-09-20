@@ -447,14 +447,15 @@ table.t .ref{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--
 
 var SK='kp_services_v1';
 var ROOM_DEFAULT='asimati-services';
-var PORTAL_BUILD='2026.08.26.24';
+var PORTAL_BUILD='2026.09.20.24';
 /* Meeting invitations must open the standalone hosted page. Loading the hub
    through an iframe/srcdoc gives it an about: URL, which is confusing for
    browser permission checks and makes troubleshooting microphone access much
    harder. Keep the meeting on the real Firebase HTTPS origin instead. */
 var PUBLIC_PORTAL_URL='https://knowledge-papers.web.app/services_portal.html?v=24';
 var MAIN_PORTAL_URL='https://knowledge-papers.web.app/';
-var ANNOUNCEMENT_EMAIL_ENDPOINT='https://me-central1-knowledge-papers.cloudfunctions.net/announcementEmail';
+var ANNOUNCEMENT_GROUP_EMAIL='all-employees@knowledgepapers.iq';
+var ANNOUNCEMENT_AUTHORIZED_NAMES=['athraa jumaah hassan','sally qayser omran'];
 var GOOGLE_OAUTH_CLIENT_ID='602139029671-81nqjdon7ek9f5vlsbjmff1d2pqd5nq9.apps.googleusercontent.com';
 var GOOGLE_MEET_SCOPE='https://www.googleapis.com/auth/meetings.space.created';
 var GOOGLE_CALENDAR_SCOPE='https://www.googleapis.com/auth/calendar.events';
@@ -3436,93 +3437,16 @@ function vrLeave(goBack){
 /* ═══════════════════════════════════════════════════════════════════════════
    SYNC — its own room, never the projects room
    ═══════════════════════════════════════════════════════════════════════════ */
-var SY={ cfg:null, room:null, ref:null, announcementRef:null, on:false, base:null, writable:false };
-var ANNOUNCEMENT_OUTBOX_KEY='kp_services_announcements_outbox_v1';
-var ANNOUNCEMENT_MIGRATION_KEY='kp_services_announcements_v24_migrated';
-
-function announcementListCopy(list){
-  return JSON.parse(JSON.stringify(Array.isArray(list)?list:[]));
-}
-function queueAnnouncementsForSync(){
-  try{localStorage.setItem(ANNOUNCEMENT_OUTBOX_KEY,JSON.stringify(STORE.announcements||[]));}catch(e){}
-}
-function readAnnouncementOutbox(){
-  try{var v=JSON.parse(localStorage.getItem(ANNOUNCEMENT_OUTBOX_KEY)||'[]');return Array.isArray(v)?v:[];}catch(e){return [];}
-}
-function clearAnnouncementOutbox(){
-  try{localStorage.removeItem(ANNOUNCEMENT_OUTBOX_KEY);}catch(e){}
-}
-function mergeAnnouncementLists(remote,local){
-  var out=[],byId={};
-  announcementListCopy(remote).forEach(function(a){if(!a||!a.id)return;byId[a.id]=a;out.push(a);});
-  announcementListCopy(local).forEach(function(a){
-    if(!a||!a.id)return;
-    var old=byId[a.id];
-    if(!old){byId[a.id]=a;out.push(a);return;}
-    var oldAt=String(old.updated||old.created||''),newAt=String(a.updated||a.created||'');
-    if(newAt>=oldAt){var i=out.findIndex(function(x){return x.id===a.id;});if(i>=0)out[i]=a;byId[a.id]=a;}
-  });
-  return out.sort(function(a,b){return String(b.publishAt||b.created||'').localeCompare(String(a.publishAt||a.created||''));});
-}
-function syncAnnouncementsNow(){
-  queueAnnouncementsForSync();
-  var list=announcementListCopy(STORE.announcements||[]),writes=[];
-  /* Announcements are mirrored to the proven main-portal room as well as the
-     Services room. This keeps company notices available even when database
-     rules allow the main portal but block a newly introduced Services room. */
-  if(SY.announcementRef)writes.push(SY.announcementRef.set(list));
-  if(SY.ref&&SY.writable)writes.push(SY.ref.child('announcements').set(list));
-  if(!writes.length){
-    toast('Saved on this device. It will publish automatically when Live connects.',false);
-    return Promise.resolve(false);
-  }
-  return Promise.allSettled(writes).then(function(results){
-    var ok=results.some(function(x){return x.status==='fulfilled';});
-    if(ok){
-      clearAnnouncementOutbox();
-      if(SY.base)SY.base.announcements=announcementListCopy(list);
-      toast('Announcement published to the team',true);
-      return true;
-    }
-    var failed=results[0]&&results[0].reason;
-    toast('Saved locally, but team publishing failed: '+(failed&&failed.message||failed||'database rejected the write'),false);
-    return false;
-  });
-}
-
-function startSharedAnnouncementBridge(){
-  if(SY.announcementRef)try{SY.announcementRef.off('value');}catch(e){}
-  SY.announcementRef=firebase.database().ref('portals/asimati-hub-v2/workplaceAnnouncements');
-  SY.announcementRef.on('value',function(s){
-    var remote=s.val();
-    if(remote!=null&&!Array.isArray(remote))return;
-    if(remote==null){
-      var queued=readAnnouncementOutbox();
-      if(ME&&ME.role==='admin'&&(queued.length||(STORE.announcements||[]).length)){syncAnnouncementsNow();return;}
-      if((STORE.announcements||[]).length&&(!ME||ME.role!=='admin')){
-        STORE.announcements=[];try{localStorage.setItem(SK,JSON.stringify(STORE));}catch(e){}render();
-      }
-      return;
-    }
-    var merged=mergeAnnouncementLists(remote,readAnnouncementOutbox());
-    if(JSON.stringify(STORE.announcements||[])===JSON.stringify(merged))return;
-    STORE.announcements=merged;
-    try{localStorage.setItem(SK,JSON.stringify(STORE));}catch(e){}
-    if(VIEW!=='virtual')render();
-  },function(e){console.warn('shared announcement bridge failed',e);});
-}
+var SY={ cfg:null, room:null, ref:null, on:false, base:null, writable:false };
 
 function loadSync(){
   var c=null;
   try{
     c=JSON.parse(localStorage.getItem('kp_services_sync')||'null');
   }catch(e){}
-  /* Production is deliberately pinned to one Firebase database and one room.
-     Previous builds allowed every device to retain a custom room, which made
-     an announcement appear only to the device that created it. */
-  SY.cfg=Object.assign({},FIREBASE_DEFAULT);
-  SY.room=ROOM_DEFAULT;
-  try{localStorage.setItem('kp_services_sync',JSON.stringify({databaseURL:FIREBASE_DEFAULT.databaseURL,room:ROOM_DEFAULT}));}catch(e){}
+  c=c||{};
+  SY.cfg=Object.assign({},FIREBASE_DEFAULT,{databaseURL:c.databaseURL||FIREBASE_DEFAULT.databaseURL});
+  SY.room=(c.room&&c.room!=='asimati-hub-v2')?c.room:ROOM_DEFAULT;
   initSync();
 }
 function paintSync(){
@@ -3538,25 +3462,32 @@ function openSync(){
     +'<div class="mod-s">Knowledge Papers Firebase · portals/'+ROOM_DEFAULT+(canEdit?'':' · Admin-only settings')+'</div></div>'
     +'<button class="mod-x" id="sx">&times;</button></div><div class="mod-b"><div class="form">'
     +'<div class="fld wide"><label>Firebase database URL</label>'
-      +'<input id="sUrl" value="'+esc(FIREBASE_DEFAULT.databaseURL)+'" disabled></div>'
-    +'<div class="fld wide"><label>Room</label><input id="sRoom" value="'+ROOM_DEFAULT+'" disabled>'
-      +'<div class="hint">Production is locked to this shared room so announcements and requests appear on every team device. The projects room remains separate.</div></div>'
+      +'<input id="sUrl" placeholder="https://your-project-default-rtdb.firebaseio.com" value="'+esc(cur.databaseURL||FIREBASE_DEFAULT.databaseURL)+'"'+(canEdit?'':' disabled')+'></div>'
+    +'<div class="fld wide"><label>Room</label><input id="sRoom" value="'+esc(cur.room||ROOM_DEFAULT)+'"'+(canEdit?'':' disabled')+'>'
+      +'<div class="hint">This portal keeps its own room. Do not point it at the projects room '
+      +'(<code>asimati-hub-v2</code>) \u2014 the two hold different shapes of data and would overwrite each other.</div></div>'
     +'<div class="fld wide"><label>Meeting media</label><div class="hint">Google Meet is the primary meeting service. LiveKit Cloud remains the internal backup. '
     +'Google access tokens stay only in page memory; LiveKit API secrets stay only in the secure Firebase Function.</div></div>'
     +'</div></div><div class="mod-f"><div class="grow"></div>'
     +'<button class="btn" id="sc">'+(canEdit?'Cancel':'Close')+'</button>'
-    +(canEdit?'<button class="btn btn-p" id="ss">Reconnect to production</button>':'')+'</div></div>';
+    +(canEdit?'<button class="btn btn-p" id="ss">Save and connect</button>':'')+'</div></div>';
   document.body.appendChild(m);
   var close=function(){ m.remove(); };
   m.querySelector('#sx').onclick=close; m.querySelector('#sc').onclick=close;
   m.addEventListener('click',function(e){ if(e.target===m) close(); });
   if(!canEdit)return;
   m.querySelector('#ss').onclick=function(){
+    var url=m.querySelector('#sUrl').value.trim(), room=m.querySelector('#sRoom').value.trim()||ROOM_DEFAULT;
+    if(room==='asimati-hub-v2'){
+      toast('That is the projects room. Pick a different room name for this portal.',false); return;
+    }
     try{
-      localStorage.setItem('kp_services_sync',JSON.stringify({databaseURL:FIREBASE_DEFAULT.databaseURL,room:ROOM_DEFAULT}));
+      localStorage.setItem('kp_services_sync',JSON.stringify({databaseURL:url,room:room}));
     }catch(e){}
+    save();
     close();
-    SY.cfg=Object.assign({},FIREBASE_DEFAULT);SY.room=ROOM_DEFAULT;initSync();
+    if(url){ SY.cfg=Object.assign({},FIREBASE_DEFAULT,{databaseURL:url}); SY.room=room; initSync(); }
+    else { toast('Saved. Add a database URL to sync with your team.',true); }
   };
 }
 function loadScript(src){
@@ -3584,15 +3515,10 @@ async function initSync(){
 /* One authoritative read, then targeted listeners — never a permanent root
    subscription, which is what made the projects portal expensive. */
 function bootstrapSync(){
-  var localBefore=announcementListCopy(STORE.announcements||[]);
-  var queuedBefore=readAnnouncementOutbox();
-  var legacyRescueAllowed=true;
-  try{legacyRescueAllowed=localStorage.getItem(ANNOUNCEMENT_MIGRATION_KEY)!=='1';}catch(e){}
   var settled=false;
   var timer=setTimeout(function(){
     if(settled) return; settled=true;
     SY.writable=false; paintSync();
-    startSharedAnnouncementBridge();
     toast('The database did not respond. Working offline; your changes stay on this device.',false);
   },12000);
   SY.ref.once('value').then(function(snap){
@@ -3603,10 +3529,6 @@ function bootstrapSync(){
       STORE=d; normalise();
       try{ localStorage.setItem(SK,JSON.stringify(STORE)); }catch(e){}
     }
-    /* Recover an admin announcement that an older build saved only locally,
-       then publish it to the shared production room. */
-    var rescue=queuedBefore.length?queuedBefore:((legacyRescueAllowed&&ME&&ME.role==='admin')?localBefore:[]);
-    if(rescue.length)STORE.announcements=mergeAnnouncementLists(STORE.announcements||[],rescue);
     applyPortalLink();
     SY.base=JSON.parse(JSON.stringify(strip(STORE)));
     SY.writable=true; paintSync();
@@ -3616,24 +3538,12 @@ function bootstrapSync(){
          never create partial Firebase rows. */
       SY.ref.child('contacts').set(STORE.contacts||[]).catch(function(e){console.warn('directory sync failed',e);});
     }
-    /* Attach Services listeners first, then attach the authoritative shared
-       announcement listener last. An empty Services snapshot must never erase
-       a notice already received from the main portal room. */
     watchLive();
-    startSharedAnnouncementBridge();
-    if(rescue.length){
-      syncAnnouncementsNow().then(function(ok){if(ok){
-        clearAnnouncementOutbox();
-        try{localStorage.setItem(ANNOUNCEMENT_MIGRATION_KEY,'1');}catch(e){}
-        if(SY.base)SY.base.announcements=announcementListCopy(STORE.announcements||[]);
-      }}).catch(function(e){console.warn('announcement recovery failed',e);});
-    }else try{localStorage.setItem(ANNOUNCEMENT_MIGRATION_KEY,'1');}catch(e){}
     render();
     toast('Connected to '+SY.room,true);
   }).catch(function(e){
     if(settled) return; settled=true; clearTimeout(timer);
     SY.writable=false; paintSync();
-    startSharedAnnouncementBridge();
     toast('Sync failed: '+(e&&e.message||e),false);
   });
 }
@@ -3648,7 +3558,7 @@ function strip(o){
 }
 /* Watch shared operational and Admin-managed branches. */
 function watchLive(){
-  ['people','contacts','resourceDirectory','auditLog','services','requests','bookings','vrooms','rooms','fleet','catalog'].forEach(function(k){
+  ['people','contacts','resourceDirectory','announcements','auditLog','services','requests','bookings','vrooms','rooms','fleet','catalog'].forEach(function(k){
     SY.ref.child(k).on('value',function(s){
       var v=s.val();
       if(k==='catalog'){ if(!v||typeof v!=='object') return; }
@@ -3812,12 +3722,35 @@ function announcementVisible(a){
 function visibleAnnouncements(){return (STORE.announcements||[]).filter(announcementVisible).sort(function(a,b){return String(b.publishAt||b.created||'').localeCompare(String(a.publishAt||a.created||''));});}
 function announcementRead(a){return !!(ME&&a.readBy&&a.readBy[ME.id]);}
 function unreadAnnouncements(){return visibleAnnouncements().filter(function(a){return !announcementRead(a);});}
+function announcementUserName(){
+  var p=currentUserProfile();
+  return String((p&&p.name)||(ME&&ME.name)||'').trim().toLowerCase().replace(/\s+/g,' ');
+}
+function canManageAnnouncements(){return isAdmin()||ANNOUNCEMENT_AUTHORIZED_NAMES.indexOf(announcementUserName())>=0;}
+function announcementEmailText(a){
+  return [
+    'Dear all,','',
+    a.message||'', '',
+    'Priority: '+String(a.priority||'normal').replace(/^./,function(c){return c.toUpperCase();}),
+    'Published by: '+((ME&&ME.name)||a.createdBy||'HR'),
+    'Published: '+fmtWhen(a.publishAt||a.created), '',
+    'This announcement is also available in Work Place Hub:',
+    'https://knowledge-papers.web.app/services_portal.html', '',
+    'Best regards,','Knowledge Papers'
+  ].join('\r\n');
+}
+function emailAnnouncement(id){
+  if(!canManageAnnouncements()){toast('Announcement publishing access is required',false);return;}
+  var a=(STORE.announcements||[]).find(function(x){return x.id===id;});if(!a)return;
+  var subject=(a.priority==='urgent'?'URGENT — ':'')+a.title;
+  window.location.href='mailto:'+encodeURIComponent(ANNOUNCEMENT_GROUP_EMAIL)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(announcementEmailText(a));
+}
 function announcementCard(a,compact){
   var cls=a.priority==='urgent'?'c-no':(a.priority==='important'?'c-wait':'c-info');
   return '<div class="card announcement-card" style="border-left:4px solid '+(a.priority==='urgent'?'#b42318':(a.priority==='important'?'#c08a2e':'#2f6db1'))+'"><div class="card-h"><div class="card-t"><span class="ico">'+ico('bell')+'</span>'+esc(a.title)+'</div><span class="chip '+cls+'"><i></i>'+esc(a.priority||'normal')+'</span></div>'
     +'<div class="card-b"><div style="white-space:pre-wrap;line-height:1.65">'+esc(a.message||'')+'</div><div style="display:flex;gap:8px;align-items:center;margin-top:12px;color:var(--muted);font-size:11px">'
     +'<span>'+fmtWhen(a.publishAt||a.created)+'</span><span>·</span><span>'+esc(a.audience==='all'?'Everyone':String(a.audience||'').replace('dept:',''))+'</span><span class="grow"></span>'
-    +(isAdmin()?'<button class="btn btn-sm" onclick="announcementEditor(\''+a.id+'\')">'+ico('edit')+'Edit</button>':'')
+    +(canManageAnnouncements()?'<button class="btn btn-sm" onclick="emailAnnouncement(\''+a.id+'\')">'+ico('mail')+'Email all employees</button> ':'')
     +(!announcementRead(a)?'<button class="btn btn-sm" onclick="markAnnouncementRead(\''+a.id+'\')">Mark as read</button>':'<span class="chip c-ok"><i></i>Read</span>')+'</div></div></div>';
 }
 function announcementDashboard(){
@@ -3827,93 +3760,40 @@ function announcementDashboard(){
 }
 function vAnnouncements(){
   var list=visibleAnnouncements();
-  return pageHead('Announcements','Official company updates published through Work Place Hub.',isAdmin()?'<button class="btn btn-p" onclick="announcementEditor()">'+ico('plus')+'New announcement</button>':'')
+  return pageHead('Announcements','Official company updates published through Work Place Hub.',canManageAnnouncements()?'<button class="btn btn-p" onclick="announcementEditor()">'+ico('plus')+'New announcement</button>':'')
+    +'<div class="card" style="margin-bottom:14px;border-left:4px solid var(--green)"><div class="card-b" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><span class="ico">'+ico('mail')+'</span><div><b>Company-wide email distribution</b><div style="color:var(--muted);font-size:12px;margin-top:3px">Announcements can be emailed to every employee through this group.</div></div><a class="btn" href="mailto:'+ANNOUNCEMENT_GROUP_EMAIL+'">'+ANNOUNCEMENT_GROUP_EMAIL+'</a></div></div>'
     +'<div class="stack">'+(list.map(function(a){return announcementCard(a,false);}).join('')||'<div class="card"><div class="t-empty"><b>No announcements</b>Published company notices will appear here.</div></div>')+'</div>';
 }
 function markAnnouncementRead(id){
   if(!ME){openWho(true);return;}var a=(STORE.announcements||[]).find(function(x){return x.id===id;});if(!a)return;
   if(!a.readBy||typeof a.readBy!=='object')a.readBy={};a.readBy[ME.id]=nowISO();save();render();
 }
-function announcementEmailRecipientCount(a){
-  var seen={},n=0,audience=(a&&a.audience)||'all';
-  (STORE.contacts||[]).forEach(function(c){
-    var email=String(c.email||'').trim().toLowerCase();
-    if(!email||c.active===false||seen[email])return;
-    if(audience!=='all'&&audience!=='dept:'+c.dept)return;
-    seen[email]=1;n++;
-  });
-  return n;
-}
-async function emailAnnouncement(id,button){
-  if(!isAdmin()){toast('Admin access is required',false);return false;}
-  var a=(STORE.announcements||[]).find(function(x){return x.id===id;});
-  if(!a){toast('Announcement was not found',false);return false;}
-  var count=announcementEmailRecipientCount(a);
-  if(!count){toast('No company email addresses match this audience',false);return false;}
-  var oldText=button&&button.textContent;
-  if(button){button.disabled=true;button.textContent='Sending…';}
-  try{
-    var response=await fetch(ANNOUNCEMENT_EMAIL_ENDPOINT,{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({announcementId:id})
-    });
-    var result={};try{result=await response.json();}catch(e){}
-    if(!response.ok||result.ok===false)throw new Error(result.error||('Email service returned '+response.status));
-    var latest=(STORE.announcements||[]).find(function(x){return x.id===id;})||a;
-    latest.emailSentAt=result.sentAt||nowISO();latest.emailRecipientCount=+result.sent||count;
-    save();render();
-    toast('Announcement emailed to '+latest.emailRecipientCount+' team member'+(latest.emailRecipientCount===1?'':'s'),true);
-    return true;
-  }catch(e){
-    toast('Announcement is shared, but email failed: '+(e&&e.message||e),false);
-    return false;
-  }finally{
-    if(button&&document.body.contains(button)){button.disabled=false;button.textContent=oldText;}
-  }
-}
 function adminAnnouncementPanel(){
   if(!isAdmin())return '';
-  var rows=(STORE.announcements||[]).map(function(a){return '<tr><td><b>'+esc(a.title)+'</b><br><span style="font-size:11px;color:var(--muted)">'+esc(a.message||'').slice(0,90)+'</span></td><td>'+esc(a.priority||'normal')+'</td><td>'+esc(a.audience==='all'?'Everyone':String(a.audience||'').replace('dept:',''))+'</td><td>'+fmtWhen(a.publishAt||a.created)+'</td><td>'+(a.active!==false?'<span class="chip c-ok"><i></i>Active</span>':'<span class="chip c-done"><i></i>Hidden</span>')+'</td><td>'+(a.emailSentAt?'<span class="chip c-ok"><i></i>Sent to '+esc(a.emailRecipientCount||'team')+'</span><br><span style="font-size:10px;color:var(--muted)">'+fmtWhen(a.emailSentAt)+'</span>':'<span class="chip c-wait"><i></i>Not sent</span>')+'</td><td style="white-space:nowrap"><button class="btn btn-sm" onclick="announcementEditor(\''+a.id+'\')">'+ico('edit')+'Edit</button> <button class="btn btn-sm" onclick="emailAnnouncement(\''+a.id+'\',this)">'+ico('mail')+'Email</button> <button class="btn btn-sm btn-d" onclick="removeAnnouncement(\''+a.id+'\')">'+ico('trash')+'</button></td></tr>';}).join('');
-  return '<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('bell')+'</span>Announcements</div><button class="btn btn-sm btn-p" onclick="announcementEditor()">'+ico('plus')+'New announcement</button></div><div class="tw" style="border:0;border-radius:0"><table class="t"><thead><tr><th>Announcement</th><th>Priority</th><th>Audience</th><th>Publish</th><th>Status</th><th>Email</th><th>Actions</th></tr></thead><tbody>'+(rows||emptyRow(7,'No announcements','Publish the first company notice.'))+'</tbody></table></div></div>';
-}
-function baghdadInputFromISO(iso){
-  if(!iso)return '';
-  var d=new Date(iso);if(isNaN(d))return '';
-  var parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Baghdad',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(d).reduce(function(o,p){o[p.type]=p.value;return o;},{});
-  return parts.year+'-'+parts.month+'-'+parts.day+'T'+parts.hour+':'+parts.minute;
-}
-function baghdadInputToISO(value){
-  var m=String(value||'').match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-  if(!m)return '';
-  // Baghdad is UTC+03:00 throughout the year. Parse independently of the PC timezone.
-  return new Date(Date.UTC(+m[1],+m[2]-1,+m[3],+m[4]-3,+m[5])).toISOString();
+  var rows=(STORE.announcements||[]).map(function(a){return '<tr><td><b>'+esc(a.title)+'</b><br><span style="font-size:11px;color:var(--muted)">'+esc(a.message||'').slice(0,90)+'</span></td><td>'+esc(a.priority||'normal')+'</td><td>'+esc(a.audience==='all'?'Everyone':String(a.audience||'').replace('dept:',''))+'</td><td>'+fmtWhen(a.publishAt||a.created)+'</td><td>'+(a.active!==false?'<span class="chip c-ok"><i></i>Active</span>':'<span class="chip c-done"><i></i>Hidden</span>')+'</td><td style="white-space:nowrap"><button class="btn btn-sm" onclick="announcementEditor(\''+a.id+'\')">'+ico('edit')+'Edit</button> <button class="btn btn-sm btn-d" onclick="removeAnnouncement(\''+a.id+'\')">'+ico('trash')+'</button></td></tr>';}).join('');
+  return '<div class="card"><div class="card-h"><div class="card-t"><span class="ico">'+ico('bell')+'</span>Announcements</div><button class="btn btn-sm btn-p" onclick="announcementEditor()">'+ico('plus')+'New announcement</button></div><div class="tw" style="border:0;border-radius:0"><table class="t"><thead><tr><th>Announcement</th><th>Priority</th><th>Audience</th><th>Publish</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+(rows||emptyRow(6,'No announcements','Publish the first company notice.'))+'</tbody></table></div></div>';
 }
 function announcementEditor(id){
-  if(!isAdmin()){toast('Admin access is required',false);return;}var a=(STORE.announcements||[]).find(function(x){return x.id===id;})||{},isNew=!a.id;
+  if(!canManageAnnouncements()){toast('Announcement publishing access is required',false);return;}var a=(STORE.announcements||[]).find(function(x){return x.id===id;})||{},isNew=!a.id;
   var audiences='<option value="all">Everyone</option>'+uniqueList(DEPTS.concat((STORE.resourceDirectory||[]).map(function(r){return r.dept;}).filter(Boolean))).map(function(d){return '<option value="dept:'+esc(d)+'"'+(a.audience==='dept:'+d?' selected':'')+'>'+esc(d)+'</option>';}).join('');
   var m=document.createElement('div');m.className='mod';m.innerHTML='<div class="mod-in"><div class="mod-h"><div><div class="mod-t">'+(isNew?'New':'Edit')+' announcement</div><div class="mod-s">The notice will sync to every connected device.</div></div><button class="mod-x" id="anx">&times;</button></div><div class="mod-b"><div class="form">'
     +fld('anTitle','Title <span class="req">*</span>','<input id="anTitle" value="'+esc(a.title||'')+'">','',true)
     +fld('anMessage','Message <span class="req">*</span>','<textarea id="anMessage" style="min-height:130px">'+esc(a.message||'')+'</textarea>','',true)
     +fld('anPriority','Priority','<select id="anPriority"><option value="normal"'+(a.priority==='normal'?' selected':'')+'>Normal</option><option value="important"'+(a.priority==='important'?' selected':'')+'>Important</option><option value="urgent"'+(a.priority==='urgent'?' selected':'')+'>Urgent</option></select>')
     +fld('anAudience','Audience','<select id="anAudience">'+audiences+'</select>')
-    +fld('anPublish','Publish date & time','<input id="anPublish" type="datetime-local" value="'+esc(baghdadInputFromISO(a.publishAt||''))+'">','Leave blank to publish immediately (Baghdad time).')
-    +fld('anExpires','Expiry date & time','<input id="anExpires" type="datetime-local" value="'+esc(baghdadInputFromISO(a.expiresAt||''))+'">','Baghdad time.')
+    +fld('anPublish','Publish date & time','<input id="anPublish" type="datetime-local" value="'+esc((a.publishAt||'').slice(0,16))+'">')
+    +fld('anExpires','Expiry date & time','<input id="anExpires" type="datetime-local" value="'+esc((a.expiresAt||'').slice(0,16))+'">')
     +'<div class="fld wide"><label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0"><input id="anActive" type="checkbox" style="width:16px;height:16px"'+(a.active!==false?' checked':'')+'> Active</label></div>'
-    +'<div class="fld wide"><label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0"><input id="anEmail" type="checkbox" style="width:16px;height:16px"'+(isNew?' checked':'')+'> Email this announcement to the selected audience</label><div class="hint">Recipients come from Company Directory. Employees without a company email are skipped.</div></div></div></div><div class="mod-f"><div class="grow"></div><button class="btn" id="anc">Cancel</button><button class="btn btn-p" id="ans">Publish announcement</button></div></div>';
+    +'<div class="fld wide" style="padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--soft)"><label style="display:flex;gap:8px;align-items:flex-start;text-transform:none;letter-spacing:0"><input id="anSendEmail" type="checkbox" style="width:16px;height:16px;margin-top:2px" checked><span><b>Email all employees after saving</b><br><span style="font-size:12px;color:var(--muted)">'+ANNOUNCEMENT_GROUP_EMAIL+' · Outlook will open with the announcement ready to send.</span></span></label></div></div></div><div class="mod-f"><div class="grow"></div><button class="btn" id="anc">Cancel</button><button class="btn btn-p" id="ans">Save announcement</button></div></div>';
   document.body.appendChild(m);var close=function(){m.remove();};m.querySelector('#anx').onclick=close;m.querySelector('#anc').onclick=close;
-  m.querySelector('#ans').onclick=async function(){var title=val('anTitle'),message=val('anMessage');if(!title||!message){toast('Enter the title and message',false);return;}
-    var sendEmail=document.getElementById('anEmail').checked,saveButton=this;saveButton.disabled=true;
-    var n={id:a.id||uid('an'),title:title,message:message,priority:val('anPriority'),audience:val('anAudience')||'all',publishAt:val('anPublish')?baghdadInputToISO(val('anPublish')):'',expiresAt:val('anExpires')?baghdadInputToISO(val('anExpires')):'',active:document.getElementById('anActive').checked,created:a.created||nowISO(),updated:nowISO(),createdBy:a.createdBy||(ME&&ME.name)||'',readBy:a.readBy||{}};
-    if(isNew)STORE.announcements.unshift(n);else Object.keys(n).forEach(function(k){a[k]=n[k];});auditRecord(isNew?'publish':'update','announcement',n.id,n.title);queueAnnouncementsForSync();save();
-    var shared=await syncAnnouncementsNow();
-    if(!shared){saveButton.disabled=false;return;}
-    close();render();
-    if(sendEmail)await emailAnnouncement(n.id);
-  };
+  m.querySelector('#ans').onclick=function(){var title=val('anTitle'),message=val('anMessage');if(!title||!message){toast('Enter the title and message',false);return;}
+    var n={id:a.id||uid('an'),title:title,message:message,priority:val('anPriority'),audience:val('anAudience')||'all',publishAt:val('anPublish')?new Date(val('anPublish')).toISOString():nowISO(),expiresAt:val('anExpires')?new Date(val('anExpires')).toISOString():'',active:document.getElementById('anActive').checked,created:a.created||nowISO(),createdBy:a.createdBy||(ME&&ME.name)||'',readBy:a.readBy||{}};
+    var sendEmail=document.getElementById('anSendEmail').checked;
+    if(isNew)STORE.announcements.unshift(n);else Object.keys(n).forEach(function(k){a[k]=n[k];});auditRecord(isNew?'publish':'update','announcement',n.id,n.title);save();close();render();toast(sendEmail?'Announcement saved — opening company email':'Announcement saved',true);if(sendEmail)setTimeout(function(){emailAnnouncement(n.id);},120);};
 }
 function removeAnnouncement(id){
-  if(!isAdmin())return;var a=(STORE.announcements||[]).find(function(x){return x.id===id;});if(!a||!confirm('Delete announcement "'+a.title+'"?'))return;
-  STORE.announcements=STORE.announcements.filter(function(x){return x.id!==id;});auditRecord('delete','announcement',id,a.title);queueAnnouncementsForSync();save();syncAnnouncementsNow();render();
+  if(!canManageAnnouncements())return;var a=(STORE.announcements||[]).find(function(x){return x.id===id;});if(!a||!confirm('Delete announcement "'+a.title+'"?'))return;
+  STORE.announcements=STORE.announcements.filter(function(x){return x.id!==id;});auditRecord('delete','announcement',id,a.title);save();render();toast('Announcement deleted',true);
 }
 
 /* Enhance the existing dashboard and Admin centre without duplicating them. */
